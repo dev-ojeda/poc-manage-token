@@ -35,26 +35,6 @@ def admin_required(f):
         return f(user=decoded, *args, **kwargs)
     return decorated_function
 
-def jwt_required(token_generator: TokenGenerator, expected_type="access"):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            public_paths = ["/auth", "/static", "/favicon.ico"]
-            if any(request.path.startswith(p) for p in public_paths):
-                return f(*args, **kwargs)
-            auth = request.headers.get("Authorization", "")
-            token = auth.replace("Bearer ", "") if auth.startswith("Bearer ") else None
-            if not token:
-                return jsonify({"msg": "Token no enviado"}), 401
-            try:
-                payload = token_generator.verify_token(token, expected_type=expected_type)
-                g.jwt_payload = payload
-            except Exception as e:
-                return jsonify({"msg": f"Error inesperado: {str(e)}"}), 400
-
-            return f(*args, **kwargs)
-        return wrapper
-    return decorator
 
 def jwt_required_app(token_generator: TokenGenerator, expected_type="access"):
     def decorator(f):

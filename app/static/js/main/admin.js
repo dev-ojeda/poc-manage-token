@@ -7,6 +7,7 @@ import { openChat } from "../modules/chatHandler.js";
 import { AuditPanel } from "../modules/auditPanel.js";
 import { renderAuditLogs } from "../modules/auditTable.js";
 import { emitEvent, on } from "../utils/eventBus.js";
+import { handleError, clearSession } from "../utils/errors.js";
 const api_admin = new ApiAdmin({
     baseURL: import.meta.env?.VITE_API_URL || "https://localhost",
     storage: new LocalStorageAdapter()
@@ -70,23 +71,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.addEventListener("tokenRefreshed", async (e) => {
         e.preventDefault();
         await loadActiveSessions();
+        e.stopPropagation();
     });
     // Eventos generales
     document.getElementById("logoutBtn")?.addEventListener("click", async (e) => {
         e.preventDefault();
         await api_admin.logout_admin();
-        e.stopPropagation();
         PollingManager.detener();
+        e.stopPropagation();
     });
-    document.getElementById("statusFilter")?.addEventListener("change", async (event) => {
-        event.preventDefault();
-        //lastFetchTime = null;
-        filtro = event.target.value;
-        document.querySelector("#sessionsTable tbody").innerHTML = "";
-        await loadActiveSessions(filtro);
-        event.stopPropagation();
-    })   
-
 });
 on('auditLogsLoaded', logs => {
     renderAuditLogs(logs); // función propia para mostrar en tabla
@@ -165,7 +158,7 @@ async function tryRefreshToken() {
             await api.logout("intentos");
         }
     } catch (err) {
-        api_admin.handleError(err)
+        handleError(err)
         await api_admin.logout("intentos");
     }
 }
@@ -191,7 +184,10 @@ function startTokenTimer(expTimestamp) {
     }, 1000);
 }
 
-async function loadActiveSessions(filtro) {
+async function loadActiveSessions() {
+
+    const filtro = document.getElementById("statusFilter").value;
+    console.log("FILTRO: " + filtro);
     if (filtro === null || filtro === undefined) {
         filtro = null;
     }
@@ -237,14 +233,15 @@ async function loadActiveSessions(filtro) {
                 <td data-label="Acciones">${renderButtonRevocar(session, isCurrent)}</td>
             `;
             tbody.appendChild(row);
+            tbody.querySelectorAll(".btn-revocar").forEach(btn => {
+                btn.addEventListener("click", () => revocarSesion(btn));
+            });
 
-        });
-        tbody.querySelectorAll(".btn-revocar").forEach(btn => {
-            btn.addEventListener("click", () => revocarSesion(btn));
         });
 
     } catch (error) {
         console.error("Error al cargar sesiones activas", error);
+        handleError(error);
     }
 }
 function formatDate(timestamp) {
@@ -275,10 +272,10 @@ function applyRoleVisibility(rol) {
 
 }
 async function revocarSesion(btn) {
-    const isCurrent = btn.getAttribute("data-username") === api_user.userName;
-    const isCurrentDevice = btn.getAttribute("data-device") === api_user.deviceId;
-    const isCurrentRol = btn.getAttribute("data-rol") === api_user.userRol;
-    const isCurrentRefresh = btn.getAttribute("data-refresh") === api_user.refreshToken;
+    const isCurrent = btn.getAttribute("data-username");
+    const isCurrentDevice = btn.getAttribute("data-device");
+    const isCurrentRol = btn.getAttribute("data-rol");
+    const isCurrentRefresh = btn.getAttribute("data-refresh");
 
     if (isCurrent) showAlert(`👋 Cerrando sesión actual`, "info", 8000);
     if (isCurrentDevice) showAlert(`⚠️ Ya existe Device ${isCurrentDevice}`, "warning", 8000);
@@ -302,7 +299,7 @@ async function revocarSesion(btn) {
         showAlert("✅ Sesión revocada correctamente", "success");
         if (isCurrent) {
             setTimeout(() => {
-                this.api.clearSession();
+                clearSession();
                 location.href = "/?revoked=true";
             }, 2000);
         } else {

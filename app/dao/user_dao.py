@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from bson import ObjectId
 from pymongo.errors import PyMongoError
-from pymongo.results import UpdateResult
 from app.model.user import User
 from icecream import ic
 
@@ -48,14 +47,16 @@ class UserDAO:
         }
 
         return self.find_one(query=query, projection=projection)  # Podés incluir `projection` si extendés el método
-    def find_one(self, query: dict = {}, projection: Optional[dict] = None) -> Optional[User]:
+    def find_one(self, query: Optional[dict] = None, projection: Optional[dict] = None) -> User | None:
+        query = query or {}
+        projection = projection or {}
         try:
             result = self.db.find_one(collection=self.users, query=query, projection=projection)
             ic(f"[FIND ONE USER]: {result}")
             return User.from_dict(result) if result else None
         except PyMongoError as e:
             ic(f"❌ Error en find_one: {e}")
-            raise
+            return None
     def find_ids_users(self) -> List[User]:
         query = {"role": {"$ne": "Admin"}}
         projection = {"_id": 1}
@@ -68,7 +69,8 @@ class UserDAO:
             ic(f"❌ Error en find_all: {e}")
             raise
 
-    def count_documents(self, filtro: dict = {}) -> int:
+    def count_documents(self, filtro: Optional[dict] = None) -> int:
+        filtro = filtro or {}
         try:
             return self.db.count_documents(self.users, filtro)
         except PyMongoError as e:
@@ -80,8 +82,8 @@ class UserDAO:
             query = {
                "blocked_until": { "$gt": datetime.now(timezone.utc) }
             }
-            result = self.db.count_documents(self.collection[0],query)
-            return result if result else None
+            result = self.db.count_documents(self.users,query)
+            return result if result else 0
         except PyMongoError as e:
             ic(f"Error en find_one: {e}")
             raise

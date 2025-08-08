@@ -47,24 +47,6 @@ class MongoDatabase:
             self.client.close()
             ic("Conexión a MongoDB cerrada")
 
-    def transactional_insert(self, collection: str, document: dict, context: str = "") -> dict:
-        try:
-            with self.client.start_session() as session:
-                with session.start_transaction():
-                    result: InsertOneResult = self.db[collection].insert_one(document, session=session)
-                    self.logger.info(f"[{context}] Documento insertado dentro de transacción: {result.inserted_id}")
-                    return {
-                        "success": True,
-                        "inserted_id": result.inserted_id
-                    }
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] Error en transacción: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "trace": traceback.format_exc()
-            }
-
     def insert_one(self, collection: str, document: dict) -> InsertOneResult:
         """Inserta un solo documento"""
         try:
@@ -83,29 +65,33 @@ class MongoDatabase:
             ic(f"Error en batch insert: {e}")
             raise
 
-    def find(self, collection: str, query: dict = {}, projection: Optional[dict] = None) -> list[dict]:
+    def find(self, collection: str, query: Optional[dict] = None, projection: Optional[dict] = None) -> list[dict]:
         """Realiza una búsqueda y retorna una lista de documentos"""
+        query = query or {}
+        projection = projection or {}
         try:
             result = list(self.db[collection].find(query, projection))
             return result if result else None
         except PyMongoError as e:
             ic(f"Error en búsqueda: {e}")
-            raise
+            return None
 
-    def find_one(self, collection: str, query: dict = {}, projection: Optional[dict] = None) -> Optional[dict]:
+    def find_one(self, collection: str, query: Optional[dict] = None, projection: Optional[dict] = None) -> Optional[dict]:
         """Devuelve un solo documento"""
+        query = query or {}
+        projection = projection or {}
         try:
-           return self.db[collection].find_one(query,projection)
+            result = self.db[collection].find_one(query,projection)
+            return result if result else None 
         except PyMongoError as e:
             ic(f"Error en find_one: {e}")
-            raise
+            return None
 
-    def count_documents(self, collection: str, filtro: dict = {}) -> int:
+    def count_documents(self, collection: str, filtro: Optional[dict] = None) -> int:
         """Cuenta documentos que cumplan cierto filtro (vacío = total)"""
+        filtro = filtro or {}
         try:
-            count  = self.db[collection].count_documents(filtro)
-            ic(f"Total documentos encontrados: {count}")
-            return count 
+            return self.db[collection].count_documents(filtro)
         except PyMongoError as e:
             ic(f"Error en find_one: {e}")
             raise
@@ -155,18 +141,6 @@ class MongoDatabase:
         except PyMongoError as e:
             ic(f"Error al eliminar: {e}")
             raise
-
-    def export_to_json(self, collection: str, query: dict = {}, output_file: str = "resultados.json") -> bool:
-        """Exporta una colección o consulta a un archivo JSON"""
-        try:
-            documentos = self.find(collection, query)
-            with open(output_file, "w", encoding="utf-8") as f:
-                json.dump(documentos, f, indent=4, ensure_ascii=False, default=str)
-            ic(f"Datos exportados a {output_file}")
-            return True
-        except Exception as e:
-            ic(f"Error exportando a JSON: {e}")
-            return False
 
     def watch_sessions_for_admin(self):
         with self.db["refresh_tokens"].watch() as stream:
@@ -267,7 +241,7 @@ class MongoDatabase:
             with self.client.start_session() as session:
                 with session.start_transaction():
                     result = list(self.db[collection].aggregate(pipeline=pipeline,session=session))
-                    self.logger.info(f"[AGGREGATE]: {result}")
+                    self.logger.info("[AGGREGATE]: %s", result)
                     return result
         except PyMongoError as e:
             msg = f"❌ Error al List en MongoDB: {e.__class__.__name__}: {e}"

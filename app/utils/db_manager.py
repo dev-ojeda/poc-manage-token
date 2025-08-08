@@ -27,16 +27,7 @@ class DbManager:
             {"_id": 0, "device_id": 1, "user_agent": 1, "ip_address": 1, "expires_at": 1}
         )
         return list(devices)
-    def get_active_sessions(self,username: str):
-        devices = self.conexion.find(self.refresh_tokens,
-            {
-                "username": username, 
-                "revoked_at": None, 
-                "expires_at": {"$gt": datetime.now(timezone.utc)},
-                "username": { "$not": { "$in": ["admin@example.com"] } }
-            }
-        )
-        return list(devices)
+
     def update_store_refresh_token_revoked(self, username: str, device_id: str) -> dict:
         return self.conexion.update_with_log(self.refresh_tokens,
             {"username": username, "device_id": device_id },
@@ -63,7 +54,7 @@ class DbManager:
 
         return True  # Válido
     def is_token_revoked(self, jti: str) -> bool:
-         return self.conexion.count_documents(self.token_blacklist,{"jti": jti}) > 0
+        return self.conexion.count_documents(self.token_blacklist,{"jti": jti}) > 0
     def get_refresh_token(self, refresh_token: str) -> dict | None:
         query = {"refresh_token": refresh_token}
         doc = self.conexion.find_one(self.refresh_tokens, query)
@@ -118,7 +109,7 @@ class DbManager:
             context="Revocar Token Blacklist"
         )
     def revoke_token_sessions(self, jti= str, device_id=None, username=None) -> UpdateResult:
-         return self.conexion.update_one(self.refresh_tokens,
+        return self.conexion.update_one(self.refresh_tokens,
             {"jti": jti, "username": username, "device_id": device_id},
             {"$set": {"revoked_at": int(datetime.now(timezone.utc).timestamp())}},upsert=True
         )
@@ -199,51 +190,56 @@ class DbManager:
 
    
 
-        # return list(self.conexion.find(self.refresh_tokens, query, projection))
-    def log_audit_event(self, session_id: str, user_id: str, event_type: str,
-                 old_value: str, new_value: str,
-                 ip_address: str = None, user_agent: str = None):
-     """
-     Registra un evento de auditoría en la colección session_audit.
+    # return list(self.conexion.find(self.refresh_tokens, query, projection))
+    def log_audit_event(self, 
+                        session_id: str, 
+                        user_id: str, 
+                        event_type: str,
+                        old_value: str, 
+                        new_value: str,
+                        ip_address: str = None, 
+                        user_agent: str = None):
+        """
+        Registra un evento de auditoría en la colección session_audit.
 
-     :param db: Instancia de la base de datos MongoDB.
-     :param session_id: ID de la sesión afectada.
-     :param user_id: ID del usuario afectado.
-     :param event_type: Tipo de evento ('ip_change', 'user_agent_change', 'revoked', etc.).
-     :param old_value: Valor anterior del campo modificado.
-     :param new_value: Valor nuevo del campo.
-     :param ip_address: IP actual (opcional).
-     :param user_agent: User-Agent actual (opcional).
-     """
-     event = {
-         "session_id": session_id,
-         "user_id": user_id,
-         "event_type": event_type,
-         "old_value": old_value,
-         "new_value": new_value,
-         "ip_address": ip_address,
-         "user_agent": user_agent,
-         "timestamp": datetime.now(timezone.utc)
-     }
-     self.conexion.insert_one(self.session_audit, event)
+        :param db: Instancia de la base de datos MongoDB.
+        :param session_id: ID de la sesión afectada.
+        :param user_id: ID del usuario afectado.
+        :param event_type: Tipo de evento ('ip_change', 'user_agent_change', 'revoked', etc.).
+        :param old_value: Valor anterior del campo modificado.
+        :param new_value: Valor nuevo del campo.
+        :param ip_address: IP actual (opcional).
+        :param user_agent: User-Agent actual (opcional).
+        """
+        event = {
+            "session_id": session_id,
+            "user_id": user_id,
+            "event_type": event_type,
+            "old_value": old_value,
+            "new_value": new_value,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "timestamp": datetime.now(timezone.utc)
+        }
+        self.conexion.insert_one(self.session_audit, event)
     def upsert_refresh_token(self, **kwargs) -> dict:
     
-     device_id = kwargs["device_id"]
-     username = kwargs["username"]
-     # Buscar sesión previa con mismo usuario + dispositivo
-     previous_session = self.find_previous_session(username=username,device_id=device_id)
+        device_id = kwargs["device_id"]
+        username = kwargs["username"]
+        # Buscar sesión previa con mismo usuario + dispositivo
+        previous_session = self.find_previous_session(username=username,device_id=device_id)
 
-     ic(f"[AUDITORÍA] SESSION PREVIOUS: {previous_session}")
+        ic(f"[AUDITORÍA] SESSION PREVIOUS: {previous_session}")
 
-     if previous_session is not None:
-         event_audit = self.insert_event_audit(previous_session=previous_session, **kwargs)
-         ic(event_audit)
+        if previous_session is not None:
+            event_audit = self.insert_event_audit(previous_session=previous_session, **kwargs)
+            ic(event_audit)
    
-     return self.update_refresh_token(**kwargs)
+        return self.update_refresh_token(**kwargs)
     def find_previous_session(self, username: str, device_id: str) -> dict:
         # Buscar sesión previa con mismo usuario + dispositivo
         return self.conexion.find_one(
-             self.get_active_sessions,
+             self.active_sessions,
              {"username": username, "device_id":device_id}
         )
     def insert_event_audit(self, previous_session: dict, **kwargs) -> dict:
@@ -252,7 +248,7 @@ class DbManager:
         ua_changed = previous_session.get("user_agent") != kwargs["user_agent"]
 
         if ip_changed or ua_changed:
-             audit_events = {
+            audit_events = {
                  "username": kwargs["username"],
                  "device_id": kwargs["device_id"],
                  "timestamp": datetime.now(timezone.utc),
@@ -261,20 +257,20 @@ class DbManager:
                  "old_user_agent": previous_session.get("user_agent"),
                  "new_user_agent": kwargs["user_agent"],
                  "reason": []
-             }
-             if ip_changed:
-                 audit_events["reason"].append("ip_changed")
-             if ua_changed:
-                 audit_events["reason"].append("user_agent_changed")
+            }
+            if ip_changed:
+                audit_events["reason"].append("ip_changed")
+            if ua_changed:
+                audit_events["reason"].append("user_agent_changed")
             
-             ic(f"[AUDITORÍA] Cambio sospechoso detectado: {audit_events}") 
+            ic(f"[AUDITORÍA] Cambio sospechoso detectado: {audit_events}") 
 
         return self.conexion.insert_with_log(self.session_audit, audit_events,context="Evento Auditoria")
     def update_refresh_token(self, **kwargs) -> dict:
-         expires_at = self.update_datetime_format_iso((self.get_datetime_now() + timedelta(seconds=360)))
-         created_at = self.update_datetime_format_iso(self.get_datetime_now())
-         update_at = self.update_datetime_format_iso(self.get_datetime_now())
-         return self.conexion.update_with_log(self.refresh_tokens,
+        expires_at = self.update_datetime_format_iso((self.get_datetime_now() + timedelta(seconds=360)))
+        created_at = self.update_datetime_format_iso(self.get_datetime_now())
+        update_at = self.update_datetime_format_iso(self.get_datetime_now())
+        return self.conexion.update_with_log(self.refresh_tokens,
              {"username":  kwargs["username"], "device_id":  kwargs["device_id"]},
              {
                  "$set": {

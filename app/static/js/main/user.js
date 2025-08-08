@@ -2,6 +2,7 @@ import { showAlert } from "../layout.js";
 import { ApiUser } from "../api/ApiUser.js";
 import { LocalStorageAdapter } from "../adapters/LocalStorageAdapter.js";
 import { openChat } from "../modules/chatHandler.js";
+import { handleError } from "../utils/errors.js";
 const api_user = new ApiUser({
     baseURL: import.meta.env?.VITE_API_URL || "https://localhost",
     storage: new LocalStorageAdapter()
@@ -10,10 +11,10 @@ const api_user = new ApiUser({
 let tokenTimerInterval = null;
 // Inicializar al cargar DOM
 document.addEventListener("DOMContentLoaded", async () => {
-    const user_rol = api_user.userRol;
-    const user_name = api_user.userName;
+    const user_rol = api_user.getUserRol();
+    const user_name = api_user.getUserName();
     const dashboardContent = document.getElementById("dashboardContent");
-    const expiracion = api_user.tokenExp;
+    const expiracion = api_user.getTokenExp();
     if (!user_rol) {
         console.warn("No hay token válido, redirigiendo...");
         window.location.href = "/";
@@ -49,7 +50,7 @@ function showContentByRole(rol) {
     // Agrega más roles si es necesario
 }
 async function tryRefreshToken() {
-    const refreshToken = api_user.refreshToken;
+    const refreshToken = await api_user.getRefreshToken();
     if (!refreshToken) {
         showAlert("⚠️ No hay refresh token guardado.", "warning", 4000);
         await api_user.logout();
@@ -60,7 +61,7 @@ async function tryRefreshToken() {
         const response = await fetch("/api/auth/refresh", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refresh_token: refreshToken, device_id: api_user.deviceId, user_agent: api.userAgent })
+            body: JSON.stringify({ refresh_token: refreshToken, device_id: api_user.getDeviceId, user_agent: api_user.getBrowserInfo() })
         });
         const data = await response.json();
         if (response.ok) {
@@ -79,7 +80,7 @@ async function tryRefreshToken() {
             await api_user.logout("intentos");
         }
     } catch (err) {
-        api_user.handleError(err)
+        handleError(err)
         await api_user.logout("intentos");
     }
 }

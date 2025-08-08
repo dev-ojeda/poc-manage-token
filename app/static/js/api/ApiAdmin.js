@@ -1,5 +1,6 @@
 // ApiClient.js
 import { showAlert } from "../layout.js";
+import { handleError } from "../utils/errors.js";
 export class ApiAdmin {
     constructor(params = {}) {
         const { baseURL, storage, timeout = 8000, retries = 2, retryDelay = 1000 } = params;
@@ -64,6 +65,7 @@ export class ApiAdmin {
                 throw new Error(`⏱️ La solicitud a ${resource} fue abortada por timeout (${timeout}ms)`);
             }
             throw error;
+            handleError(error);
         } finally {
             clearTimeout(id);
         }
@@ -110,7 +112,7 @@ export class ApiAdmin {
                 return this.fetch(endpoint, options, retries - 1, retryDelay * 2);
             }
 
-            this.handleError(err);
+            handleError(err);
             throw err;
         }
     }
@@ -124,41 +126,6 @@ export class ApiAdmin {
         this.storage.setItem("refresh_token", refresh_token);
     }
 
-    handleError(err) {
-        const msg = err?.message || "";
-
-        if (msg.includes("expirada") || msg.includes("ExpiredSignatureError")) {
-            showAlert("⏳ Tu sesión ha expirado. Iniciá sesión nuevamente.", "info", 6000);
-        }
-        else if (msg.includes("Bloqueado")) {
-            showAlert(msg, "warning", 8000);
-        }
-        else if (msg.includes("InvalidAudienceError")) {
-            showAlert("⚠️ El token no corresponde a este cliente (audiencia inválida).", "danger", 8000);
-        }
-        else if (msg.includes("InvalidIssuerError")) {
-            showAlert("⚠️ Emisor del token inválido. Contactá a soporte.", "danger", 8000);
-        }
-        else if (msg.includes("InvalidTokenError") || msg.includes("Token inválido")) {
-            showAlert("❌ Token inválido o corrupto. Por favor, volvé a iniciar sesión.", "danger", 8000);
-        }
-        else if (msg.includes("Error 403")) {
-            showAlert("🚫 Demasiados intentos. Esperá un momento antes de intentar de nuevo.", "warning", 8000);
-        }
-        else if (msg.includes("Error 401") || msg.includes("Credenciales incorrectas")) {
-            showAlert("❌ Usuario o contraseña incorrecta", "danger", 5000);
-        }
-        else if (msg.includes("Error")) {
-            showAlert(msg, "danger", 8000);
-        }
-        else {
-            showAlert(`❌ Error inesperado: ${msg}`, "danger", 8000);
-        }
-        this.clearSession();
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-
     async getToken() {
         const token = await this.storage.get("access_token");
         if (!token) throw new Error("Token no encontrado");
@@ -169,12 +136,6 @@ export class ApiAdmin {
         if (!token) throw new Error("Token no encontrado");
         return token;
     }
-    clearSession() {
-        this.storage.clear();
-        console.log("COUNT: " + this.storage.count())
-        //window.location.href = "/login?logout=true";
-    }
-
     getDeviceId() {
         let device_id = crypto.randomUUID();
         this.storage.set("device_id", device_id);
@@ -240,7 +201,7 @@ export class ApiAdmin {
 
             return true;
         } catch (err) {
-            this.handleError(err);
+            handleError(err);
             return false;
         }
     }
@@ -266,7 +227,7 @@ export class ApiAdmin {
             }
 
         } catch (err) {
-            this.handleError(err);
+            handleError(err);
             return false;
         }
     }

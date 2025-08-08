@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from datetime import datetime, timezone
 from typing import Optional, Literal
 from bson import ObjectId
@@ -21,26 +18,110 @@ class User:
         already_hashed: bool = False
     ):
         self._id = _id or ObjectId()
-        self.username = username
+        self._username = username
+        # Usamos el setter para que aplique hash si es necesario
         self.password = password if already_hashed else self.hash_password(password)
-        self.email = email
-        self.rol = rol
-        self.created_at = created_at or datetime.now(timezone.utc)
-        self.updated_at = updated_at or datetime.now(timezone.utc)
-        self.failed_attempts = failed_attempts
-        self.blocked_until = blocked_until
+        self._email = email
+        self._rol = rol
+        self._created_at = created_at or datetime.now(timezone.utc)
+        self._updated_at = updated_at or datetime.now(timezone.utc)
+        self._failed_attempts = failed_attempts
+        self._blocked_until = blocked_until
 
+    # Getter y setter para _id (solo getter porque el id no debería cambiar)
+    @property
+    def id(self) -> ObjectId:
+        return self._id
+
+    # Getter y setter para username
+    @property
+    def username(self) -> str:
+        return self._username
+
+    @username.setter
+    def username(self, value: str):
+        # Aquí podrías validar, ej. que no esté vacío
+        if not value:
+            raise ValueError("Username no puede estar vacío")
+        self._username = value
+
+    # Getter y setter para password (settear con hash)
+    @property
+    def password(self) -> str:
+        return self._password
+
+    @password.setter
+    def password(self, plain_password: str):
+        # Siempre guarda la versión hasheada
+        self._password = self.hash_password(plain_password)
+
+    # Getter y setter para email
+    @property
+    def email(self) -> Optional[str]:
+        return self._email
+
+    @email.setter
+    def email(self, value: Optional[str]):
+        # Aquí podrías validar formato email si quieres
+        self._email = value
+
+    # Getter y setter para rol
+    @property
+    def rol(self) -> Literal["User", "Admin"]:
+        return self._rol
+
+    @rol.setter
+    def rol(self, value: Literal["User", "Admin"]):
+        if value not in ["User", "Admin"]:
+            raise ValueError("Rol debe ser 'User' o 'Admin'")
+        self._rol = value
+
+    # created_at solo getter (no se debe cambiar)
+    @property
+    def created_at(self) -> datetime:
+        return self._created_at
+
+    # updated_at getter y setter
+    @property
+    def updated_at(self) -> datetime:
+        return self._updated_at
+
+    @updated_at.setter
+    def updated_at(self, value: datetime):
+        self._updated_at = value
+
+    # failed_attempts getter y setter
+    @property
+    def failed_attempts(self) -> int:
+        return self._failed_attempts
+
+    @failed_attempts.setter
+    def failed_attempts(self, value: int):
+        if value < 0:
+            raise ValueError("failed_attempts no puede ser negativo")
+        self._failed_attempts = value
+
+    # blocked_until getter y setter
+    @property
+    def blocked_until(self) -> Optional[datetime]:
+        return self._blocked_until
+
+    @blocked_until.setter
+    def blocked_until(self, value: Optional[datetime]):
+        self._blocked_until = value
+
+    # Métodos que ya tenías (sin cambios salvo usar propiedades internas)
     def to_dict(self) -> dict:
         return {
             "_id": self._id,
-            "username": self.username,
-            "password": self.password,
-            "email": self.email,
-            "rol": self.rol,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "failed_attempts": self.failed_attempts,
-            "blocked_until": self.blocked_until
+            "username": self._username,
+            "password": self._password,
+            "email": self._email,
+            "rol": self._rol,
+            "created_at": self._created_at,
+            "updated_at": self._updated_at,
+            "failed_attempts": self._failed_attempts,
+            "blocked_until": self._blocked_until
         }
 
     def to_json(self):
@@ -57,6 +138,7 @@ class User:
 
     def update_timestamp(self) -> datetime:
         self.updated_at = datetime.now(timezone.utc)
+        return self.updated_at
 
     @staticmethod
     def from_dict(data: dict) -> "User":

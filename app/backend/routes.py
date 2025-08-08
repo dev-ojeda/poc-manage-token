@@ -7,15 +7,15 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from app.auth.services.auth_service import AuthService
 from app.auth.services.user_service import UserService
+from app.model.token_generator import TokenGenerator
 from app.utils.db_manager import DbManager
 from flask import Blueprint, jsonify, make_response, request
 from icecream import ic
 
-from auth.services.session_service import SessionService
-from midleware.jwt_guard import jwt_required_custom, jwt_required_custom_refresh, log_refresh_attempt
-from model.token_generator import TokenGenerator
-from model.user import User
-from model.user_session import UserSession
+from app.auth.services.session_service import SessionService
+from app.midleware.jwt_guard import jwt_required_custom, jwt_required_custom_refresh, log_refresh_attempt
+from app.model.user import User
+from app.model.user_session import UserSession
 
 backend_bp = Blueprint("backend", __name__)
 MAX_ATTEMPTS = 3
@@ -51,11 +51,10 @@ def login():
             "code": "USER_BLOCKED"
         })
 
-    if not User.verify_password(data["password"], user_model.password):
-        validate_fail_credentials = us.handle_failed_login(user_model=user_model)
-        if not validate_fail_credentials.get("success"):
-            return jsonify({"msg": validate_fail_credentials.get("message"), "code": "INVALID_FAIL_CREDENTIALS"})
-        return jsonify({"msg": "Credenciales incorrectas", "code": "INVALID_CREDENTIALS"})
+    
+    validate_fail_credentials = us.handle_failed_login(user_model=user_model)
+    if not validate_fail_credentials.get("success"):
+        return jsonify({"msg": validate_fail_credentials.get("message"), "code": "INVALID_FAIL_CREDENTIALS"})
 
     validate_attempts = us.reset_login_attempts(user_model=user_model)
     if not validate_attempts.get("success"):
@@ -77,9 +76,10 @@ def login():
     if not validate_upsert_user_token.get("success"):
         return jsonify({"msg": validate_upsert_user_token.get("message"), "code": "INVALID_UPSERT_TOKENS"})
 
+
     # Crear instancia de sesión
     user_model_session = UserSession(
-        user_id= user_model._id,
+        user_id=user_model.id,
         device_id=decoded.get("device_id"),
         ip_address=ip_address,
         browser=browser,
@@ -195,8 +195,6 @@ def refresh():
             "exp": decoded.get("exp")
         }), 200
 
-    except (ExpiredSignatureError, InvalidAudienceError, InvalidIssuerError, InvalidTokenError, DecodeError) as e:
-            raise e
     except Exception as e:
         return jsonify({"msg": f"Error interno: {str(e)}", "code": "InternalServerError"}), 500
 
@@ -235,7 +233,7 @@ def logout(user,user_token_refresh):
         # 📝 Log opcional (auditoría)
         
         user_model: User = us.get_user_by_username(username=username)
-        user_sesion = ss.update_session(user_id=ObjectId(user_model._id))
+        user_sesion = ss.update_session(user_id=ObjectId(user_model.id))
         if not user_sesion["success"]:
             return jsonify({"msg": user_sesion.get("message"), "code": "INVALID_SESSION_CLOSED"})
         ic(f"🔒 Logout: {username} desde IP {client_ip} usando device_id {device_id}")

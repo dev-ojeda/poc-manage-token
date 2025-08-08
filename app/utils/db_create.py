@@ -104,7 +104,7 @@ def db_create_collection():
                 validationAction="error"
               )
             except errors.CollectionInvalid as e:
-                ic("La colección ya existe, continuando con los índices...")
+                ic(f"La colección ya existe, continuando con los índices... {e}")
             try:
                 db.session_audit.create_index(
                     [("session_id", ASCENDING), ("device_id", ASCENDING), ("timestamp", DESCENDING)],
@@ -130,85 +130,85 @@ def db_create_collection():
                 ic(f"Error creando índice: {e}")
         elif "active_sessions" not in db.list_collection_names():
             try:
-               db.create_collection("active_sessions", validator={
-                    "$jsonSchema": {
-                        "bsonType": "object",
-                        "required": ["user_id", "device_id", "ip_address", "browser", "os", "login_at", "refresh_token", "is_revoked", "status"],
-                        "properties": {
-                            "user_id": {
-                            "bsonType": "objectId",
-                            "description": "ID del usuario relacionado a la sesión"
-                            },
-                            "device_id": {
-                            "bsonType": "string",
-                            "description": "Identificador único del dispositivo"
-                            },
-                            "ip_address": {
-                            "bsonType": "string",
-                            "description": "Dirección IP del cliente"
-                            },
-                            "browser": {"bsonType": ["string", "null"],"description": "Navegador extraído del User-Agent"},
-                            "os":   {"bsonType": ["string", "null"],"description": "Sistema operativo extraído del User-Agent"},
-                            "login_at": {
-                            "bsonType": "date",
-                            "description": "Fecha/hora del inicio de sesión"
-                            },
-                            "last_refresh_at": {
-                            "bsonType": ["date", "null"],
-                            "description": "Fecha del último refresh token, si existe"
-                            },
-                            "refresh_token": {
-                            "bsonType": "string",
-                            "description": "Token de actualización asociado a la sesión"
-                            },
-                            "is_revoked": {
-                            "bsonType": "bool",
-                            "description": "Indica si la sesión ha sido revocada manualmente o por seguridad"
-                            },
-                            "revoked_at": {
-                            "bsonType": ["date", "null"],
-                            "description": "Fecha de revocación (si aplica)"
-                            },
-                            "reason": {
-                            "bsonType": ["string", "null"],
-                            "description": "Razón de la revocación (expulsión, expiración, múltiples intentos, etc.)"
-                            },
-                            "status": {
-                            "bsonType": "string",
-                            "enum": ["active", "revoked", "expired"],
-                            "description": "Estado lógico de la sesión"
-                            },
-                            "role": {
-                            "bsonType": ["string", "null"],
-                            "description": "Rol del usuario al momento de iniciar sesión"
+                db.create_collection("active_sessions", validator={
+                        "$jsonSchema": {
+                            "bsonType": "object",
+                            "required": ["user_id", "device_id", "ip_address", "browser", "os", "login_at", "refresh_token", "is_revoked", "status"],
+                            "properties": {
+                                "user_id": {
+                                "bsonType": "objectId",
+                                "description": "ID del usuario relacionado a la sesión"
+                                },
+                                "device_id": {
+                                "bsonType": "string",
+                                "description": "Identificador único del dispositivo"
+                                },
+                                "ip_address": {
+                                "bsonType": "string",
+                                "description": "Dirección IP del cliente"
+                                },
+                                "browser": {"bsonType": ["string", "null"],"description": "Navegador extraído del User-Agent"},
+                                "os":   {"bsonType": ["string", "null"],"description": "Sistema operativo extraído del User-Agent"},
+                                "login_at": {
+                                "bsonType": "date",
+                                "description": "Fecha/hora del inicio de sesión"
+                                },
+                                "last_refresh_at": {
+                                "bsonType": ["date", "null"],
+                                "description": "Fecha del último refresh token, si existe"
+                                },
+                                "refresh_token": {
+                                "bsonType": "string",
+                                "description": "Token de actualización asociado a la sesión"
+                                },
+                                "is_revoked": {
+                                "bsonType": "bool",
+                                "description": "Indica si la sesión ha sido revocada manualmente o por seguridad"
+                                },
+                                "revoked_at": {
+                                "bsonType": ["date", "null"],
+                                "description": "Fecha de revocación (si aplica)"
+                                },
+                                "reason": {
+                                "bsonType": ["string", "null"],
+                                "description": "Razón de la revocación (expulsión, expiración, múltiples intentos, etc.)"
+                                },
+                                "status": {
+                                "bsonType": "string",
+                                "enum": ["active", "revoked", "expired"],
+                                "description": "Estado lógico de la sesión"
+                                },
+                                "role": {
+                                "bsonType": ["string", "null"],
+                                "description": "Rol del usuario al momento de iniciar sesión"
+                                }
                             }
                         }
-                    }
-                },
-                validationLevel="strict",
-                validationAction="error"
-            )
+                    },
+                    validationLevel="strict",
+                    validationAction="error"
+                )
             except errors.CollectionInvalid as e:
                 ic("La colección ya existe, continuando con los índices...")
             try:
                 # Índices sugeridos
                 # 🔍 Búsqueda rápida por usuario
-                db.active_sessions.create_index([("user_id", ASCENDING)], name="idx_user_id");
+                db.active_sessions.create_index([("user_id", ASCENDING)], name="idx_user_id")
 
                  # 🔍 Consultas por dispositivo + usuario
-                db.active_sessions.create_index([("user_id", ASCENDING), ("device_id", ASCENDING)], name="idx_user_device_id");
+                db.active_sessions.create_index([("user_id", ASCENDING), ("device_id", ASCENDING)], name="idx_user_device_id")
 
                  # ⚠️ Buscar sesiones activas rápido
-                db.active_sessions.create_index([("status", ASCENDING), ("is_revoked", ASCENDING)], name="idx_status_revoked");
+                db.active_sessions.create_index([("status", ASCENDING), ("is_revoked", ASCENDING)], name="idx_status_revoked")
 
                  # 📅 Orden por fecha de login (útil para paneles)
-                db.active_sessions.create_index([("login_at", DESCENDING)], name="idx_login_at");
+                db.active_sessions.create_index([("login_at", DESCENDING)], name="idx_login_at")
 
                  # 🔐 Índice para revocar tokens por refresh_token
-                db.active_sessions.create_index([("refresh_token", ASCENDING)], unique=True, name="idx_refresh_token");
+                db.active_sessions.create_index([("refresh_token", ASCENDING)], unique=True, name="idx_refresh_token")
 
                  # ⚙️ Índice compuesto para filtros complejos (opcional)
-                db.active_sessions.create_index([("user_id", ASCENDING), ("status", ASCENDING), ("is_revoked", ASCENDING)], name="idx_user_id_status_revoked");
+                db.active_sessions.create_index([("user_id", ASCENDING), ("status", ASCENDING), ("is_revoked", ASCENDING)], name="idx_user_id_status_revoked")
                 # db.active_sessions.create_index("user_id", name="idx_user_id")
                 # db.active_sessions.create_index("device_id", name="idx_device_id")
                 # db.active_sessions.create_index("refresh_token", unique=True, name="idx_refresh_token")

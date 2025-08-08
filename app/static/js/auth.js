@@ -1,6 +1,7 @@
 import { ApiUser } from "./api/ApiUser.js";
 import { ApiAdmin } from "./api/ApiAdmin.js";
 import { LocalStorageAdapter } from "./adapters/LocalStorageAdapter.js";
+import { handleError } from "./utils/errors.js";
 const api_user = new ApiUser({
     baseURL: import.meta.env?.VITE_API_URL || "https://localhost",
     storage: new LocalStorageAdapter()
@@ -16,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
     const params = new URLSearchParams(window.location.search);
     if (params.has("logged_out")) {
-        localStorage.clear();
+        ;
         history.replaceState(null, "", window.location.pathname);
         // Redirigir explícitamente a la raíz del SPA
         window.location.href = "/";
@@ -30,28 +31,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.getElementById("loginForm")?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const user = document.getElementById("username").value;
+        const user = document.getElementById("username").value.trim();
         const pass = document.getElementById("password").value;
 
-        if (user.includes("admin")) {
-            const success = await api_admin.login_admin(user, pass);
-            if (success) {
-                const validar = await api_admin.admin_dashboard();
-                if (validar) {
-                    location.href = "/admin/dashboard";
-                }
+        try {
+            let success = false;
+            let role = "user";
+            if (user.includes("admin")) {
+                success = await api_admin.login_admin(user, pass);
+                role = "Admin";
+            } else {
+                success = await api_user.login(user, pass);
             }
-        }
-        else {
-            const success = await api_user.login(user, pass);
-            if (success) {
-                const validar = await api_user.user_dashboard();
-                if (validar) {
 
-                    location.href = "/dashboard";
+            if (success) {
+                const dashboardValid = role === "Admin"
+                    ? await api_admin.admin_dashboard()
+                    : await api_user.user_dashboard();
+
+                if (dashboardValid) {
+                    location.href = role === "Admin" ? "/admin/dashboard" : "/dashboard";
                 }
             }
+        } catch (err) {
+            throw new Error("Error al iniciar sesión");
+            handleError(err);
         }
-       
+        e.stopPropagation();
     });
 });

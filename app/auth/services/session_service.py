@@ -1,4 +1,3 @@
-from datetime import datetime
 from bson import ObjectId
 from icecream import ic
 from dao.session_dao import SessionDAO

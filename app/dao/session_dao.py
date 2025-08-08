@@ -58,8 +58,7 @@ class SessionDAO:
     def get_active_sessions_with_user_data(self, filtro_status: str = None):
         match_stage = {
             "user_data.rol": {"$ne": "Admin"},
-            "revoked_at": None,
-            "is_revoked": False,
+            "revoked_at": None
         }
          # Si se pasa un estado específico, lo agregamos al filtro
         if filtro_status:

@@ -17,11 +17,11 @@ from auth.exceptions.auth_exceptions import AuthException
 
 class TokenGenerator:
     def __init__(self):
-        self.access_exp = Config.ACCESS_TOKEN_EXP_SECONDS
-        self.access_exp_admin = Config.ACCESS_TOKEN_EXP_ADMIN
-        self.refresh_exp = Config.REFRESH_TOKEN_EXP_SECONDS
-        self.refresh_exp_admin = Config.REFRESH_TOKEN_EXP_ADMIN
-        self.access_exp_global = Config.ACCESS_TOKEN_GLOBAL_EXP_SECONDS
+        self.access_exp = int(Config.ACCESS_TOKEN_EXP_SECONDS)
+        self.access_exp_admin = int(Config.ACCESS_TOKEN_EXP_ADMIN)
+        self.refresh_exp = int(Config.REFRESH_TOKEN_EXP_SECONDS)
+        self.refresh_exp_admin = int(Config.REFRESH_TOKEN_EXP_ADMIN)
+        self.access_exp_global = int(Config.ACCESS_TOKEN_GLOBAL_EXP_SECONDS)
         self.valid_roles = Config.VALID_ROLES
         self.roles_scope = Config.ROLE_SCOPES
         self.private_key = self._load_key(Config.PATH_PRIVATE_KEY, is_private=True)
@@ -236,7 +236,7 @@ class TokenGenerator:
         return self._decode(token, expected_type)
 
     def verify_token_global(self, token: str, expected_type: str = "access") -> dict:
-        return self._decode_global(token, expected_type, issuer="flask-root")
+        return self._decode_global(token=token, expected_type=expected_type, issuer="flask-root")
 
     def get_role_from_token(self, token: str) -> str:
         try:

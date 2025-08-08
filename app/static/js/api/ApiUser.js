@@ -1,5 +1,6 @@
 // ApiUser.js
 import { showAlert } from "../layout.js";
+import { handleError, clearSession } from "../utils/errors.js";
 export class ApiUser {
     constructor(params = {}) {
         const { baseURL, storage, timeout = 8000, retries = 2, retryDelay = 1000 } = params;
@@ -10,9 +11,6 @@ export class ApiUser {
         this.retryDelay = retryDelay;
     }
     get accessToken() {
-        return this.storage.get("access_token");
-    }
-    get accessTokenAdmin() {
         return this.storage.get("access_token");
     }
     get refreshToken() {
@@ -54,6 +52,7 @@ export class ApiUser {
                 throw new Error(`⏱️ La solicitud a ${resource} fue abortada por timeout (${timeout}ms)`);
             }
             throw error;
+            handleError(error)
         } finally {
             clearTimeout(id);
         }
@@ -99,7 +98,7 @@ export class ApiUser {
                 return this.fetch(endpoint, options, retries - 1, retryDelay * 2);
             }
 
-            this.handleError(err);
+            handleError(err);
             throw err;
         }
     }
@@ -110,53 +109,10 @@ export class ApiUser {
         this.storage.setItem("access_token", access_token);
         this.storage.setItem("refresh_token", refresh_token);
     }
-    handleError(err) {
-        const msg = err?.message || "";
-
-        if (msg.includes("expirada") || msg.includes("ExpiredSignatureError")) {
-            showAlert("⏳ Tu sesión ha expirado. Iniciá sesión nuevamente.", "info", 6000);
-        }
-        else if (msg.includes("Bloqueado")) {
-            showAlert(msg, "warning", 8000);
-        }
-        else if (msg.includes("InvalidAudienceError")) {
-            showAlert("⚠️ El token no corresponde a este cliente (audiencia inválida).", "danger", 8000);
-        }
-        else if (msg.includes("InvalidIssuerError")) {
-            showAlert("⚠️ Emisor del token inválido. Contactá a soporte.", "danger", 8000);
-        }
-        else if (msg.includes("InvalidTokenError") || msg.includes("Token inválido")) {
-            showAlert("❌ Token inválido o corrupto. Por favor, volvé a iniciar sesión.", "danger", 8000);
-        }
-        else if (msg.includes("Error 403")) {
-            showAlert("🚫 Demasiados intentos. Esperá un momento antes de intentar de nuevo.", "warning", 8000);
-        }
-        else if (msg.includes("Error 401") || msg.includes("Credenciales incorrectas")) {
-            showAlert("❌ Usuario o contraseña incorrecta", "danger", 5000);
-        }
-        else if (msg.includes("Error")) {
-            showAlert(msg, "danger", 8000);
-        }
-        else {
-            showAlert(`❌ Error inesperado: ${msg}`, "danger", 8000);
-        }
-        this.clearSession();
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    async getToken() {
-        const token = await this.storage.get("access_token");
-        if (!token) throw new Error("Token no encontrado");
-        return token;
-    }
     async getRefreshToken() {
         const token = await this.storage.get("refresh_token");
         if (!token) throw new Error("Token no encontrado");
         return token;
-    }
-    clearSession() {
-        this.storage.clear();
-        console.log("COUNT: " + this.storage.count())
-        //window.location.href = "/login?logout=true";
     }
     getDeviceId() {
         let device_id = crypto.randomUUID();
@@ -164,15 +120,13 @@ export class ApiUser {
         return device_id;
     }
     getUserRol() {
-        return this.storage.get("rol");
+        return String(this.userRol);
     }
     getTokenExp() {
-        let rol = this.storage.get("exp");
-        return rol;
+        return parseInt(this.tokenExp);
     }
     getUserName() {
-        let user = this.storage.get("username");
-        return user;
+        return String(this.userName);
     }
     getUserJti() {
         return this.userJti;
@@ -196,10 +150,6 @@ export class ApiUser {
 
         return { browser, os };
     }
-    getUserAgent() {
-        this.storage.set("user_agent", navigator.userAgent);
-        return navigator.userAgent;
-    }
     async login(username, password) {
         try {
             const device = this.getDeviceId();
@@ -221,7 +171,7 @@ export class ApiUser {
 
             return true;
         } catch (err) {
-            this.handleError(err);
+            handleError(err);
             return false;
         }
     }
@@ -246,7 +196,7 @@ export class ApiUser {
             }
             
         } catch (err) {
-            this.handleError(err);
+            handleError(err);
             return false;
         }
     }
@@ -278,10 +228,10 @@ export class ApiUser {
             }
             
         } catch (err) {
-            this.handleError(err);
+            handleError(err);
             console.warn("Logout error:", err);
         } finally {
-            this.clearSession(); // puedes crear este método dentro del ApiClient
+            clearSession(); // puedes crear este método dentro del ApiClient
             window.location.href = "/";
         }
     }

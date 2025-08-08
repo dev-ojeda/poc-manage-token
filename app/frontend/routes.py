@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, render_template
 
-from midleware.jwt_guard import jwt_required_global
+from app.midleware.jwt_guard import jwt_required_global
 
 
 frontend_bp = Blueprint(
