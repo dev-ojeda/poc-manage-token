@@ -1,8 +1,19 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+*.pyc
 *.py[codz]
 *$py.class
-
+.vs/
+.env
+app/keys
+app/data
+obj/
+sql/
+scripts/
+*.pyproj
+*.pyproj.*
+*.sln
+tests/
 # C extensions
 *.so
 
@@ -205,3 +216,5 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/main.py
+/demo.py

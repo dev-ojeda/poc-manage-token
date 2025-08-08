@@ -1,0 +1,26 @@
+/* Global Styles */
+body {
+    overflow-x: hidden;
+}
+
+#wrapper {
+    display: flex;
+}
+
+#sidebar-wrapper {
+    width: 250px;
+    min-height: 100vh;
+}
+
+#page-content-wrapper {
+    flex: 1;
+    padding: 20px;
+}
+
+.toggled #sidebar-wrapper {
+    margin-left: -250px;
+}
+
+.card {
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+}

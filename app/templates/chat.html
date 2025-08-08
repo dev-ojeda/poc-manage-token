@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>WebSocket Chat</h1>
+<!--<div class="chat-container">
+    <input id="msg" autocomplete="off" />
+    <button class="btn btn-primary" id="send-message">Enviar</button>
+    <ul id="chat"></ul>
+</div>-->
+<div class="modal fade" id="chatModal" role="dialog" tabindex="-1" aria-labelledby="chatModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-sm-down">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h4 class="chat-title">CHAT</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="chat-body" id="chatBody"></div>
+            <div class="chat-footer">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Type a message..." />
+                <button id="btnSendMessage" class="chat-button">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='chat.js') }}"></script>
+{% endblock %}

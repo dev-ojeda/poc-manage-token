@@ -1,0 +1,22 @@
+{% extends 'layout.html' %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<section class="my-5 d-flex justify-content-center">
+    <div class="card col-md-4">
+        <div class="card-body">
+            <h2 class="card-title mb-4 text-center">Iniciar sesión</h2>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label class="form-label">Usuario</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button id="loginBtn" type="submit" class="btn btn-primary w-100">Entrar</button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

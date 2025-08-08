@@ -1,0 +1,87 @@
+{% extends 'layout.html' %}
+{% block title %}Panel{% endblock %}
+{% block content %}
+<div id="dashboardContent" style="display:none;">
+    <h2><span id="userName"></span></h2>
+    <p id="tokenTimer" class="fw-bold text-success"></p>
+    <div class="container py-4">
+        <h2 class="mb-4">Discografía & Logs</h2>
+
+        <!-- Spoiler: 1978 - Road to ruin (2001 Expanded & Remastered) -->
+        <div class="mb-3">
+            <details class="border rounded p-3">
+                <summary class="fw-bold text-primary">1978 - Road to ruin (2001 Expanded & Remastered)</summary>
+                <div class="mt-3">
+                    <img src="../static/images/front.jpg" alt="Album cover" class="img-fluid mb-3" />
+                    <pre>
+01 I Just Wanna Have Something To Do 2:41 
+02 I Wanted Everything 3:15 
+03 Don't Come Close 2:44 
+04 I Don't Want You 2:26 
+05 Needles & Pins  2:20 
+06 I'm Against It 2:06 
+07 I Wanna Be Sedated 2:29 
+08 Go Mental 2:42 
+09 Questioningly 3:22 
+10 She's The One 2:13 
+11 Bad Brain 2:25 
+12 It's A Long Way Back 2:20 
+13 I Want You Around (Ed Stasium Version) 3:02 
+14 Rock 'n' Roll High School (Ed Stasium Version) 2:20 
+15 Blitzkrieg Bop 11:00 
+   Teenage Lobotomy   
+   California Sun    
+   Pinhead    
+   She's The One   
+16 Come Back, She Cried a.k.a. I Walk Out (Demo) 2:21 
+17 Yea, Yea (Demo) 2:08 
+        </pre>
+                </div>
+            </details>
+        </div>
+
+        <!-- Spoiler: Ћог -->
+        <div class="mb-3">
+            <details class="border rounded p-3">
+                <summary class="fw-bold text-primary">Ћог</summary>
+                <pre class="mt-3">
+EAC extraction logfile from 21. June 2005, 13:17 for CD
+Ramones / Road To Ruin
+
+Used drive  : TOSHIBA ODD-DVD SD-M1802   Adapter: 1  ID: 1
+Read mode   : Secure with NO C2, accurate stream, disable cache
+Read offset correction : 691
+Overread into Lead-In and Lead-Out : No
+
+Used output format : Internal WAV Routines
+                     44.100 Hz; 16 Bit; Stereo
+
+Other options      : 
+    Fill up missing offset samples with silence : Yes
+    Delete leading and trailing silent blocks : No
+    Installed external ASPI interface
+
+
+Range status and errors
+Selected range
+     Filename F:\mp3\Temp\CDImage.wav
+
+     Peak level 97.2 %
+     Range quality 100.0 %
+     CRC 15374791
+     Copy OK
+
+No errors occurred
+
+End of status report
+      </pre>
+            </details>
+        </div>
+    </div>
+    <button id="chatToggle"
+            class="btn btn-primary rounded-circle p-3" disabled>
+    </button>
+</div>
+<script type="module" src="{{ url_for('static', filename='js/main/user.js') }}"></script>
+
+{% endblock %}
