@@ -2,8 +2,8 @@
 from datetime import datetime, timezone
 
 from bson import ObjectId
-from utils.db_mongo import MongoDatabase
-from model.user_session import UserSession
+from app.utils.db_mongo import MongoDatabase
+from app.model.user_session import UserSession
 
 class SessionDAO:
     def __init__(self):
@@ -21,9 +21,10 @@ class SessionDAO:
         projection = {
             "_id": 1,
             "user_id": 1,
-            "ip_address": 1,
-            "user_agent": 1,
             "device_id": 1,
+            "ip_address": 1,
+            "browser": 1,
+            "os": 1,
             "login_at": 1,
             "last_refresh_at": 1,
             "refresh_token": 1,
@@ -31,7 +32,50 @@ class SessionDAO:
             "reason": 1
         }
         return self.db.find_one(self.active_sessions,query=query,projection=projection)
-    def revoked_session(self, user_id:ObjectId, reason: str):
+    def get_active_session_by_Id(self, user_id: ObjectId) -> dict:
+        query={
+            "user_id": user_id
+         }
+        projection = {
+            "_id": 1,
+            "user_id": 1,
+            "device_id": 1,
+            "ip_address": 1,
+            "browser": 1,
+            "os": 1,
+            "login_at": 1,
+            "last_refresh_at": 1,
+            "refresh_token": 1,
+            "is_revoked": 1,
+            "reason": 1
+        }
+        return self.db.find_one(self.active_sessions,query=query,projection=projection)
+    def device_id_exists(self, device_id: str) -> dict:
+        query = {"device_id": device_id}
+        projection = {
+            "device_id": 1
+        }
+        result = self.db.find_one(collection=self.active_sessions,query=query,projection=projection)
+        return result
+    def get_active_session_by_id_session(self, user_id: ObjectId) -> dict:
+        query={
+            "user_id": user_id
+         }
+        projection = {
+            "_id": 1,
+            "user_id": 1,
+            "device_id": 1,
+            "ip_address": 1,
+            "browser": 1,
+            "os": 1,
+            "login_at": 1,
+            "last_refresh_at": 1,
+            "refresh_token": 1,
+            "is_revoked": 1,
+            "reason": 1
+        }
+        return self.db.find_one(self.active_sessions,query=query,projection=projection)
+    def revoked_session(self, user_id: ObjectId, reason: str):
         query={"user_id": user_id}
         update_fields = {
             "$set": {
@@ -54,7 +98,25 @@ class SessionDAO:
             }
         }
         return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Session Cerrada")
-
+    def update_session_for_audit(self, user_id: ObjectId, ip_address: str, browser: str, reason: str) -> dict:
+        query={"user_id": user_id}
+        update_fields = {
+            "$set": {
+                "ip_address": ip_address,
+                "browser": browser,
+                "last_refresh_at": self.update_datetime_format_iso(self.get_datetime_now()),
+                "reason": reason
+            }
+        }
+        return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Session Actualizada")
+    def has_active_session(self, user_id: ObjectId) -> bool:
+        filtro = {
+            "user_id": user_id,
+            "status": "active",
+            "is_revoked": False
+        }
+        count = self.db.count_documents(collection=self.active_sessions, filtro=filtro)
+        return count > 0
     def get_active_sessions_with_user_data(self, filtro_status: str = None):
         match_stage = {
             "user_data.rol": {"$ne": "Admin"},

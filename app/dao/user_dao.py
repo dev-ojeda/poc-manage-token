@@ -57,14 +57,35 @@ class UserDAO:
         except PyMongoError as e:
             ic(f"❌ Error en find_one: {e}")
             return None
-    def find_ids_users(self) -> List[User]:
+    def find_ids_users(self) -> List[ObjectId]:
+        """
+        Devuelve solo los _id de todos los usuarios que NO sean Admin.
+        """
         query = {"role": {"$ne": "Admin"}}
         projection = {"_id": 1}
-        return self.find_all(query=query,projection=projection)
 
-    def find_all(self, query: dict, projection: Optional[dict] = None) -> List[User]:
         try:
-            return [User.from_dict(doc) for doc in self.db.find(self.users,query,projection)]
+            docs = self.db.find(self.users, query, projection) or []
+            # Forzamos a lista si es un cursor
+            if not isinstance(docs, list):
+                docs = list(docs)
+            return [doc["_id"] for doc in docs if "_id" in doc]
+        except PyMongoError as e:
+            ic(f"❌ Error en find_ids_users: {e}")
+            raise
+
+    def find_all(self, query: Optional[dict] = None, projection: Optional[dict] = None) -> List[User]:
+        """
+        Busca usuarios completos según query y proyección.
+        Devuelve una lista de objetos User.
+        """
+        try:
+            docs = self.db.find(self.users, query, projection) or []
+
+            if not isinstance(docs, list):
+                docs = list(docs)
+
+            return [User.from_dict(doc) for doc in docs]
         except PyMongoError as e:
             ic(f"❌ Error en find_all: {e}")
             raise

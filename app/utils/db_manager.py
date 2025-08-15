@@ -6,8 +6,8 @@ from flask import Blueprint, request
 from icecream import ic
 from pymongo.results import UpdateResult
 
-from utils.db_mongo import MongoDatabase
-from model.token_generator import TokenGenerator
+from app.utils.db_mongo import MongoDatabase
+from app.model.token_generator import TokenGenerator
 
 db_Manager_bp = Blueprint("dbManager", __name__)
 
@@ -108,22 +108,7 @@ class DbManager:
             upsert=True,
             context="Revocar Token Blacklist"
         )
-    def revoke_token_sessions(self, jti= str, device_id=None, username=None) -> UpdateResult:
-        return self.conexion.update_one(self.refresh_tokens,
-            {"jti": jti, "username": username, "device_id": device_id},
-            {"$set": {"revoked_at": int(datetime.now(timezone.utc).timestamp())}},upsert=True
-        )
-    def revoke_all_tokens(self, username: str):
-        result = self.conexion.update_many(self.refresh_tokens,
-            {"username": username, "revoked_at": None},
-            {"$set": {"revoked_at": int(datetime.now(timezone.utc).timestamp())}}
-        )
-        return result.modified_count
-    def revoke_device(self, username: str, device_id: str) -> UpdateResult:
-        return self.conexion.update_one(self.refresh_tokens,
-            {"username": username, "device_id": device_id, "revoked_at": None},
-            {"$set": {"revoked_at": int(datetime.now(timezone.utc).timestamp())}}
-        )
+
     def exists_token_global(self) -> dict:
         is_valido = bool(self.conexion.count_documents(self.global_tokens,filtro={}))
         if not is_valido:

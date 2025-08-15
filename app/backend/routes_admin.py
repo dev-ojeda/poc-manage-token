@@ -1,27 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, timezone
-from pickle import FLOAT
+from datetime import datetime
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from dotenv import load_dotenv
 from icecream import ic
 
-from auth.services.session_service import SessionService
-from auth.services.user_service import UserService
-from dao.user_dao import UserDAO
-from utils.db_manager import DbManager
-from midleware.jwt_guard import admin_required, log_refresh_attempt
-from model.token_generator import TokenGenerator
-from model.user import User
+from app.auth.services.audit_service import AuditService
+from app.web_socket.event_socket import notificar_revocacion
+from app.auth.services.session_service import SessionService
+from app.auth.services.user_service import UserService
+from app.dao.user_dao import UserDAO
+from app.utils.db_manager import DbManager
+from app.midleware.jwt_guard import admin_required
+from app.model.token_generator import TokenGenerator
 
 
 load_dotenv()
 admin_bp = Blueprint("admin_bp", __name__)
 
 @admin_bp.route("/auth/admin", methods=["POST"])
-@log_refresh_attempt
 def login():
     us = UserService()
     data = request.get_json()
@@ -66,7 +65,6 @@ def login():
 
 @admin_bp.route("/auth/admin/dashboard", methods=["GET"])
 @admin_required
-@log_refresh_attempt
 def dashboard(user):
     return jsonify({
         "username": user.get("username"),
@@ -76,46 +74,38 @@ def dashboard(user):
         "jti": user.get("jti")
     }),200
 
-@admin_bp.route("/admin/audit", methods=["POST"])
+@admin_bp.route("/auth/admin/audit", methods=["POST"])
 @admin_required
-@log_refresh_attempt
-def get_audit_logs():
-    data = request.get_json()
-    if not request.is_json:
-        return jsonify({"msg": "Content-Type debe ser application/json"}), 400
+def get_audit_logs(user):
+    """
+    Obtener logs de auditoría con filtros opcionales:
+    - user_id (str)
+    - event_type (str)
+    - start (timestamp en segundos)
+    - end (timestamp en segundos)
+    - page (int)
+    - limit (int)
+    """
+    ads = AuditService()
+    try:
+        data = request.get_json()
+        params = {
+            "user_id": data.get("user_id") or None,
+            "event_type": data.get("event_type") or None,
+            "start": None,
+            "end": None,
+            "page": int(data.get("page", 1)),
+            "limit": int(data.get("limit", 10))
+        }
 
-    username = data.get("username")
-    dm = DbManager()
+        result = ads.get_logs_audit(**params)
+        return jsonify(result), 200
 
-    filtro = {
-        "username": username,
-    }
-
-    start = data.get("start")
-    end = data.get("end")
-
-    if start:
-        filtro["timestamp"] = {"$gte": datetime.fromtimestamp(float(start), tz=timezone.utc)}
-    if end:
-        filtro.setdefault("timestamp", {})["$lte"] = datetime.fromtimestamp(float(end), tz=timezone.utc)
-
-    projection = {
-        "_id": 0,
-        "username": 1,
-        "ip_address": 1,
-        "user_agent": 1,
-        "previous_ip": 1,
-        "previous_ua": 1,
-        "reason": 1,
-        "timestamp": 1
-    }
-
-    logs = list(dm.conexion.find(dm.session_audit, filtro, projection).sort("timestamp", -1))
-    return jsonify({"logs": logs}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @admin_bp.route('/auth/sessions/active', methods=['POST'])
 @admin_required
-@log_refresh_attempt
 def get_active_sessions(user):
     """
     Devuelve todas las sesiones activas de usuarios que **no** son Admin.
@@ -127,12 +117,8 @@ def get_active_sessions(user):
     # since_dt = datetime.fromtimestamp(dt_at, tz=timezone.utc).isoformat()
     # since_iso = datetime.fromisoformat(since_dt)
     try:
-        
-        ic(f"[filtro_status]: {filtro_status}")   
         # Obtenemos los IDs de usuarios que no son Admin
         sessions = SessionService.get_non_admin_active_sessions(filtro_status=filtro_status)
-        
-        # user_ids = [user["_id"] for user in non_admin_users]
         result = []
         if sessions is not None:
             for session in sessions:
@@ -152,8 +138,7 @@ def get_active_sessions(user):
                     "username": session["username"],
                     "rol": session["rol"]
                 })
-
-        ic(f"[SESSION SERVICE]: {result}")    
+ 
         return jsonify({"count": len(result), "sessions": result})
 
     except Exception as e:
@@ -164,27 +149,32 @@ def get_active_sessions(user):
 @admin_required
 def revoke_session(user):
     dm = DbManager()
+    ss = SessionService()
+    ads = AuditService()
     data = request.json;
-    token_type = request.headers.get("X-Token-Type")
     session_id = data.get("user_id")
     username = data.get("username")
     device_id = data.get("device_id")
     user_rol = data.get("user_rol")
+    user_agent = data.get("user_agent")
     refreshToken = data.get("refresh_token")
+    ip_address = request.remote_addr
     if user_rol == user.get("rol"):
         return jsonify({"msg": "Username diferente"}), 400
     if device_id == user.get("device_id"):
         return jsonify({"msg": "Device diferente"}), 400
 
-    if token_type != "refresh":
-        return jsonify({"msg": "Token diferente"}), 400
 
     result = dm.revoke_refresh_token(username=username, device_id=device_id, refresh_token=refreshToken)
     if not result.get("success"):
         return jsonify({"msg": result.get("message"), "code": "INVALID_REVOCKED_REFRESH_TOKEM"})
-
-    ss = SessionService()
+    
     result_revocar = ss.revoke_session(user_id=ObjectId(session_id))
-    if not result_revocar.get("success"):
+    if not result.get("success"):
+         return jsonify({"msg": result.get("message"), "code": "INVALID_REVOCKED_SESSION"})
+    validar_operacion = ads.update_session_activity(user_id=ObjectId(session_id),ip_address=ip_address,user_agent=user_agent)
+    ic("[VALIDAR_OPERACION]",validar_operacion)
+    if not validar_operacion.get("success"):
         return jsonify({"msg": result_revocar.get("message"), "code": "INVALID_REVOCKED"})
+    notificar_revocacion(username);
     return jsonify({"msg": "Sesión revocada"}), 200

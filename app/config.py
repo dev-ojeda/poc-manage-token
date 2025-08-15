@@ -14,7 +14,7 @@ class Config:
 
     SECRET_KEY = os.getenv('SECRET_KEY')
     HOST = "0.0.0.0"
-    PORT = int(os.getenv("PORT",443))
+    PORT = 5000
 
     PATH_PRIVATE_KEY = os.getenv('PATH_PRIVATE_KEY')
     PATH_PUBLIC_KEY = os.getenv('PATH_PUBLIC_KEY')
@@ -27,7 +27,7 @@ class Config:
     REFRESH_TOKEN_EXP_ADMIN = os.getenv('REFRESH_TOKEN_EXP_ADMIN')
     ACCESS_TOKEN_EXP_SECONDS = os.getenv('ACCESS_TOKEN_EXP_SECONDS')
     ACCESS_TOKEN_EXP_ADMIN = os.getenv('ACCESS_TOKEN_EXP_ADMIN')
-    ACCESS_TOKEN_GLOBAL_EXP_SECONDS = os.getenv('ACCESS_TOKEN_GLOBAL_EXP_SECONDS',120)
+    ACCESS_TOKEN_GLOBAL_EXP_SECONDS = os.getenv('ACCESS_TOKEN_GLOBAL_EXP_SECONDS')
 
 
     JWT_ISSUER = os.getenv("JWT_ISSUER", "neo-auth")
@@ -50,6 +50,8 @@ class Config:
     }
     CORS_ORIGINS = [
         "http://localhost:5000",
+        "https://localhost:5000",
+        "https://127.0.0.1:5000",
         "http://127.0.0.1:5000",
         "https://localhost:443",
         "http://127.0.0.1:443"

@@ -12,6 +12,7 @@ export function renderButtonRevocar(sesion, isCurrent) {
                 data-username="${sesion.username}"
                 data-rol="${sesion.rol}"
                 data-refresh="${sesion.refresh_token}"
+                data-browser="${sesion.browser}"
                 <i class="bi bi-lock-fill"></i> Revocar
             </button>`;
 }

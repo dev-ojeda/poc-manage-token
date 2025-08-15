@@ -33,4 +33,32 @@
     </button>
 </div>
 <script type="module" src="{{ url_for('static', filename='js/main/user.js') }}"></script>
+<script type="module">
+    import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
+    import { showAlert } from "../static/js/layout.js";
+    import { clearSession } from "../static/js/utils/errors.js";
+    const socket = io("wss://localhost:5000", {
+        transports: ["websocket"],
+        secure: true
+    });
+    let username = localStorage.getItem("username");
+    socket.on("connect", () => {
+        console.log("Conectado a SocketIO");
+    });
+
+    // Unirse a su room
+    socket.emit("join", { username });
+
+    // Escuchar si su sesión fue revocada
+    socket.on("session_revoked", (data) => {
+        showAlert(data.message, "warning", 5000)
+        clearSession();
+        window.location.href = "/";
+    });
+
+    socket.on("disconnect", () => {
+        console.log("Desconectado de SocketIO");
+    });
+</script>
+
 {% endblock %}

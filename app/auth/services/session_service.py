@@ -1,7 +1,9 @@
+
+from datetime import datetime, timezone
 from bson import ObjectId
 from icecream import ic
-from dao.session_dao import SessionDAO
-from model.user_session import UserSession
+from app.dao.session_dao import SessionDAO 
+from app.model.user_session import UserSession
 
 
 class SessionService:
@@ -11,11 +13,18 @@ class SessionService:
     def register_session(self, user_session: UserSession) -> dict:
         return self.session_dao.insert_session(session=user_session)
     def revoke_session(self, user_id:ObjectId) -> dict:
-        return self.session_dao.revoked_session(user_id=user_id, reason="revocación")
-    def update_session(self, user_id:ObjectId) -> dict:
-        return self.session_dao.update_session(user_id=user_id, reason="terminada")
+        return self.session_dao.revoked_session(user_id=user_id, reason="revoked")
+    def device_id_exists(self, device_id: str) -> dict | None:
+        return self.session_dao.device_id_exists(device_id=device_id)
+    def update_session(self, user_id:ObjectId, reason: str) -> dict:
+        return self.session_dao.update_session(user_id=user_id, reason=reason)
     def get_active_session(self, user_id:ObjectId, device_id: str) -> dict:
         return self.session_dao.get_active_session(user_id=user_id,device_id=device_id)
+    def get_active_session_by_Id(self, user_id:ObjectId) -> dict:
+        return self.session_dao.get_active_session_by_Id(user_id=user_id)
+    def has_active_session(self, user_id: ObjectId) -> bool:
+        count = self.session_dao.has_active_session(user_id=user_id)
+        return count > 0
     @staticmethod
     def get_non_admin_active_sessions(filtro_status: str = None):
         
@@ -40,5 +49,11 @@ class SessionService:
                 "username": s["user_data"]["username"],
                 "rol": s["user_data"]["rol"]
             })
-        ic(f"[SESSION DAO]: {result}")
         return result
+   
+
+    def get_datetime_now(self) -> datetime:
+        return datetime.now(timezone.utc)
+
+    def update_datetime_format_iso(self, fecha: datetime) -> datetime:
+        return fecha.fromisoformat(fecha.isoformat())

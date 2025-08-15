@@ -1,6 +1,5 @@
 import { ApiAdmin } from "../api/ApiAdmin.js";
 import { LocalStorageAdapter } from "../adapters/LocalStorageAdapter.js";
-import { emit } from "../utils/eventBus.js";
 export class AuditPanel {
     constructor(containerSelector = '#audit-panel') {
         this.container = document.querySelector(containerSelector);
@@ -12,65 +11,136 @@ export class AuditPanel {
             baseURL: import.meta.env?.VITE_API_URL || "https://localhost",
             storage: new LocalStorageAdapter()
         });
+        this.page = 1;
+        this.limit = 10;
+        this.totalPages = 1;
         this.events = [];
+        this.suspiciousKeywords = [
+            "ip_change",
+            "user_agent_change",
+            "revoked",
+            "multiple_attempts",
+            "logout",
+            "expiration",
+            "login"
+        ];
     }
 
-    async loadFromAPI({ start = null, end = null } = {}) {
-        try {
-            const body = {};
-            if (start) body.start = start;
-            if (end) body.end = end;
+    async loadLogs(page = 1) {
+        const userId = document.getElementById("userIdInput").value.trim() || "";
+        const eventType = document.getElementById("eventFilter").value || "";
 
-            const res = await this.api_admin.post("/api/admin/audit", body);
-            if (Array.isArray(res.logs)) {
-                res.logs.forEach(log => {
-                    this.addEvent({
-                        type: this.classify(log.reason),
-                        detail: `${log.reason} desde IP ${log.ip_address}`,
-                        timestamp: log.timestamp
-                    });
-                });
-                // después de procesar logs:
-                emit('auditLogsLoaded', res.logs);
-            }
+        const payload = {
+            user_id: userId,
+            page: page,
+            limit: this.limit,
+        };
+        if (eventType) {
+            payload.event_type = eventType;
+        }
+        else {
+            payload.event_type = "";
+        }
+
+        try {
+            const res = await fetch("/api/auth/admin/audit", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${this.api_admin.accessToken}`,
+                    "X-Token-Type": "access"
+                },
+                body: JSON.stringify(payload)
+            });
+            /*const res = await this.api_admin.post("/api/auth/admin/audit", payload);*/
+            if (!res.ok) throw new Error(`Error: ${res.status}`);
+            
+            const data = await res.json();
+            this.totalPages = Math.ceil(data.total_count / this.limit);
+            this.renderTableLogs(data);
+            this.updatePaginationButtons();
 
         } catch (error) {
-            console.error("Error al cargar eventos del backend:", error);
+            alert("Error al cargar logs: " + error.message);
         }
     }
 
-    classify(reason) {
-        const suspiciousKeywords = ["reuso", "múltiple", "bloqueado", "revocado"];
-        return suspiciousKeywords.some(kw => reason.toLowerCase().includes(kw))
-            ? "suspicious"
-            : "normal";
+    isSuspicious(reason) {
+        return this.suspiciousKeywords.some(kw => reason?.toLowerCase().includes(kw));
     }
 
-    addEvent({ type, detail, timestamp = new Date() }) {
-        const event = {
-            type,
-            detail,
-            timestamp: new Date(timestamp),
-        };
 
-        this.events.unshift(event);
-        this.render();
+    renderTableLogs(data) {
+
+        const tbody = document.querySelector("#logsTable tbody");
+        tbody.innerHTML = "";
+
+        if (data.total_count > 0) {
+            data.logs.forEach(log => {
+                const tr = document.createElement("tr");
+                let celda = "";
+                if (this.isSuspicious(log.event_type)) {
+                    switch (log.event_type) {
+                        case "user_agent_change":
+                            celda = "warning";
+                            break;
+                        case "revoked":
+                            celda = "danger";
+                            break;
+                        default:
+                            celda = "primary";
+                    }
+                }
+                tr.innerHTML = `
+                  <td>${log.session_id}</td>
+                  <td>${log.user_id}</td>
+                  <td class="bg-${celda}">${log.event_type}</td>
+                  <td>${log.old_value}</td>
+                  <td>${log.new_value}</td>
+                  <td>${log.ip_address || ""}</td>
+                  <td>${log.user_agent || ""}</td>
+                  <td>${this.formatDateIso(log.timestamp)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        else {
+            tbody.innerHTML = "<tr><td colspan='5' class='text-center'>Sin registros</td></tr>";
+        }
+        // Limpia y agrega el nuevo contenido
+        //this.container.appendChild(tbody);
     }
 
-    render() {
-        this.container.innerHTML = this.events.map(event => this.formatEvent(event)).join('');
+    formatDate(timestamp) {
+        if (!timestamp) return "-";
+        const date = new Date(timestamp * 1000); // si viene en segundos
+        return date.toLocaleString("es-CL");
     }
 
-    formatEvent({ type, detail, timestamp }) {
-        const time = timestamp.toLocaleString();
-        const color = type === 'suspicious' ? 'bg-danger text-white' : 'bg-secondary text-light';
-        return `
-            <div class="card mb-2 ${color}">
-                <div class="card-body p-2">
-                    <strong>[${type.toUpperCase()}]</strong> ${detail}
-                    <div class="text-end small"><i>${time}</i></div>
-                </div>
-            </div>
-        `;
+    formatDateIso(isoString) {
+        if (!isoString) return "-";
+        // Convierte a objeto Date
+        const date = new Date(isoString);
+        return date.toLocaleString("es-CL");
+    }
+
+    updatePaginationButtons() {
+        document.getElementById("pageIndicator").textContent = `Página ${this.page} de ${this.totalPages}`;
+        document.getElementById("prevPage").disabled = this.page <= 1;
+        document.getElementById("nextPage").disabled = this.page >= this.totalPages;
+    }
+
+    nextPage() {
+        if (this.page < this.totalPages) {
+            this.page++;
+            this.loadLogs();
+        }
+    }
+
+    prevPage() {
+        if (this.page > 1) {
+            this.page--;
+            this.loadLogs();
+        }
     }
 }

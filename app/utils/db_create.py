@@ -170,7 +170,8 @@ def db_create_collection():
                                 "description": "Fecha de revocación (si aplica)"
                                 },
                                 "reason": {
-                                "bsonType": ["string", "null"],
+                                "bsonType": "string",
+                                "enum": ["ip_change", "user_agent_change", "revoked", "multiple_attempts", "logout", "expiration", "login"],
                                 "description": "Razón de la revocación (expulsión, expiración, múltiples intentos, etc.)"
                                 },
                                 "status": {

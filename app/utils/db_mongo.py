@@ -176,6 +176,7 @@ class MongoDatabase:
                     self.logger.info(msg)
                     return {
                         "success": True,
+                        "context": context,
                         "acknowledged": result.acknowledged,
                         "inserted_id": result.inserted_id,
                         "message": msg
@@ -189,6 +190,7 @@ class MongoDatabase:
             return {
                 "success": False,
                 "error": str(e),
+                "context": context,
                 "trace": traceback.format_exc(),
                 "message": msg
             }
@@ -219,6 +221,7 @@ class MongoDatabase:
                     self.logger.info(msg)
                     return {
                         "success": True,
+                        "context": context,
                         "matched_count": result.matched_count,
                         "modified_count": result.modified_count,
                         "acknowledged": result.acknowledged,
@@ -231,6 +234,7 @@ class MongoDatabase:
             traceback.print_exc()
             return {
                 "success": False,
+                "context": context,
                 "error": str(e),
                 "trace": traceback.format_exc(),
                 "message": msg

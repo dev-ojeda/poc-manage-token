@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from datetime import datetime
+from typing import Optional
 
 from flask import request
 from flask_socketio import Namespace, emit
@@ -10,8 +11,6 @@ from app import socketio  # Importar la instancia global de SocketIO
 
 # Diccionario para mantener los usuarios y mensajes
 sessions = {}
-
-
 # Namespace por defecto ('/')
 @socketio.on("connect")
 def handle_connect() -> None:
@@ -83,7 +82,7 @@ class ChatNamespace(Namespace):
             emit("respuesta", chat_mensaje, broadcast=True, namespace="/chat")
             del sessions[client_id]
 
-    def mensaje_desde_tk(data):
+    def mensaje_desde_tk(self, data: Optional[dict] = None) -> None:
         ic(f"[Backend] Recibido desde Tkinter: {data}")
         chat_mensaje = {
             "msg": data["msg"],
@@ -93,7 +92,7 @@ class ChatNamespace(Namespace):
         emit("respuesta", chat_mensaje, broadcast=True, namespace="/chat")
         emit('chat_web', chat_mensaje, broadcast=True, namespace="/chat")
 
-    def on_message(self, data) -> None:
+    def on_message(self, data: Optional[dict] = None) -> None:
         client_id: str = request.sid
         ic("Mensaje recibido al namespace /Chat",data)
         chat_mensaje = {
@@ -108,7 +107,7 @@ class ChatNamespace(Namespace):
             emit("server_message", chat_mensaje, broadcast=True, namespace="/chat")
 
     # Escuchar eventos personalizados
-    def on_client_message(data) -> None:
+    def on_client_message(self, data: Optional[dict] = None) -> None:
         client_id: str = request.sid
         chat_mensaje = {
             "username": data["username"],
@@ -151,7 +150,7 @@ class QueueNamespace(Namespace):
             socketio.emit("respuesta", chat_mensaje, namespace="/chat")
 
     # Escuchar eventos personalizados
-    def on_client_message(data) -> None:
+    def on_client_message(self, data: Optional[dict] = None) -> None:
         client_id: str = request.sid
         chat_mensaje = {
             "username": data["username"],

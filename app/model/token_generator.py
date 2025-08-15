@@ -13,7 +13,7 @@ from jwt.exceptions import (
 from icecream import ic
 
 from app.config import Config
-from auth.exceptions.auth_exceptions import AuthException
+from app.auth.exceptions.auth_exceptions import AuthException
 
 class TokenGenerator:
     def __init__(self):
@@ -128,12 +128,7 @@ class TokenGenerator:
             # return {"error": "Firma invalida.", "code": "InvalidSignatureError"}, 401
 
         except DecodeError:
-            raise AuthException(
-                "Acceso no autorizado (token mal decodificado).", 
-                "DecodeError", 
-                400
-            )
-            # return {"error": "Acceso no autorizado (token mal decodificado).", "code": "DecodeError"}, 400
+            return {"error": "Acceso no autorizado (token mal decodificado).", "code": "DecodeError"}, 400
 
         except InvalidAudienceError:
             raise AuthException(

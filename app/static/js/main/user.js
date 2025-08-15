@@ -1,20 +1,22 @@
+// main/user.js
 import { showAlert } from "../layout.js";
 import { ApiUser } from "../api/ApiUser.js";
 import { LocalStorageAdapter } from "../adapters/LocalStorageAdapter.js";
 import { openChat } from "../modules/chatHandler.js";
 import { handleError } from "../utils/errors.js";
+
 const api_user = new ApiUser({
-    baseURL: import.meta.env?.VITE_API_URL || "https://localhost",
+    baseURL: import.meta.env?.VITE_API_URL || "https://localhost:5000",
     storage: new LocalStorageAdapter()
 });
 // Guardamos última IP y UA por device_id
 let tokenTimerInterval = null;
 // Inicializar al cargar DOM
 document.addEventListener("DOMContentLoaded", async () => {
-    const user_rol = api_user.getUserRol();
-    const user_name = api_user.getUserName();
+    const user_rol = api_user.userRol;
+    const user_name = api_user.userName;
     const dashboardContent = document.getElementById("dashboardContent");
-    const expiracion = api_user.getTokenExp();
+    const expiracion = api_user.tokenExp;
     if (!user_rol) {
         console.warn("No hay token válido, redirigiendo...");
         window.location.href = "/";
@@ -53,7 +55,7 @@ async function tryRefreshToken() {
     const refreshToken = await api_user.getRefreshToken();
     if (!refreshToken) {
         showAlert("⚠️ No hay refresh token guardado.", "warning", 4000);
-        await api_user.logout();
+        await api_user.logout("expiration");
         return;
     }
 
@@ -61,11 +63,14 @@ async function tryRefreshToken() {
         const response = await fetch("/api/auth/refresh", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refresh_token: refreshToken, device_id: api_user.getDeviceId, user_agent: api_user.getBrowserInfo() })
+            body: JSON.stringify({
+                refresh_token: refreshToken,
+                device_id: api_user.getDeviceId(),  // <-- paréntesis acá
+                user_agent: api_user.getBrowserInfo()
+            })
         });
         const data = await response.json();
         if (response.ok) {
-
             api_user.storage.set("access_token", data.access_token);
             api_user.storage.set("refresh_token", data.refresh_token);
             api_user.storage.set("device_id", data.device_id);
@@ -73,8 +78,7 @@ async function tryRefreshToken() {
             api_user.storage.set("rol", data.rol);
             api_user.storage.set("exp", data.exp);
             showAlert("✅ Token refrescado", "success", 4000);
-            let expiracion = data.exp
-            startTokenTimer(expiracion);
+            startTokenTimer(data.exp);
         } else {
             throw new Error(`Error ${data.msg} ${data.code}`);
             await api_user.logout("intentos");
@@ -106,22 +110,16 @@ function startTokenTimer(expTimestamp) {
     }, 1000);
 }
 function applyRoleVisibility(rol) {
-    const roles = rol.toLowerCase() || false;
+    if (!rol) return false;
+    const userRole = rol.toLowerCase();
+    const elements = document.querySelectorAll('[class*="role-"]');
 
-    if (roles) {
-        const elements = document.querySelectorAll('[class*="role-"]');
+    elements.forEach(el => {
+        const requiredRoles = Array.from(el.classList)
+            .filter(cls => cls.startsWith("role-"))
+            .map(cls => cls.replace("role-", "").toLowerCase());
 
-        elements.forEach(el => {
-            const requiredRoles = Array.from(el.classList)
-                .filter(cls => cls.startsWith("role-"))
-                .map(cls => cls.replace("role-", ""));
-
-            const hasAccess = requiredRoles.some(role => roles.includes(role));
-
-            el.style.display = hasAccess ? "" : "none";
-        });
-    }
-    else {
-        return roles;
-    }
+        const hasAccess = requiredRoles.includes(userRole);
+        el.style.display = hasAccess ? "" : "none";
+    });
 }

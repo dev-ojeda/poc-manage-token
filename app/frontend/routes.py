@@ -14,11 +14,15 @@ frontend_bp = Blueprint(
 )
 
 
+# @frontend_bp.route("/")
+# @jwt_required_global
+# def index():
+#     return render_template("login.html")
+
 @frontend_bp.route("/")
 @jwt_required_global
 def index():
     return render_template("login.html")
-
 
 @frontend_bp.route('/.well-known/appspecific/com.chrome.devtools.json')
 def devtools_stub():
@@ -30,6 +34,6 @@ def dash_page():
 
 @frontend_bp.route("/admin/dashboard")
 def admin_page(): 
-    return render_template("admin_panel.html")
+    return render_template("administrar.html")
 
 

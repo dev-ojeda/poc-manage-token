@@ -8,9 +8,44 @@ const api_admin = new ApiAdmin({
 
 let currentPage = 1;
 const limit = 10;
+
+// Inicializar al cargar DOM
+document.addEventListener("DOMContentLoaded", async () => {
+    const user_rol = api_admin.userRol;
+    const user_name = api_admin.userName;
+    const dashboardContent = document.getElementById("dashboardContent");
+    const expiracion = api_admin.tokenExp;
+    if (!user_rol) {
+        console.warn("No hay token válido, redirigiendo...");
+        window.location.href = "/";
+        return;
+    }
+    // Mostrar nombre y rol
+    document.getElementById("userName").textContent = `👋 ${user_name} (${user_rol})`;
+
+    // Mostrar secciones según rol
+    showContentByRole(user_rol);
+
+    // Mostrar dashboard y comenzar temporizador
+    dashboardContent.style.display = "block";
+    startTokenTimer(expiracion);
+    openChat(user_rol);
+    await loadLogs();
+    // Cargar sesiones si es Admin
+    //await auditPanel.loadFromAPI();
+    PollingManager.iniciar(loadLogs, 10000);
+    document.getElementById("eventFilter").addEventListener("change", () => {
+        currentPage = 1; // Reinicia a la página 1 si se cambia el filtro
+        loadLogs(currentPage);
+    });
+    document.getElementById("prevPage").addEventListener("click", () => loadLogs(currentPage - 1));
+    document.getElementById("nextPage").addEventListener("click", () => loadLogs(currentPage + 1));
+});
+
+
 export async function loadLogs(page = 1) {
     const userId = document.getElementById("userIdInput").value.trim();
-    const eventType = document.getElementById("eventFilter").value || "";
+    const eventType = document.getElementById("eventFilter").value;
 
     const payload = {
         user_id: userId,
@@ -55,7 +90,7 @@ export async function loadLogs(page = 1) {
         else {
             tbody.innerHTML = "<tr><td colspan='5' class='text-center'>Sin registros</td></tr>";
         }
-        
+
 
         currentPage = data.page;
         document.getElementById("pageIndicator").textContent = `Página ${currentPage} de ${data.total_count}`;
@@ -68,5 +103,4 @@ export async function loadLogs(page = 1) {
         alert("Error al cargar logs: " + error.message);
     }
 }
-
 

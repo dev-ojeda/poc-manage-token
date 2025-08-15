@@ -1,9 +1,10 @@
 import { LocalStorageAdapter } from "../adapters/LocalStorageAdapter.js";
+import { showAlert } from "../layout.js";
 
 const almacenamiento = new LocalStorageAdapter();
 export function handleError(err) {
     const msg = err?.message || "";
-
+    console.log(msg);
     if (msg.includes("expirada") || msg.includes("ExpiredSignatureError")) {
         showAlert("⏳ Tu sesión ha expirado. Iniciá sesión nuevamente.", "info", 6000);
     }
@@ -25,11 +26,14 @@ export function handleError(err) {
     else if (msg.includes("Error 401") || msg.includes("Credenciales incorrectas")) {
         showAlert("❌ Usuario o contraseña incorrecta", "danger", 5000);
     }
+    else if (msg.includes("409 Conflict")) {
+        showAlert("❌ Device existente", "danger", 5000);
+    }
     else if (msg.includes("Error")) {
         showAlert(msg, "danger", 8000);
     }
     else if (msg.includes("AbortError")) {
-        showAlert(msg, "danger", 8000);
+        showAlert(`❌ ${msg}`, "danger", 8000);
     }
     else {
         showAlert(`❌ Error inesperado: ${msg}`, "danger", 8000);
@@ -40,5 +44,5 @@ export function handleError(err) {
 
 export function clearSession() {
     almacenamiento.clear();
-    console.log("STORAGE: " + almacenamiento.count())
+    console.log("STORAGE: " + almacenamiento.count());
 }

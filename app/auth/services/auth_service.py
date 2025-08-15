@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from app.utils.db_manager import DbManager
-from model.token_generator import TokenGenerator
+from app.model.token_generator import TokenGenerator
 
 class AuthService:
     def __init__(self):
@@ -31,7 +31,7 @@ class AuthService:
     def is_valid_refresh(self, token, device_id) -> bool:
         return self.dm.is_valid_refresh_token(token, device_id)
 
-    def upsert_new_token(self, **kwargs) -> bool:
+    def upsert_new_token(self, **kwargs) -> dict:
         return self.dm.upsert_refresh_token(**kwargs)
 
     def get_refresh_token_from_db(self, token: str) -> dict | None:

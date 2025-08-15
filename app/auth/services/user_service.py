@@ -3,6 +3,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
+from bson import ObjectId
+
 
 from app.utils.db_manager import DbManager
 from app.model.user import User
@@ -20,7 +22,7 @@ class UserService:
 
     def get_user_by_id(self, user_id: str) -> User | None:
         return self.user_dao.find_by_id(user_id=user_id)
-    def get_ids_users (self) -> List[User]:
+    def get_ids_users (self) -> List[ObjectId]:
         return self.user_dao.find_ids_users()
 
     def validate_login_payload(self, data: dict) -> list:

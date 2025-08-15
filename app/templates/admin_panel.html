@@ -13,26 +13,54 @@
             </div>
         </div>
         <div class="row">
-            <div id="audit-table" class="col-md-8">
-                <h2 class="mb-4">🔐 Auditoria</h2>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Usuario</th>
-                            <th>IP</th>
-                            <th>User-Agent</th>
-                            <th>Motivo</th>
-                            <th>Fecha</th>
-                        </tr>
-                    </thead>
-                    <tbody id="auditTable">
-                        <!-- JS lo llena -->
-                    </tbody>
-                </table>
+            <div id="audit-table" class="container my-4">
+                <h2 class="mb-4">🔐 Auditoría</h2>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <input id="userIdInput" type="text" class="form-control" placeholder="User ID">
+                    </div>
+                    <div class="col-md-6">
+                        <select id="eventFilter" class="form-select">
+                            <option value="">Todos los eventos</option>
+                            <option value="ip_change">Cambio IP</option>
+                            <option value="user_agent_change">Cambio User-Agent</option>
+                            <option value="revoked">Revocado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table id="logsTable" class="table table-striped table-hover table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Session</th>
+                                <th>User</th>
+                                <th>Evento</th>
+                                <th>Valor Antiguo</th>
+                                <th>Valor Nuevo</th>
+                                <th>IP</th>
+                                <th>Agent</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between">
+                    <button id="prevPage" class="btn btn-outline-primary">
+                        ⬅ Anterior
+                    </button>
+                    <span id="pageIndicator" class="fw-bold">Página 1</span>
+                    <button id="nextPage" class="btn btn-outline-primary">
+                        Siguiente ➡
+                    </button>
+                </div>
             </div>
         </div>
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-8 mx-auto">
                 <div class="container mt-5">
                     <h2 class="mb-4">🔐 Sesiones activas</h2>
                     <label for="statusFilter" class="form-label">Filtrar por estado:</label>

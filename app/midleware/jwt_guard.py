@@ -7,10 +7,12 @@ from datetime import datetime, timezone
 from functools import wraps
 from flask import redirect, request, jsonify, g, url_for
 from icecream import ic
-from auth.services.user_service import UserService
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from pymongo.errors import PyMongoError
+from app.auth.services.user_service import UserService
 
-from model.token_generator import TokenGenerator
-from utils.db_manager import DbManager  # Asegúrate que esta clase maneje verificación JWT
+from app.model.token_generator import TokenGenerator
+from app.utils.db_manager import DbManager  # Asegúrate que esta clase maneje verificación JWT
 
 def admin_required(f):
     @wraps(f)
@@ -20,8 +22,9 @@ def admin_required(f):
             return jsonify({"msg": "🔒 Token no proporcionado"}), 401
 
         token = auth_header.replace("Bearer ", "")
+        tipo = request.headers.get("X-Token-Type","")
         tg = TokenGenerator()
-        decoded = tg.verify_token(token=token)
+        decoded = tg.verify_token(token=token,expected_type=tipo)
         if "error" in decoded:
             return jsonify({"msg": decoded.get("error"), "code": decoded.get("code")}), 401
         us = UserService()
@@ -35,27 +38,6 @@ def admin_required(f):
         return f(user=decoded, *args, **kwargs)
     return decorated_function
 
-
-def jwt_required_app(token_generator: TokenGenerator, expected_type="access"):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            public_paths = ["/auth", "/static", "/favicon.ico"]
-            if any(request.path.startswith(p) for p in public_paths):
-                return f(*args, **kwargs)
-            auth = request.headers.get("Authorization", "")
-            token = auth.replace("Bearer ", "") if auth.startswith("Bearer ") else None
-            if not token:
-                return jsonify({"msg": "Token no enviado"}), 401
-            try:
-                payload = token_generator.verify_token_global(token, expected_type=expected_type)
-                g.jwt_payload = payload
-            except Exception as e:
-                return jsonify({"msg": f"Error inesperado: {str(e)}"}), 400
-
-            return f(*args, **kwargs)
-        return wrapper
-    return decorator
 
 def jwt_required_global(f):
     @wraps(f)
@@ -71,8 +53,12 @@ def jwt_required_global(f):
                 return jsonify({'msg': 'Token no existe'}), 401
             decoded = tg.verify_token_global(token=token.get("token"), expected_type="access")
             g.user_app = decoded
-        except Exception as ex:
-            return jsonify({"msg": f"Error interno al verificar token: {ex}"}), 500
+        except PyMongoError as ex:
+            return jsonify({"msg": f"Error de base de datos: {ex}"}), 500
+        except ExpiredSignatureError:
+            return jsonify({"msg": "El token ha expirado"}), 401
+        except InvalidTokenError as ex:
+            return jsonify({"msg": f"Token inválido: {ex}"}), 401
 
         return f(*args, **kwargs)
     return decorated_function
@@ -92,8 +78,10 @@ def jwt_required_custom(f):
             tg = TokenGenerator()
             payload = tg.verify_token(token=token,expected_type=token_type)
             g.user = payload
-        except Exception as e:
-                return jsonify({"msg": f"Error inesperado: {str(e)}"}), 400
+        except ExpiredSignatureError:
+            return jsonify({"msg": "El token ha expirado"}), 401
+        except InvalidTokenError as ex:
+            return jsonify({"msg": f"Token inválido: {ex}"}), 401
         return f(payload, *args, **kwargs)
     return decorated_function
 

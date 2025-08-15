@@ -82,6 +82,24 @@ End of status report
             class="btn btn-primary rounded-circle p-3" disabled>
     </button>
 </div>
+<script type="module" src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/main/user.js') }}"></script>
+<script type="module">
+    import { clearSession } from "../static/js/utils/errors.js"
+    import { showAlert } from "../static/js/layout.js"
+    const socket = io({
+        transports: ["websocket"]
+    });
 
+    const user_id = localStorage.getItem("user_id");
+
+    // Unirse a su room
+    socket.emit("join", { user_id });
+
+    // Escuchar si su sesión fue revocada
+    socket.on("session_revoked", (data) => {
+        showAlert(data.message,"warning",5000)
+        clearSession();
+    });
+</script>
 {% endblock %}

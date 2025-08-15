@@ -1,0 +1,43 @@
+{% extends 'layout.html' %}
+{% block title %}Panel Admin{% endblock %}
+{% block content %}
+<div class="admin-only-sessiones">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="container mt-5">
+                <div id="audit-panel" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="container mt-5">
+                <h2 class="mb-4">🔐 Sesiones activas</h2>
+                <label for="statusFilter" class="form-label">Filtrar por estado:</label>
+                <select id="statusFilter" class="form-select w-auto">
+                    <option value="">Todos</option>
+                    <option value="active">Activas</option>
+                    <option value="revoked">Revocadas</option>
+                    <option value="expired">Expiradas</option>
+                </select>
+                <table id="tablaSesiones" class="table-sesiones">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Device</th>
+                            <th>Browser</th>
+                            <th>Login_At</th>
+                            <th>Refresh_at</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
