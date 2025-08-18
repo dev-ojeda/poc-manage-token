@@ -7,10 +7,16 @@ body {
     position: fixed;
     top: 56px; /* navbar height */
     left: 0;
+    transition: all 0.3s ease;
     padding-top: 1rem;
     border-right: 1px solid #dee2e6;
     z-index: 100;
+    overflow-y: auto;
 }
+    .sidebar.collapsed {
+        margin-left: -650px;
+    }
+
     .sidebar .nav-link.collapsed::after {
         content: "▸";
         float: right;
@@ -26,13 +32,15 @@ body {
 }
 
 main {
-    margin-left: 0;
+    transition: all 0.3s ease;
 }
 
-@media (min-width: 768px) {
-    main {
-        margin-left: 250px;
+    main.expanded {
+        margin-left: 0 !important;
     }
+/* Ajuste para submenús */
+.submenu {
+    padding-left: 1.5rem;
 }
 /* Tabla responsive y con sombras sutiles */
 .table-sesiones {

@@ -93,3 +93,7 @@ class TokenSession:
     def mark_used(self):
         """Marca el token como usado"""
         self.used_at = datetime.now(timezone.utc)
+
+    def is_active(self) -> bool:
+        """Verifica si el token está activo (no expirado, no revocado)"""
+        return not self.is_expired() and self.revoked_at is None    

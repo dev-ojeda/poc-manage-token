@@ -1,7 +1,6 @@
 
 from datetime import datetime, timezone
 from bson import ObjectId
-from icecream import ic
 from app.dao.session_dao import SessionDAO 
 from app.model.user_session import UserSession
 

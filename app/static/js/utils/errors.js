@@ -38,7 +38,6 @@ export function handleError(err) {
     else {
         showAlert(`❌ Error inesperado: ${msg}`, "danger", 8000);
     }
-    clearSession();
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 

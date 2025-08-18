@@ -14,6 +14,7 @@ class AuditLogDAO:
         return self.db.insert_with_log(collection=self.session_audit, document=audit_log.to_dict(), context=context)
 
     def get_logs_audit(self, **kwargs) -> dict:
+
         user_id = kwargs.get("user_id")
         event_type = kwargs.get("event_type")
         start = kwargs.get("start")
@@ -84,9 +85,3 @@ class AuditLogDAO:
             "page": page,
             "limit": limit
         }
-
-    def get_datetime_now(self) -> datetime:
-        return datetime.now(timezone.utc)
-
-    def update_datetime_format_iso(self, fecha: datetime) -> datetime:
-        return fecha.fromisoformat(fecha.isoformat())

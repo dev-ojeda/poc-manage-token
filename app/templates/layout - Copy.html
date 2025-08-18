@@ -12,11 +12,13 @@
 </head>
 <body>
     <!-- Navbar superior -->
-    <!-- Navbar superior -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div class="container-fluid">
+            <button id="sidebarToggle" class="btn btn-dark me-2 d-lg-none">
+                <i class="bi bi-list"></i>
+            </button>
             <a class="navbar-brand" href="/dashboard">
-                <i class="bi bi-shield-lock-fill"></i> AdminPanel
+                <i class="bi bi-shield-lock-fill"></i> Manage Panel
             </a>
 
             <!-- Botón de colapso para dispositivos móviles -->
@@ -30,15 +32,14 @@
                     <!-- Puedes reemplazar esto con datos reales del usuario -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle"></i> Usuario
+                            <i class="bi bi-person-circle"></i><span id="userName"></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="/perfil">Mi Perfil</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <button id="logoutBtn">
-                                    <i class="bi bi-box-arrow-right"></i>
-                                    <span class="label">Salir</span>
+                                <button id="logoutBtn" type="button" class="dropdown-item">
+                                    <i class="bi bi-box-arrow-right"></i> Salir
                                 </button>
                             </li>
                         </ul>
@@ -47,55 +48,57 @@
             </div>
         </div>
     </nav>
-
+    <!-- Layout principal -->
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar lateral -->
             <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-dark text-bg-success sidebar collapse">
                 <div class="position-sticky pt-5">
                     <ul class="nav flex-column">
+
+                        <!-- Dashboard (todos lo ven) -->
                         <li class="nav-item">
                             <a class="nav-link active" href="/dashboard">
                                 <i class="bi bi-speedometer2"></i> Dashboard
                             </a>
                         </li>
-
-                        <!-- Gestión collapse -->
-                        <li class="nav-item">
-                            <a class="nav-link collapsed" data-bs-toggle="collapse" href="#gestionCollapse" role="button" aria-expanded="false" aria-controls="gestionCollapse">
-                                <i class="bi bi-gear"></i> Gestión
-                            </a>
-                            <div class="collapse ps-3" id="gestionCollapse">
-                                <ul class="btn-toggle-nav list-unstyled fw-normal small">
-                                    <li><a href="/usuarios" class="nav-link">Usuarios</a></li>
-                                    <li><a href="/productos" class="nav-link">Productos</a></li>
-                                </ul>
-                            </div>
-                        </li>
-
-                        <!-- Seguridad collapse -->
-                        <li class="nav-item">
-                            <a class="nav-link collapsed" data-bs-toggle="collapse" href="#seguridadCollapse" role="button" aria-expanded="false" aria-controls="seguridadCollapse">
+                        <!-- Seguridad: admin y auditor -->
+                        <li class="nav-item role-admin role-auditor" style="display:none">
+                            <a class="nav-link collapsed" data-bs-toggle="collapse" href="#seguridadCollapse" role="button">
                                 <i class="bi bi-shield-lock"></i> Seguridad
                             </a>
                             <div class="collapse ps-3" id="seguridadCollapse">
                                 <ul class="btn-toggle-nav list-unstyled fw-normal small">
-                                    <li><a href="/sesiones" class="nav-link">Sesiones activas</a></li>
-                                    <li><a href="/token" class="nav-link">Tokens</a></li>
+                                    <li>
+                                        <button type="button" class="nav-btn btn-link text-start" data-action="sesiones">
+                                            Sesiones activas
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="nav-btn btn-link text-start" data-action="sesiones-auditadas">
+                                            Sesiones Auditadas
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="nav-btn btn-link text-start" data-action="tokens">
+                                            Tokens
+                                        </button>
+                                    </li>
                                 </ul>
                             </div>
+
                         </li>
 
-                        <!-- Perfil -->
+                        <!-- Perfil (todos lo ven) -->
                         <li class="nav-item">
                             <a class="nav-link" href="/perfil">
                                 <i class="bi bi-person-circle"></i> Perfil
                             </a>
                         </li>
+
                     </ul>
                 </div>
             </nav>
-
             <!-- Contenido principal -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 pt-5 mt-3">
                 <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
@@ -103,7 +106,6 @@
             </main>
         </div>
     </div>
-
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/layout.js') }}"></script>

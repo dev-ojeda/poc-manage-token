@@ -64,24 +64,7 @@ class DbManager:
             {"username": username, "device_id": device_id, "refresh_token": refresh_token},
             {"$set": {"revoked_at": datetime.now(timezone.utc)}},upsert=True,context="Revocar Refresh Token"
         )
-    def mark_token_as_used(self, username: str, device_id: str, jti: str, refresh_token: str, created_at: None, expires_at: None):
-        return self.conexion.update_mark_token_as_used(
-            self.refresh_tokens, 
-            {
-                "username": username, 
-                "device_id": device_id, 
-                "jti": jti, 
-                "refresh_token": refresh_token, 
-                "created_at": created_at,
-                "expires_at": expires_at
-            },                                        
-            {
-                "$set": {
-                    "used_at": datetime.now(timezone.utc)
-                }
-            },
-            upsert=True
-        )                                                
+                                            
     def revoke_tokens_by_device(self, device_id: str) -> int:
         update = {
             "$set": {

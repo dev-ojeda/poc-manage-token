@@ -15,7 +15,29 @@ document.addEventListener("DOMContentLoaded", () => {
         showAlert("🚫 No existe token.", "danger", 4000);
         window.history.replaceState({}, document.title, window.location.pathname);
     }
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const toggleBtn = document.getElementById('sidebarToggle');
+
+    toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('expanded');
+    });
+
+
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('load', handleResize);
 });
+function handleResize() {
+    if (window.innerWidth < 992) { // <lg
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('expanded');
+    } else {
+        sidebar.classList.remove('collapsed');
+        mainContent.classList.remove('expanded');
+    }
+}
 export function showAlert(message, type = "success", duration = 8000) {
     const container = document.getElementById("alertContainer") || document.body;
 

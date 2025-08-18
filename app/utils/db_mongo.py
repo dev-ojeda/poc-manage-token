@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from datetime import timezone
 import json
 import traceback
 import logging
@@ -34,7 +35,7 @@ class MongoDatabase:
     def connect(self) -> None:
         """Conecta a MongoDB"""
         try:
-            self.client = MongoClient(self.uri, tls=self.tls, tlsCertificateKeyFile=self.tlsCertificateKeyFile, server_api=self.server_api)
+            self.client = MongoClient(self.uri, tls=self.tls, tlsCertificateKeyFile=self.tlsCertificateKeyFile, server_api=self.server_api,tz_aware=True, tzinfo=timezone.utc)
             self.db = self.client[self.db_name]
             ic(f"Conectado a MongoDB -> {self.db_name}")
         except PyMongoError as e:
@@ -99,7 +100,7 @@ class MongoDatabase:
     def update_many(self, collection: str, query: dict, update: dict):
         """Actualiza múltiples documentos que coincidan con la consulta"""
         try:
-            result = self.db[collection].update_many(query, update)
+            result = self.db[collection].update_many(filter=query,update=update,upsert=True)
             ic(f"Documentos coincidentes: {result.matched_count}")
             ic(f"Documentos modificados: {result.modified_count}")
             if result.modified_count > 0:
@@ -128,6 +129,21 @@ class MongoDatabase:
             else:
                 ic("No se encontró el documento para actualizar o hubo un error.")
             return bool(result.modified_count) 
+        except PyMongoError as e:
+            ic(f"Error al actualizar: {e}")
+            raise
+
+    def update_one(self, collection: str, query: dict, update: dict, upsert: bool):
+        """Actualiza un solo documento"""
+        try:
+            result = self.db[collection].update_one(query, update, upsert)
+            if result.modified_count == 1:
+                ic(f"Documento actualizado exitosamente. {result.modified_count}")
+            elif result.matched_count == 1 and result.modified_count == 0:
+                ic("El documento ya tenía los valores especificados.")
+            else:
+                ic("No se encontró el documento para actualizar o hubo un error.")
+            return result.modified_count 
         except PyMongoError as e:
             ic(f"Error al actualizar: {e}")
             raise

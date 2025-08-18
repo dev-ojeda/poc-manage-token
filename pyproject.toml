@@ -7,7 +7,7 @@ name = "app_manage_token"
 version = "1.0.0"
 description = "Aplicación Flask con Bootstrap, SocketIO y PyMongo. Para autenticación y manejo de sesiones activas"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "dev-ojeda", email = "neo1sr3@email.com" }
@@ -38,5 +38,4 @@ dev = [
     "mypy"
 ]
 
-[project.urls]
-Homepage = "https://github.com/dev-ojeda/poc-manage-token"
+dynamic = ["classifiers"]

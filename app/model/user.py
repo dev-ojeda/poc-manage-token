@@ -14,13 +14,12 @@ class User:
         updated_at: Optional[datetime] = None,
         failed_attempts: int = 0,
         blocked_until: Optional[datetime] = None,
-        _id: Optional[ObjectId] = None,
-        already_hashed: bool = False
+        _id: Optional[ObjectId] = None
     ):
         self._id = _id or ObjectId()
         self._username = username
         # Usamos el setter para que aplique hash si es necesario
-        self.password = password if already_hashed else self.hash_password(password)
+        self.password = password
         self._email = email
         self._rol = rol
         self._created_at = created_at or datetime.now(timezone.utc)
@@ -51,9 +50,9 @@ class User:
         return self._password
 
     @password.setter
-    def password(self, plain_password: str):
+    def password(self, value: str):
         # Siempre guarda la versión hasheada
-        self._password = self.hash_password(plain_password)
+        self._password = value
 
     # Getter y setter para email
     @property
@@ -151,8 +150,7 @@ class User:
             updated_at=data.get("updated_at"),
             failed_attempts=data.get("failed_attempts", 0),
             blocked_until=data.get("blocked_until"),
-            _id=data.get("_id"),
-            already_hashed=True  # 🔐 evitar doble hash al cargar desde Mongo
+            _id=data.get("_id")
         )
 
     @staticmethod

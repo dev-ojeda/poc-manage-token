@@ -18,11 +18,14 @@ frontend_bp = Blueprint(
 # @jwt_required_global
 # def index():
 #     return render_template("login.html")
-
 @frontend_bp.route("/")
 @jwt_required_global
-def index():
+def login():
     return render_template("login.html")
+# @frontend_bp.route("/")
+# @jwt_required_global
+# def index():
+#     return render_template("login.html")
 
 @frontend_bp.route('/.well-known/appspecific/com.chrome.devtools.json')
 def devtools_stub():

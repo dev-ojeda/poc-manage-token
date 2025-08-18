@@ -50,11 +50,29 @@ def login():
     so = user_agent.get("os")
     ip_address = request.remote_addr
     device_id = data.get("device")
-    # Buscar usuario
-    user_model = user_service.get_user_by_username(username=data.get("username"))
-    if not user_model:
-        return jsonify({"msg": "Usuario no encontrado"}), 403
 
+    # 🔐 AUTENTICACIÓN (usuario + password)
+    user_model = user_service.authenticate_user(
+        username=data.get("username"),
+        password=data.get("password")
+    )
+    if not user_model:
+        return jsonify({
+            "msg": "Usuario o contraseña inválidos",
+            "code": "INVALID_CREDENTIALS"
+        }), 403
+
+    # ✅ Validar si ya tiene token activo
+    # Validar si ya tiene token activo
+    token_existente = auth_service.get_active_token_by_user(
+        user_model.username
+    )
+    if token_existente:
+        return jsonify({
+            "msg": "El usuario ya tiene un token activo",
+            "code": "USER_ALREADY_HAS_TOKEN",
+            "device_id": token_existente.device_id
+        }), 409
     # Bloqueo temporal
     if user_model.is_blocked_now():
         return jsonify({

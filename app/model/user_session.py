@@ -207,7 +207,7 @@ class UserSession:
     # -------------------
     # Operaciones comunes
     # -------------------
-    def to_dict(self, for_insert: bool = True) -> Dict:
+    def to_dict(self, for_insert: bool = True) -> dict:
         """
         Serializa para MongoDB.
         if for_insert: no incluye _id si es None; si session_id existe lo convierte.

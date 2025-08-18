@@ -13,39 +13,34 @@ Optimizado para **seguridad**, **escalabilidad** y **trazabilidad de sesiones**.
 - 🛡️ Bloqueo temporal ante intentos fallidos
 - 📊 Registro de auditoría en **MongoDB**
 - ⚡ WebSockets con Flask-SocketIO para actualizaciones en tiempo real
-- 🐳 Despliegue rápido con Docker
-
+- 👨‍💻 Soporte para diferentes roles (Admin, User, etc.)
 ---
 
-## 📦 Instalación
+## 📦 Requisitos
 
-```bash
-git clone https://github.com/usuario/app_manage_token.git
-cd app_manage_token
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
-pip install -r requirements.txt
-```
+- Python 3.10+
+- MongoDB
+- Node.js y npm (para los assets de frontend si aplican)
+- Certificados SSL (opcional, para WebSocket seguro wss)
 ---
 
 ## 📁 Estructura del Proyecto
-
+```
 ├── app/
-│ ├── run.py # Punto de entrada principal
+│ ├── main.py # Punto de entrada principal
 │ ├── config.py # Configuración desde variables de entorno
 │ ├── extensions.py # Bootstrap, CORS, etc.
 │ ├── utils/ # Funciones auxiliares (ej: acceso DB)
 │ └── backend/ # Endpoints API (ej: login, logout)
 │ └── frontend/ # Rutas frontend (opcional)
 │ └── midleware/ # Headers seguros
-│ └── ...
+│ └── templates/ # Vistas en html
 ├── requirements.txt
 ├── setup.py
 ├── .env # Variables de entorno
-
+```
 ## ⚙️ Variables
-
+```
 FLASK_ENV=development
 SECRET_KEY=clave_super_segura
 JWT_PRIVATE_KEY_PATH=./keys/private.pem
@@ -53,3 +48,4 @@ JWT_PUBLIC_KEY_PATH=./keys/public.pem
 MONGO_URI=mongodb://localhost:27017/manage_token
 TOKEN_EXP_MINUTES=15
 REFRESH_TOKEN_EXP_DAYS=7
+```

@@ -13,7 +13,6 @@ scripts/
 *.pyproj
 *.pyproj.*
 *.sln
-tests/
 # C extensions
 *.so
 
@@ -216,3 +215,4 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/remove.py

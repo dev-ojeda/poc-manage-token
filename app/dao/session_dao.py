@@ -7,13 +7,14 @@ from app.model.user_session import UserSession
 
 class SessionDAO:
     def __init__(self):
+
         self.db = MongoDatabase()
         self.active_sessions = "active_sessions"
         self.users = "users"
 
     def insert_session(self, session: UserSession) -> dict:
         return self.db.insert_with_log(self.active_sessions,session.to_dict(),context="Insertar sesión activa")
-    def get_active_session(self, user_id: ObjectId, device_id:str) -> dict:
+    def get_active_session(self, user_id: ObjectId, device_id: str) -> dict:
         query={
             "user_id": user_id,
             "device_id": device_id
@@ -33,10 +34,7 @@ class SessionDAO:
         }
         return self.db.find_one(self.active_sessions,query=query,projection=projection)
     def get_active_session_by_Id(self, user_id: ObjectId) -> dict:
-        query={
-            "user_id": user_id
-         }
-        projection = {
+       return self.db.find_one(self.active_sessions,{"user_id": user_id},{
             "_id": 1,
             "user_id": 1,
             "device_id": 1,
@@ -48,8 +46,8 @@ class SessionDAO:
             "refresh_token": 1,
             "is_revoked": 1,
             "reason": 1
-        }
-        return self.db.find_one(self.active_sessions,query=query,projection=projection)
+        })
+
     def device_id_exists(self, device_id: str) -> dict:
         query = {"device_id": device_id}
         projection = {

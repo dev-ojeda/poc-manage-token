@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from flask import Flask
-from app.extensions import bootstrap, cors, socketio
 from app.midleware.security import apply_secure_headers 
+from app.extensions import cors, bootstrap, socketio
 from app.config import Config
 
 
