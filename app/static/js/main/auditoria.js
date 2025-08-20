@@ -7,7 +7,8 @@ const suspiciousKeywords = [
     "multiple_attempts",
     "logout",
     "expiration",
-    "login"
+    "login",
+    "refresh_token"
 ];
 let page = 1;
 const limit = 10;
@@ -68,6 +69,9 @@ async function renderTableLogs(data) {
             if (isSuspicious(log.event_type)) {
                 switch (log.event_type) {
                     case "user_agent_change":
+                        celda = "warning";
+                        break;
+                    case "refresh_token":
                         celda = "warning";
                         break;
                     case "revoked":

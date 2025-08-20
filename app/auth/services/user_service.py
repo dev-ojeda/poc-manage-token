@@ -69,7 +69,8 @@ class UserService:
             jti=decoded_token["jti"],
             refresh_token=token,
             refresh_attempts=refresh_attempts,
-            user_agent=user_agent,
+            browser=user_agent["browser"],
+            os=user_agent["os"],
             ip_address=ip
         )
 

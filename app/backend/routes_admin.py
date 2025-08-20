@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+from uuid import uuid4
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from dotenv import load_dotenv
@@ -24,9 +25,11 @@ admin_bp = Blueprint("admin_bp", __name__)
 @admin_bp.route("/auth/admin", methods=["POST"])
 def login():
     user_service = UserService()
+    auth_service = AuthService()
     data = request.get_json()
-    user_agent = data.get("user_agent")
-    ip_address = request.remote_addr
+    user_agent = data.get("user_agent", {})
+    browser, so = user_agent.get("browser"), user_agent.get("os")
+    ip_address, device_id = request.remote_addr, data.get("device")
     if not request.is_json:
         return jsonify({"msg": "Content-Type debe ser application/json", "code": "INVALID_JSON"}), 400
 
@@ -43,13 +46,67 @@ def login():
 
     # if not User.verify_password(data["password"], user_model.password):
     #     return jsonify({"msg": "Credenciales incorrectas", "code": "INVALID_CREDENTIALS"}), 401
-    
-    access_token, refresh_token = tg.create_tokens({
-        "username": user_model.username,
-        "jti": None,
-        "device_id": data["device"],
-        "rol": user_model.rol
-    })
+
+    existing_token = auth_service.is_token_in_use(user_model.username)
+    ic(existing_token)
+    if existing_token and existing_token["device_id"] == data.get("device_id"):
+        if auth_service.is_token_expired(existing_token["refresh_token"]):
+            # Token expirado → nuevo jti y tokens
+            jti = str(uuid4())
+            access_token, refresh_token = auth_service.generate_tokens({
+                "username": user_model.username,
+                "rol": user_model.rol,
+                "device_id": data.get("device_id"),
+                "jti": jti
+            })
+            # Guardar refresh token
+            upsert_ok = auth_service.upsert_new_token(
+                username=user_model.username,
+                device_id=data.get("device_id"),
+                refresh_token=refresh_token,
+                jti=jti,
+                ip_address=ip_address,
+                browser=browser,
+                os=so,
+                refresh_attempts=0
+            )
+            if not upsert_ok.get("success"):
+                return jsonify({"msg": upsert_ok.get("message"), "code": "UPSERT_TOKEN_FAILED"}), 500
+        else:
+            # Token válido → reutilizar jti, regenerar access
+            jti = existing_token["jti"]
+            refresh_token = existing_token["refresh_token"]
+            access_token = auth_service.refresh_access_token(token=refresh_token)
+
+    elif existing_token:
+        # Otro device ya tiene token activo
+        return jsonify({
+            "msg": f"El usuario ya tiene un token activo en otro dispositivo ({existing_token['device_id']})",
+            "code": "USER_ALREADY_HAS_TOKEN"
+        }), 409
+
+    else:
+        # Primer login → nuevo jti
+        jti = str(uuid4())
+        access_token, refresh_token = auth_service.generate_tokens({
+            "username": user_model.username,
+            "rol": user_model.rol,
+            "device_id": device_id,
+            "jti": jti
+        })
+        # Guardar refresh token
+        upsert_ok = auth_service.upsert_new_token(
+            username=user_model.username,
+            device_id=device_id,
+            refresh_token=refresh_token,
+            jti=jti,
+            ip_address=ip_address,
+            browser=browser,
+            os=so,
+            refresh_attempts=0
+        )
+        if not upsert_ok.get("success"):
+            return jsonify({"msg": upsert_ok.get("message"), "code": "UPSERT_TOKEN_FAILED"}), 500
 
     decoded = tg.verify_token(access_token, expected_type="access")
     

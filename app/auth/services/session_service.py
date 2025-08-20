@@ -49,10 +49,3 @@ class SessionService:
                 "rol": s["user_data"]["rol"]
             })
         return result
-   
-
-    def get_datetime_now(self) -> datetime:
-        return datetime.now(timezone.utc)
-
-    def update_datetime_format_iso(self, fecha: datetime) -> datetime:
-        return fecha.fromisoformat(fecha.isoformat())

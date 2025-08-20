@@ -109,7 +109,7 @@ def test_revoked_session(mock_dao):
 
 def test_update_session(mock_dao):
     user_id = ObjectId()
-    result = mock_dao.update_session(user_id, reason="active")
+    result = mock_dao.update_session(user_id, token="token123", reason="active")
     assert result["modified_count"] == 1
     mock_dao.db.update_with_log.assert_called()
 

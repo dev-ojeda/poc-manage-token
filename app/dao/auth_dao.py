@@ -44,10 +44,10 @@ class AuthDao:
         return result[0] if result else None
 
     def get_active_token_by_username(self, username: str):
-        now = datetime.now(timezone.utc)
+        now = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
         match_filter = {
             "username": username,
-            "revoked": False,
+            "revoked_at": None,
             "expires_at": {"$gt": now}
         }
 
@@ -63,7 +63,7 @@ class AuthDao:
                 "refresh_token": 1,
                 "created_at": 1,
                 "expires_at": 1,
-                "revoked": 1,
+                "revoked_at": 1,
                 "used_at": 1   # 👉 incluimos el campo
             }}
         ]
@@ -89,8 +89,8 @@ class AuthDao:
         return token_doc if token_doc else None
 
     def revoke_all_tokens_for_user(self, username):
-        query = {"username": username, "revoked": False}
-        update = {"$set": {"revoked": True, "revoked_at": datetime.now(timezone.utc)}}
+        query = {"username": username, "revoked_at": None}
+        update = {"$set": {"revoked_at": datetime.fromisoformat(datetime.now(timezone.utc).isoformat())}}
         if self.collection:
             result = self.collection.update_many(query, update)
         else:
@@ -98,8 +98,8 @@ class AuthDao:
         return result.modified_count
 
     def revoke_token_by_jti(self, jti):
-        query = {"jti": jti, "revoked": False}
-        update = {"$set": {"revoked": True, "revoked_at": datetime.now(timezone.utc)}}
+        query = {"jti": jti, "revoked_at": None}
+        update = {"$set": {"revoked_at": datetime.fromisoformat(datetime.now(timezone.utc).isoformat())}}
         if self.collection:
             result = self.collection.update_many(query, update)
         else:
@@ -119,7 +119,7 @@ class AuthDao:
             result = self.collection.update_many(query, update)
         else:
             result = self.db.update_many(collection=self.refresh_tokens, query=query, update=update)
-        return result
+        return result.modified_count
 
     def mark_token_as_used(self, username: str, device_id: str, jti: str, refresh_token: str, created_at: None, expires_at: None, refresh_attempts: int, browser: str, os: str, ip_address:str, upsert: bool):
         query = {
