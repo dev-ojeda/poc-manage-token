@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+from icecream import ic
+
 
 from app.model.audit_session import AuditLog
 from app.utils.db_mongo import MongoDatabase
@@ -85,3 +87,28 @@ class AuditLogDAO:
             "page": page,
             "limit": limit
         }
+
+    def insert_event_audit(self, previous_session: dict, **kwargs) -> dict:
+        audit_events = []
+        ip_changed = previous_session.get("ip_address") != kwargs["ip_address"]
+        ua_changed = previous_session.get("user_agent") != kwargs["user_agent"]
+
+        if ip_changed or ua_changed:
+            audit_events = {
+                 "username": kwargs["username"],
+                 "device_id": kwargs["device_id"],
+                 "timestamp": datetime.now(timezone.utc),
+                 "old_ip_address": previous_session.get("ip_address"),
+                 "new_ip_address": kwargs["ip_address"],
+                 "old_user_agent": previous_session.get("user_agent"),
+                 "new_user_agent": kwargs["user_agent"],
+                 "reason": []
+            }
+            if ip_changed:
+                audit_events["reason"].append("ip_changed")
+            if ua_changed:
+                audit_events["reason"].append("user_agent_changed")
+            
+            ic(f"[AUDITORÍA] Cambio sospechoso detectado: {audit_events}") 
+
+        return self.db.insert_with_log(self.session_audit, audit_events,context="Evento Auditoria")

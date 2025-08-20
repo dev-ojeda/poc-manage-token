@@ -6,9 +6,8 @@ from app.utils.db_mongo import MongoDatabase
 from app.model.user_session import UserSession
 
 class SessionDAO:
-    def __init__(self):
-
-        self.db = MongoDatabase()
+    def __init__(self,db=None):
+        self.db = db or MongoDatabase()
         self.active_sessions = "active_sessions"
         self.users = "users"
 
@@ -47,7 +46,12 @@ class SessionDAO:
             "is_revoked": 1,
             "reason": 1
         })
-
+    def find_previous_session(self, username: str, device_id: str) -> dict:
+        # Buscar sesión previa con mismo usuario + dispositivo
+        return self.db.find_one(
+                self.active_sessions,
+                {"username": username, "device_id":device_id}
+        )
     def device_id_exists(self, device_id: str) -> dict:
         query = {"device_id": device_id}
         projection = {
@@ -74,35 +78,40 @@ class SessionDAO:
         }
         return self.db.find_one(self.active_sessions,query=query,projection=projection)
     def revoked_session(self, user_id: ObjectId, reason: str):
+        revoked_at = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
         query={"user_id": user_id}
         update_fields = {
             "$set": {
                 "is_revoked": True,
-                "revoked_at": datetime.now(timezone.utc),
+                "revoked_at": revoked_at,
                 "status": "revoked",
                 "reason": reason
             }
         }
         return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Revocar Session")
-    def update_session(self, user_id:ObjectId, reason: str):
+    def update_session(self, user_id:ObjectId, token: str, reason: str):
+        last_refresh_at = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
         query={"user_id": user_id}
         update_fields = {
             "$set": {
                 "is_revoked": False,
                 "revoked_at": None,
-                "last_refresh_at": self.update_datetime_format_iso(self.get_datetime_now()),
+                "last_refresh_at": last_refresh_at,
+                "refresh_token": token,
                 "status": "active",
                 "reason": reason
+
             }
         }
         return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Session Cerrada")
     def update_session_for_audit(self, user_id: ObjectId, ip_address: str, browser: str, reason: str) -> dict:
+        last_refresh_at = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
         query={"user_id": user_id}
         update_fields = {
             "$set": {
                 "ip_address": ip_address,
                 "browser": browser,
-                "last_refresh_at": self.update_datetime_format_iso(self.get_datetime_now()),
+                "last_refresh_at": last_refresh_at,
                 "reason": reason
             }
         }
@@ -162,8 +171,3 @@ class SessionDAO:
             }
         ]
         return list(self.db.aggregate(self.active_sessions,pipeline))
-    def get_datetime_now(self) -> datetime:
-        return datetime.now(timezone.utc)
-
-    def update_datetime_format_iso(self, fecha: datetime) -> datetime:
-        return fecha.fromisoformat(fecha.isoformat())

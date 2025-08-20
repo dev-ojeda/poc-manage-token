@@ -3,8 +3,6 @@
 
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request
-from icecream import ic
-from pymongo.results import UpdateResult
 
 from app.utils.db_mongo import MongoDatabase
 from app.model.token_generator import TokenGenerator
@@ -53,18 +51,12 @@ class DbManager:
             return False
 
         return True  # Válido
-    def is_token_revoked(self, jti: str) -> bool:
-        return self.conexion.count_documents(self.token_blacklist,{"jti": jti}) > 0
+    
     def get_refresh_token(self, refresh_token: str) -> dict | None:
         query = {"refresh_token": refresh_token}
         doc = self.conexion.find_one(self.refresh_tokens, query)
         return doc 
-    def revoke_refresh_token(self, username: str, device_id: str, refresh_token: str) -> dict:
-        return self.conexion.update_with_log(self.refresh_tokens,
-            {"username": username, "device_id": device_id, "refresh_token": refresh_token},
-            {"$set": {"revoked_at": datetime.now(timezone.utc)}},upsert=True,context="Revocar Refresh Token"
-        )
-                                            
+                                     
     def revoke_tokens_by_device(self, device_id: str) -> int:
         update = {
             "$set": {
@@ -72,26 +64,7 @@ class DbManager:
             }
         }
         return self.conexion.update_many(self.refresh_tokens, {"device_id": device_id}, update)
-    def revoke_token(self, token: str, device_id=None, username=None, reason=None) -> UpdateResult:
-        update_fields = {
-            "revoked_at": datetime.now(timezone.utc)
-        }
-
-        if reason is not None:
-            update_fields["reason"] = reason
-        if device_id is not None:
-            update_fields["device_id"] = device_id
-        if username is not None:
-            update_fields["username"] = username
-
-        return self.conexion.update_with_log(
-            self.token_blacklist,
-            {"token": token},
-            {"$set": update_fields},
-            upsert=True,
-            context="Revocar Token Blacklist"
-        )
-
+    
     def exists_token_global(self) -> dict:
         is_valido = bool(self.conexion.count_documents(self.global_tokens,filtro={}))
         if not is_valido:
@@ -156,8 +129,6 @@ class DbManager:
 
         return list(self.conexion.find(self.active_sessions, query, projection).sort("last_refresh_at", -1))
 
-   
-
     # return list(self.conexion.find(self.refresh_tokens, query, projection))
     def log_audit_event(self, 
                         session_id: str, 
@@ -190,78 +161,6 @@ class DbManager:
             "timestamp": datetime.now(timezone.utc)
         }
         self.conexion.insert_one(self.session_audit, event)
-    def upsert_refresh_token(self, **kwargs) -> dict:
-    
-        device_id = kwargs["device_id"]
-        username = kwargs["username"]
-        # Buscar sesión previa con mismo usuario + dispositivo
-        previous_session = self.find_previous_session(username=username,device_id=device_id)
-
-        ic(f"[AUDITORÍA] SESSION PREVIOUS: {previous_session}")
-
-        if previous_session is not None:
-            event_audit = self.insert_event_audit(previous_session=previous_session, **kwargs)
-            ic(event_audit)
-   
-        return self.update_refresh_token(**kwargs)
-    def find_previous_session(self, username: str, device_id: str) -> dict:
-        # Buscar sesión previa con mismo usuario + dispositivo
-        return self.conexion.find_one(
-             self.active_sessions,
-             {"username": username, "device_id":device_id}
-        )
-    def insert_event_audit(self, previous_session: dict, **kwargs) -> dict:
-        audit_events = []
-        ip_changed = previous_session.get("ip_address") != kwargs["ip_address"]
-        ua_changed = previous_session.get("user_agent") != kwargs["user_agent"]
-
-        if ip_changed or ua_changed:
-            audit_events = {
-                 "username": kwargs["username"],
-                 "device_id": kwargs["device_id"],
-                 "timestamp": datetime.now(timezone.utc),
-                 "old_ip_address": previous_session.get("ip_address"),
-                 "new_ip_address": kwargs["ip_address"],
-                 "old_user_agent": previous_session.get("user_agent"),
-                 "new_user_agent": kwargs["user_agent"],
-                 "reason": []
-            }
-            if ip_changed:
-                audit_events["reason"].append("ip_changed")
-            if ua_changed:
-                audit_events["reason"].append("user_agent_changed")
-            
-            ic(f"[AUDITORÍA] Cambio sospechoso detectado: {audit_events}") 
-
-        return self.conexion.insert_with_log(self.session_audit, audit_events,context="Evento Auditoria")
-    def update_refresh_token(self, **kwargs) -> dict:
-        expires_at = self.update_datetime_format_iso((self.get_datetime_now() + timedelta(seconds=360)))
-        created_at = self.update_datetime_format_iso(self.get_datetime_now())
-        update_at = self.update_datetime_format_iso(self.get_datetime_now())
-        return self.conexion.update_with_log(self.refresh_tokens,
-             {"username":  kwargs["username"], "device_id":  kwargs["device_id"]},
-             {
-                 "$set": {
-                     "jti": kwargs["jti"],
-                     "refresh_token": kwargs["refresh_token"],
-                     "update_at": update_at,
-                     "expires_at": expires_at,
-                     "revoked_at": None,
-                     "used_at": None,
-                     "refresh_attempts": kwargs["refresh_attempts"],
-                     "browser": kwargs["user_agent"]["browser"],
-                     "os": kwargs["user_agent"]["os"],
-                     "ip_address": kwargs["ip_address"]
-                 },
-                 "$setOnInsert": {
-                     "username": kwargs["username"],
-                     "device_id": kwargs["device_id"],
-                     "created_at": created_at
-                 }
-             },
-             upsert=True,
-             context="Upsert Refresh Token"
-         )
 
     def get_datetime_now(self) -> datetime:
         return datetime.now(timezone.utc)

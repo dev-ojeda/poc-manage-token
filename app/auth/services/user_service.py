@@ -6,6 +6,7 @@ from typing import List, Optional
 from bson import ObjectId
 
 
+from app.dao.auth_dao import AuthDao
 from app.utils.db_manager import DbManager
 from app.model.user import User
 from app.dao.user_dao import UserDAO
@@ -13,9 +14,9 @@ from app.dao.user_dao import UserDAO
 
 class UserService:
     def __init__(self):
-        self.dm = DbManager()
         self.MAX_ATTEMPTS = 3
         self.BLOCK_TIME_SECONDS = 120  # 2 min
+        self.auth_dao = AuthDao()
         self.user_dao = UserDAO()
     def get_user_by_username(self, username: str) -> Optional[User]:
         return self.user_dao.find_by_username(username)
@@ -51,7 +52,7 @@ class UserService:
         }, upsert=True, context="Reset Intentos")
 
     def persist_refresh_token(self, decoded_token: dict, token: str, user_agent: dict, ip: str, refresh_attempts=0) -> dict:
-        return self.dm.update_refresh_token(
+        return self.auth_dao.update_refresh_token(
             username=decoded_token["sub"],
             device_id=decoded_token["device_id"],
             jti=decoded_token["jti"],
@@ -62,7 +63,7 @@ class UserService:
         )
 
     def persist_refresh_token_admin(self, decoded_token: dict, token: str, user_agent: dict, ip: str, refresh_attempts=0) -> dict:
-        return self.dm.update_refresh_token(
+        return self.auth_dao.update_refresh_token(
             username=decoded_token["sub"],
             device_id=decoded_token["device_id"],
             jti=decoded_token["jti"],

@@ -18,7 +18,7 @@ class AuditService:
         if not session:
             raise ValueError("Sesión no encontrada")
 
-        now_iso = self.get_datetime_now()
+        now_iso = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
         reason = ""
         cambios = False
 
@@ -66,9 +66,3 @@ class AuditService:
 
     def get_logs_audit(self, **kwargs) -> dict:
         return self.audit_log_dao.get_logs_audit(**kwargs)
-
-    def get_datetime_now(self) -> datetime:
-        return datetime.now(timezone.utc)
-
-    def update_datetime_format_iso(self, fecha: datetime) -> str:
-        return fecha.astimezone(timezone.utc).isoformat()

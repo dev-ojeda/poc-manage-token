@@ -3,17 +3,18 @@
 
 
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from bson import ObjectId
 from app.auth.services.audit_service import AuditService
 from app.auth.services.auth_service import AuthService
+from app.auth.services.blacklist_service import TokenBlacklistService
 from app.auth.services.user_service import UserService
-from app.utils.db_manager import DbManager
 from flask import Blueprint, jsonify, make_response, request
 from icecream import ic 
 
 from app.auth.services.session_service import SessionService
-from app.midleware.jwt_guard import jwt_required_custom, jwt_required_custom_refresh, log_refresh_attempt
+from app.midleware.jwt_guard import jwt_required_custom, jwt_required_custom_refresh
 from app.model.user import User
 from app.model.user_session import UserSession
 
@@ -35,97 +36,111 @@ def login():
     session_service = SessionService()
     audit_service = AuditService()
     auth_service = AuthService()
-
     data = request.get_json()
-    if not request.is_json:
-        return jsonify({"msg": "Content-Type debe ser application/json", "code": "INVALID_JSON"})
 
-    # Validación de payload
+    if not request.is_json:
+        return jsonify({"msg": "Content-Type debe ser application/json", "code": "INVALID_JSON"}), 400
+
+    # 1️⃣ Validación de payload
     missing = user_service.validate_login_payload(data)
     if missing:
-        return jsonify({"msg": f"Faltan campos: {', '.join(missing)}", "code": "MISSING_FIELDS"})
+        return jsonify({"msg": f"Faltan campos: {', '.join(missing)}", "code": "MISSING_FIELDS"}), 400
 
     user_agent = data.get("user_agent", {})
-    browser = user_agent.get("browser")
-    so = user_agent.get("os")
-    ip_address = request.remote_addr
-    device_id = data.get("device")
+    browser, so = user_agent.get("browser"), user_agent.get("os")
+    ip_address, device_id = request.remote_addr, data.get("device")
 
-    # 🔐 AUTENTICACIÓN (usuario + password)
+    # 2️⃣ Autenticación
     user_model = user_service.authenticate_user(
         username=data.get("username"),
         password=data.get("password")
     )
     if not user_model:
-        return jsonify({
-            "msg": "Usuario o contraseña inválidos",
-            "code": "INVALID_CREDENTIALS"
-        }), 403
+        return jsonify({"msg": "Usuario o contraseña inválidos", "code": "INVALID_CREDENTIALS"}), 403
 
-    # ✅ Validar si ya tiene token activo
-    # Validar si ya tiene token activo
-    token_existente = auth_service.get_active_token_by_user(
-        user_model.username
-    )
-    if token_existente:
-        return jsonify({
-            "msg": "El usuario ya tiene un token activo",
-            "code": "USER_ALREADY_HAS_TOKEN",
-            "device_id": token_existente.device_id
-        }), 409
-    # Bloqueo temporal
+    # 3️⃣ Bloqueo temporal
     if user_model.is_blocked_now():
         return jsonify({
             "msg": "⏳ Usuario temporalmente bloqueado",
             "bloqueado_hasta": user_model.blocked_until.isoformat() + "Z",
             "code": "USER_BLOCKED"
-        })
+        }), 403
 
-     # Manejo de intentos fallidos
-    validate_fail_credentials = user_service.handle_failed_login(user_model=user_model)
-    if not validate_fail_credentials.get("success"):
-        return jsonify({"msg": validate_fail_credentials.get("message"), "code": "INVALID_FAIL_CREDENTIALS"})
+    # 4️⃣ Intentos fallidos
+    fail_check = user_service.handle_failed_login(user_model=user_model)
+    if not fail_check.get("success"):
+        return jsonify({"msg": fail_check.get("message"), "code": "INVALID_FAIL_CREDENTIALS"}), 403
 
-    validate_attempts = user_service.reset_login_attempts(user_model=user_model)
-    if not validate_attempts.get("success"):
-        return jsonify({"msg": validate_attempts.get("message"), "code": "INVALID_RESET_ATTEMPS"})
+    reset_attempts = user_service.reset_login_attempts(user_model=user_model)
+    if not reset_attempts.get("success"):
+        return jsonify({"msg": reset_attempts.get("message"), "code": "INVALID_RESET_ATTEMPTS"}), 500
 
-    # 🔍 Validar si el device_id ya existe
-    if session_service.device_id_exists(device_id) is not None:
+    # 5️⃣ Manejo de tokens
+    existing_token = auth_service.is_token_in_use(user_model.username)
+    ic(existing_token)
+    if existing_token and existing_token["device_id"] == device_id:
+        if auth_service.is_token_expired(existing_token["refresh_token"]):
+            # Token expirado → nuevo jti y tokens
+            jti = str(uuid4())
+            access_token, refresh_token = auth_service.generate_tokens({
+                "username": user_model.username,
+                "rol": user_model.rol,
+                "device_id": device_id,
+                "jti": jti
+            })
+            # Guardar refresh token
+            upsert_ok = auth_service.upsert_new_token(
+                username=user_model.username,
+                device_id=device_id,
+                refresh_token=refresh_token,
+                jti=jti,
+                ip_address=ip_address,
+                browser=browser,
+                os=so,
+                refresh_attempts=0
+            )
+            if not upsert_ok.get("success"):
+                return jsonify({"msg": upsert_ok.get("message"), "code": "UPSERT_TOKEN_FAILED"}), 500
+        else:
+            # Token válido → reutilizar jti, regenerar access
+            jti = existing_token["jti"]
+            refresh_token = existing_token["refresh_token"]
+            access_token = auth_service.refresh_access_token(token=refresh_token)
+
+    elif existing_token:
+        # Otro device ya tiene token activo
         return jsonify({
-            "msg": "Este dispositivo ya tiene una sesión activa",
-            "code": "DEVICE_ALREADY_REGISTERED"
+            "msg": f"El usuario ya tiene un token activo en otro dispositivo ({existing_token['device_id']})",
+            "code": "USER_ALREADY_HAS_TOKEN"
         }), 409
 
-    # Generar tokens con AuthService
-    access_token, refresh_token = auth_service.generate_tokens({
-        "username": user_model.username,
-        "jti": None,
-        "device_id": data["device"],
-        "rol": user_model.rol
-    })
+    else:
+        # Primer login → nuevo jti
+        jti = str(uuid4())
+        access_token, refresh_token = auth_service.generate_tokens({
+            "username": user_model.username,
+            "rol": user_model.rol,
+            "device_id": device_id,
+            "jti": jti
+        })
+        # Guardar refresh token
+        upsert_ok = auth_service.upsert_new_token(
+            username=user_model.username,
+            device_id=device_id,
+            refresh_token=refresh_token,
+            jti=jti,
+            ip_address=ip_address,
+            browser=browser,
+            os=so,
+            refresh_attempts=0
+        )
+        if not upsert_ok.get("success"):
+            return jsonify({"msg": upsert_ok.get("message"), "code": "UPSERT_TOKEN_FAILED"}), 500
 
-    # Decodificar access token
-    decoded = auth_service.verify_access_token(access_token)
-    
-    # Guardar refresh token en DB usando AuthService
-    upsert_ok = auth_service.upsert_new_token(
-        username=user_model.username,
-        device_id=decoded.get("device_id"),
-        refresh_token=refresh_token,
-        user_agent=user_agent,
-        ip_address=ip_address,
-        jti=decoded.get("jti"),
-        refresh_attempts=0
-    )
-    if not upsert_ok.get("success"):
-        return jsonify({"msg": upsert_ok.get("message"), "code": "INVALID_UPSERT_TOKENS"})
-
-
-     # Crear o actualizar sesión
+    # 6️⃣ Crear o actualizar sesión
     user_model_session = UserSession(
         user_id=user_model.id,
-        device_id=decoded.get("device_id"),
+        device_id=device_id,
         ip_address=ip_address,
         browser=browser,
         os=so,
@@ -135,109 +150,115 @@ def login():
         reason="login",
         role="User"
     )
+
     usuario_existe = existe_usuario(user_model_session.user_id)
     if usuario_existe is None:
         insert_result = session_service.register_session(user_session=user_model_session)
         if not insert_result.get("success"):
-            return jsonify({"msg": insert_result.get("message"), "code": "INVALID_REGISTER_USER"})
+            return jsonify({"msg": insert_result.get("message"), "code": "REGISTER_SESSION_FAILED"}), 500
     else:
         audit_service.update_session_activity(
             user_id=usuario_existe.user_id,
             ip_address=user_model_session.ip_address,
             user_agent=user_model_session.browser
         )
+
+    # 7️⃣ Respuesta
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "device_id": decoded.get("device_id"),
+        "device_id": device_id,
         "rol": user_model.rol
     }), 200
 
 @backend_bp.route("/auth/refresh", methods=["POST"])
-@log_refresh_attempt
 def refresh():
-    service = AuthService()
+    user_service = UserService()
+    auth_service = AuthService()
+    session_service = SessionService()
+    audit_service = AuditService()
     data = request.get_json()
-   
+    
     if not data:
         return jsonify({"msg": "JSON inválido o vacío", "code": "INVALID_JSON"}), 400
 
     refresh_token = data.get("refresh_token")
     device_id = str(data.get("device_id", "")).strip()
-    user_agent = str(request.headers.get("User-Agent")).strip()
+    user_agent = data.get("user_agent", {})
+    browser, so = user_agent.get("browser"), user_agent.get("os")
     ip = request.remote_addr
 
     if not refresh_token or not device_id:
         return jsonify({"msg": "Faltan datos requeridos", "code": "MISSING_FIELDS"}), 400
 
     try:
-        # Verificar existencia en base de datos
-        stored = service.get_refresh_token_from_db(refresh_token)
+        # Verificar existencia del refresh en DB
+        stored = auth_service.get_refresh_token_from_db(refresh_token)
         if not stored:
             return jsonify({"msg": "Token no válido. Iniciá sesión nuevamente.", "code": "InvalidTokenError"}), 401
 
-        # Detectar reuso
-        if service.detect_reuse(stored):
-            service.revoke_all_for_device(device_id)
-            return jsonify({"msg": "Reuso detectado", "code": "ReuseDetected"}), 401
-
-        # Validaciones adicionales
-        if service.device_mismatch(stored, device_id):
+        # Validar que está en uso, no expirado y coincide con device
+        in_use = auth_service.get_active_token_by_user_and_device(stored["username"], device_id)
+        if not in_use:
             return jsonify({"msg": "Dispositivo no coincide", "code": "DeviceMismatch"}), 403
 
+        # Validar revocado o intentos máximos
         if stored.get("revoked_at"):
             return jsonify({"msg": "Token revocado", "code": "RevokedToken"}), 401
 
         if stored.get("refresh_attempts", 0) >= 3:
             return jsonify({"msg": "Se alcanzó el máximo de intentos de refresh", "code": "MaxAttemptsExceeded"}), 403
 
-        # Verificar firma y tipo del token
-        payload = service.get_token_payload(refresh_token)
-        if service.is_token_expired(payload):
+        # Verificar firma y expiración
+        payload = auth_service.get_token_payload(refresh_token)
+        if auth_service.is_token_expired(exp=payload["exp"]):
             return jsonify({"msg": "Token expirado", "code": "Expired"}), 401
-        username, jti = payload["sub"], payload["jti"]
-        # Marcar el token actual como usado
-        if not service.mark_used(
-            username=username,
-            device_id=device_id,
-            jti=jti,
-            refresh_token=refresh_token,
-            created_at=stored["created_at"],
-            expires_at=stored["expires_at"]
-        ):
-            return jsonify({"msg": "Error al marcar usado", "code": "MarkUsedError"}), 500
 
-        # Validar aún vigente y no revocado
-        if not service.is_valid_refresh(refresh_token, device_id):
-            return jsonify({"msg": "Token inválido", "code": "RevokedToken"}), 401
+        username, jti = payload["sub"], payload["jti"] # 🔑 Mantener jti del refresh
 
-        # Revocar el token anterior (si corresponde)
-        if not service.revoke_old_token(username, device_id, refresh_token):
-            return jsonify({"msg": "Error al revocar", "code": "RevokeError"}), 500
-
-        # Generar nuevos tokens
-        access_token, new_refresh_token = service.generate_tokens({
+        revocar_old_token = auth_service.revoke_old_token(username=username,device_id=device_id,token=refresh_token)
+        if not revocar_old_token.get("success"):
+            return jsonify({"msg": revocar_old_token.get("message"), "code": "REVOKED_OLD_TOKEN_FAILED"}), 500
+        # Generar nuevos tokens respetando el jti
+        access_token, new_refresh_token = auth_service.generate_tokens({
             "username": username,
-            "jti": None,
+            "jti": jti,
             "device_id": device_id,
             "rol": stored.get("rol")
         })
 
-        # Upsert del nuevo refresh
+        # Persistir nuevo refresh token
         attempts = stored.get("refresh_attempts", 0) + 1
-        if not service.upsert_new_token(
+        upsert_new_token = auth_service.upsert_new_token(
             username=username,
             device_id=device_id,
             jti=jti,
             refresh_token=new_refresh_token,
-            user_agent=user_agent,
+            browser=browser,
+            os=so,
             ip_address=ip,
             refresh_attempts=attempts
-        ):
-            return jsonify({"msg": "Error al guardar el nuevo token", "code": "UpsertError"}), 500
+        )
+        if not upsert_new_token.get("success"):
+            return jsonify({"msg": upsert_new_token.get("message"), "code": "UPSERT_TOKEN_FAILED"}), 500
 
-        # Extraer info y responder
-        decoded = service.get_token_payload(new_refresh_token)
+        user_model: User = user_service.get_user_by_username(username=username)
+        if user_model is None:
+             return jsonify({"msg": "No existe usuario para refrescar token", "code": "INVALID_USER_TOKEN"}), 500
+        else:
+            user_sesion = session_service.update_session(user_id=ObjectId(user_model.id), token=new_refresh_token, reason="refresh_token")
+            if not user_sesion.get("success"):
+                return jsonify({"msg": "Problemas al actualizar session del usuario", "code": "INVALID_UPDATE_USER"}), 500
+            # Crear o actualizar sesión
+            audit_service.update_session_activity(
+                user_id=user_model.id,
+                ip_address=ip,
+                user_agent=browser
+            )
+
+
+        # Responder con tokens actualizados
+        decoded = auth_service.get_token_payload(new_refresh_token)
         return jsonify({
             "access_token": access_token,
             "refresh_token": new_refresh_token,
@@ -256,14 +277,18 @@ def refresh():
 def logout(user,user_token_refresh):
     us = UserService()
     ss = SessionService()
-    dm = DbManager()
+    auth_service = AuthService()
+    blacklist_service = TokenBlacklistService()
+    audit_service = AuditService()
     data = request.get_json()
     access_token = data.get("access_token")
     refresh_token = data.get("refresh_token")
     device_id = data.get("device_id")
     reason = data.get("reason")
+    user_agent = data.get("user_agent", {})
+    browser, so = user_agent.get("browser"), user_agent.get("os")
     ic(f"🔐 Logout → refresh_token: {refresh_token}, device_id: {device_id}")
-    if str(user_token_refresh).__ne__(refresh_token):
+    if user_token_refresh != refresh_token:
         ic("❌ Token de acceso faltante")
         return jsonify({"msg": "Token de acceso faltante"}), 403
 
@@ -274,20 +299,27 @@ def logout(user,user_token_refresh):
         username = user.get("username")
 
         # 🔐 Marcar refresh_token como revocado
-        update_revoked_token = dm.update_store_refresh_token_revoked(username,device_id)
-        if not update_revoked_token["success"]:
+        update_revoked_token = auth_service.revoke_old_token(username=username,device_id=device_id,token=refresh_token)
+        if not update_revoked_token.get("success"):
             return jsonify({"msg": update_revoked_token.get("message"), "code": "INVALID_REVOKED_TOKEN"})
         # 🔒 Revocar access_token
-        update_revoked_token_blacklist = dm.revoke_token(access_token,device_id,username,reason)
-        if not update_revoked_token_blacklist["success"]:
+        update_revoked_token_blacklist = blacklist_service.revoke_token_blacklist(token=access_token,device_id=device_id, username=username,reason=reason)
+        if not update_revoked_token_blacklist.get("success"):
             return jsonify({"msg": update_revoked_token_blacklist.get("message"), "code": "INVALID_REVOKED_TOKEN_BLACKLIST"})
         # 📝 Log opcional (auditoría)
         
         user_model: User = us.get_user_by_username(username=username)
-        user_sesion = ss.update_session(user_id=ObjectId(user_model.id),reason="logout")
+        user_sesion = ss.update_session(user_id=ObjectId(user_model.id), token=refresh_token, reason="logout")
         
-        if not user_sesion["success"]:
+        if not user_sesion.get("success"):
             return jsonify({"msg": user_sesion.get("message"), "code": "INVALID_SESSION_CLOSED"})
+        # Crear o actualizar sesión
+        audit_service.update_session_activity(
+            user_id=user_model.id,
+            ip_address=client_ip,
+            user_agent=browser
+        )
+
         ic(f"🔒 Logout: {username} desde IP {client_ip} usando device_id {device_id}")
         response = make_response(jsonify({"msg": "Sesion Cerrada con exito"}), 200)
         response.delete_cookie('access_token')

@@ -16,6 +16,7 @@ class UserSession:
         "logout",
         "expiration",
         "login",
+        "refresh_token"
     }
 
     STATUSES = {"active", "revoked", "expired"}

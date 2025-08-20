@@ -13,6 +13,7 @@ scripts/
 *.pyproj
 *.pyproj.*
 *.sln
+.vscode/
 # C extensions
 *.so
 

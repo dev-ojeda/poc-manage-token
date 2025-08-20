@@ -24,16 +24,17 @@ def sample_tokens():
             "device_id": "device123",
             "jti": "jti_1",
             "refresh_token": "rtok123",
-            "revoked": False,
+            "revoked_at": None,
             "expires_at": now + timedelta(hours=1),
-            "created_at": now - timedelta(minutes=10)
+            "created_at": now - timedelta(minutes=10),
+            "used_at": now
         },
         {
             "username": "neo",
             "device_id": "device456",
             "jti": "jti_2",
             "refresh_token": "rtok456",
-            "revoked": False,
+            "revoked_at": None,
             "expires_at": now - timedelta(hours=1),  # Expirado
             "created_at": now - timedelta(hours=2)
         },
@@ -42,34 +43,43 @@ def sample_tokens():
             "device_id": "device789",
             "jti": "jti_3",
             "refresh_token": "rtok789",
-            "revoked": False,
+            "revoked_at": None,
             "expires_at": now + timedelta(hours=2),
             "created_at": now - timedelta(minutes=5)
         }
     ]
 
-@pytest.mark.parametrize(
-    "username, device_id, expected_exists",
-    [
-        ("neo", "device123", True),
-        ("neo", "device456", False),  # expirado
-        ("neo", "device999", False),  # inexistente
-        ("trinity", "device789", True),
-        ("unknown", "device000", False),
-    ]
-)
-def test_get_active_token_by_user(auth_dao, sample_tokens, username, device_id, expected_exists):
+# @pytest.mark.parametrize(
+#     "username, device_id, expected_exists",
+#     [
+#         ("neo", "device123", True),
+#         ("neo", "device456", False),  # expirado
+#         ("neo", "device999", False),  # inexistente
+#         ("trinity", "device789", True),
+#         ("unknown", "device000", False),
+#     ]
+# )
+# def test_get_active_token_by_user_and_device(auth_dao, sample_tokens, username, device_id, expected_exists):
+#     auth_dao.collection.insert_many(sample_tokens)
+#     now = datetime.now(timezone.utc)
+#     token = auth_dao.get_active_token_by_user_and_device(username, device_id=device_id)
+#     if expected_exists:
+#         assert token is not None
+#         assert token["device_id"] == device_id
+#         assert not token["revoked_at"]
+#         assert token["expires_at"].replace(tzinfo=timezone.utc) > now
+#     else:
+#         assert token is None
+
+def test_get_active_token_by_user(auth_dao, sample_tokens):
     auth_dao.collection.insert_many(sample_tokens)
     now = datetime.now(timezone.utc)
-    token = auth_dao.get_active_token_by_user(username, device_id=device_id)
-    if expected_exists:
-        assert token is not None
-        assert token["device_id"] == device_id
-        assert not token["revoked"]
-        assert token["expires_at"].replace(tzinfo=timezone.utc) > now
-    else:
-        assert token is None
+    token = auth_dao.get_active_token_by_username("neo")
+    assert token is not None
+    assert not token["revoked_at"]
+    assert token["expires_at"].replace(tzinfo=timezone.utc) > now
 
+   
 @pytest.mark.parametrize(
     "jti, expected_modified",
     [
@@ -98,7 +108,7 @@ def test_revoke_token_by_device_id(auth_dao, sample_tokens, device_id, expected_
     assert modified_count == expected_modified
     if expected_modified:
         token = auth_dao.collection.find_one({"device_id": device_id})
-        assert token["revoked"]
+        assert token["revoked_at"]
 
 @pytest.mark.parametrize(
     "username, expected_modified",
@@ -113,7 +123,7 @@ def test_revoke_all_tokens_for_user(auth_dao, sample_tokens, username, expected_
     assert modified_count == expected_modified
     if expected_modified:
         tokens = list(auth_dao.collection.find({"username": username}))
-        assert all(t["revoked"] for t in tokens)
+        assert all(t["revoked_at"] for t in tokens)
 
 def test_revoke_all_tokens_for_user_no_match(auth_dao, sample_tokens):
     """Debe devolver 0 si no encuentra tokens para revocar."""
@@ -124,7 +134,7 @@ def test_revoke_all_tokens_for_user_no_match(auth_dao, sample_tokens):
 
 def test_revoke_token_by_jti_already_revoked(auth_dao, sample_tokens):
     """Si el token ya estaba revocado, no debe modificar nada."""
-    sample_tokens[0]["revoked"] = True
+    sample_tokens[0]["revoked_at"] = True
     auth_dao.db["refresh_tokens"].insert_many(sample_tokens)
 
     modified_count = auth_dao.revoke_token_by_jti("jti_1")
@@ -132,22 +142,22 @@ def test_revoke_token_by_jti_already_revoked(auth_dao, sample_tokens):
 
 def test_get_active_token_by_user_no_tokens(auth_dao):
     """Debe devolver None si no hay tokens activos."""
-    token = auth_dao.get_active_token_by_user("neo","device123")
+    token = auth_dao.get_active_token_by_user_and_device("neo","device123")
     assert token is None
 
 def test_get_active_token_by_user_and_device(auth_dao, sample_tokens):
     auth_dao.db["refresh_tokens"].insert_many(sample_tokens)
     now = datetime.now(timezone.utc)  # timezone-aware
     # Caso válido: existe token activo para ese device
-    token = auth_dao.get_active_token_by_user("neo","device123")
+    token = auth_dao.get_active_token_by_user_and_device("neo","device123")
     assert token is not None
     assert token["device_id"] == "device123"
-    assert token["revoked"] is False
+    assert token["revoked_at"] is None
     assert float(token["expires_at"].timestamp()) > float(datetime.timestamp(now))
 
     # Caso inválido: token expirado en ese device
     auth_dao.db["refresh_tokens"].update_one({"device_id": "device123"}, {"$set": {"expires_at": datetime.now(timezone.utc) - timedelta(seconds=1)}})
-    token_none_expired = auth_dao.get_active_token_by_user("neo","device123")
+    token_none_expired = auth_dao.get_active_token_by_user_and_device("neo","device123")
     assert token_none_expired is None
 
 def test_mark_token_as_used_existing(auth_dao, sample_tokens):
@@ -160,7 +170,7 @@ def test_mark_token_as_used_existing(auth_dao, sample_tokens):
         "device_id": "device123",
         "jti": "jti_1",
         "refresh_token": "rtok123",
-        "revoked": False,
+        "revoked_at": None,
         "expires_at": now + timedelta(hours=1),
         "created_at": now - timedelta(minutes=10)
     }

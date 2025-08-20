@@ -37,18 +37,16 @@ class TokenGenerator:
             return None
 
     def _current_utc(self) -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
 
     def _is_valid_role(self, role) -> bool:
         return role in self.valid_roles
 
     def _build_payload(self, data: dict, token_type: str, exp_seconds: int) -> dict:
         now = self._current_utc()
-        data["jti"] = str(data.get("jti") or uuid.uuid4())
         return {
             "sub": data.get("username", "anonymous"),
             **data,
-            "jti": data["jti"],
             "rol": data.get("rol"),
             "scope": data.get("scope", "default"),
             "exp": now + timedelta(seconds=exp_seconds),
@@ -73,19 +71,43 @@ class TokenGenerator:
         }
 
     def create_tokens(self, data: dict) -> tuple[str, str]:
-
+        """
+        Genera access_token y refresh_token con el mismo jti
+        """
         if data.get("rol") == "Admin":
             payload_access = self._build_payload(data, "access", self.access_exp_admin)
             payload_refresh = self._build_payload(data, "refresh", self.refresh_exp_admin)
         else:
             payload_access = self._build_payload(data, "access", self.access_exp)
             payload_refresh = self._build_payload(data, "refresh", self.refresh_exp)
-        
+
 
         return (
             jwt.encode(payload_access, self.private_key, algorithm="RS256"),
             jwt.encode(payload_refresh, self.private_key, algorithm="RS256")
         )
+
+    def refresh_access_token(self, refresh_token: str) -> str:
+        """
+        Recibe un refresh_token válido y devuelve un nuevo access_token
+        con el mismo jti.
+        """
+        decoded = self._decode(refresh_token, expected_type="refresh")
+
+        data = {
+            "username": decoded.get("sub"),
+            "rol": decoded.get("rol"),
+            "scope": decoded.get("scope"),
+            "jti": decoded.get("jti"),   # reutilizamos mismo jti
+        }
+
+        exp_seconds = (
+            self.access_exp_admin if data["rol"] == "Admin" else self.access_exp
+        )
+
+        payload_access = self._build_payload(data, "access", exp_seconds)
+
+        return jwt.encode(payload_access, self.private_key, algorithm="RS256")
 
     def create_tokens_global(self) -> str:
         payload = self._build_global_payload("access", self.access_exp_global)
@@ -112,12 +134,7 @@ class TokenGenerator:
             return decoded
 
         except ExpiredSignatureError:
-            raise AuthException(
-                "Tu sesión ha expirado. Por favor inicia sesión nuevamente.", 
-                "ExpiredSignatureError", 
-                401
-            )
-            # return {"error": "Tu sesión ha expirado. Por favor inicia sesión nuevamente.", "code": "ExpiredSignatureError"}, 401
+            return {"error": "Tu sesión ha expirado. Por favor inicia sesión nuevamente.", "code": "ExpiredSignatureError"}, 401
 
         except InvalidSignatureError:
             raise AuthException(

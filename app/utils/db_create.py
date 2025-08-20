@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from icecream import ic
 
 # client = MongoClient("mongodb://localhost:27017/")
-client = MongoClient(Config.MONGO_URI_CLUSTER_X509, tls=True, tlsCertificateKeyFile=Config.MONGODB_X509, server_api=ServerApi('1'))
+client = MongoClient(Config.MONGO_URI_CLUSTER_X509, tls=True, tlsCertificateKeyFile=Config.MONGODB_X509, server_api=ServerApi('1'),tz_aware=True, tzinfo=timezone.utc)
 db = client[Config.MONGO_DB]
 
 
@@ -51,7 +51,6 @@ def db_create_collection():
                 # Previene duplicados: solo un refresh_token activo por device + user
                 db.refresh_tokens.create_index(
                     [("username", ASCENDING), ("device_id", ASCENDING)],
-                    unique=True,
                     name="idx_device_user"
                 )
 

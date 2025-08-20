@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from icecream import ic
 
 from app.auth.services.audit_service import AuditService
+from app.auth.services.auth_service import AuthService
 from app.web_socket.event_socket import notificar_revocacion
 from app.auth.services.session_service import SessionService
 from app.auth.services.user_service import UserService
@@ -22,14 +23,14 @@ admin_bp = Blueprint("admin_bp", __name__)
 
 @admin_bp.route("/auth/admin", methods=["POST"])
 def login():
-    us = UserService()
+    user_service = UserService()
     data = request.get_json()
     user_agent = data.get("user_agent")
     ip_address = request.remote_addr
     if not request.is_json:
         return jsonify({"msg": "Content-Type debe ser application/json", "code": "INVALID_JSON"}), 400
 
-    missing = us.validate_login_payload(data)
+    missing = user_service.validate_login_payload(data)
     if missing:
         return jsonify({"msg": f"Faltan campos: {', '.join(missing)}", "code": "MISSING_FIELDS"}), 400
 
@@ -52,7 +53,7 @@ def login():
 
     decoded = tg.verify_token(access_token, expected_type="access")
     
-    validate_upsert_user_token = us.persist_refresh_token_admin(decoded, refresh_token, user_agent, ip_address)
+    validate_upsert_user_token = user_service.persist_refresh_token_admin(decoded, refresh_token, user_agent, ip_address)
     if not validate_upsert_user_token.get("success"):
         return jsonify({"msg": validate_upsert_user_token.get("message"), "code": "INVALID_UPSERT_TOKENS"})
 
@@ -148,7 +149,7 @@ def get_active_sessions(user):
 @admin_bp.route("/auth/sessions/revoke", methods=["POST"])
 @admin_required
 def revoke_session(user):
-    dm = DbManager()
+    auth_service = AuthService()
     ss = SessionService()
     ads = AuditService()
     data = request.json;
@@ -165,7 +166,7 @@ def revoke_session(user):
         return jsonify({"msg": "Device diferente"}), 400
 
 
-    result = dm.revoke_refresh_token(username=username, device_id=device_id, refresh_token=refreshToken)
+    result = auth_service.revoke_old_token(username=username, device_id=device_id, token=refreshToken)
     if not result.get("success"):
         return jsonify({"msg": result.get("message"), "code": "INVALID_REVOCKED_REFRESH_TOKEM"})
     

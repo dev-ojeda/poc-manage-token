@@ -15,8 +15,8 @@ class SessionService:
         return self.session_dao.revoked_session(user_id=user_id, reason="revoked")
     def device_id_exists(self, device_id: str) -> dict | None:
         return self.session_dao.device_id_exists(device_id=device_id)
-    def update_session(self, user_id:ObjectId, reason: str) -> dict:
-        return self.session_dao.update_session(user_id=user_id, reason=reason)
+    def update_session(self, user_id:ObjectId, token: str, reason: str) -> dict:
+        return self.session_dao.update_session(user_id=user_id,token=token,reason=reason)
     def get_active_session(self, user_id:ObjectId, device_id: str) -> dict:
         return self.session_dao.get_active_session(user_id=user_id,device_id=device_id)
     def get_active_session_by_Id(self, user_id:ObjectId) -> dict:

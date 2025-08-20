@@ -10,13 +10,14 @@ const api_user = new ApiUser({
     storage: new LocalStorageAdapter()
 });
 // Guardamos última IP y UA por device_id
+
 let tokenTimerInterval = null;
 // Inicializar al cargar DOM
 document.addEventListener("DOMContentLoaded", async () => {
     const user_rol = api_user.userRol;
     const user_name = api_user.userName;
-    const dashboardContent = document.getElementById("dashboardContent");
     const expiracion = api_user.tokenExp;
+    const dashboardContent = document.getElementById("dashboardContent");
     if (!user_rol) {
         console.warn("No hay token válido, redirigiendo...");
         window.location.href = "/";
@@ -32,6 +33,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     dashboardContent.style.display = "block";
     startTokenTimer(expiracion);
     openChat(user_rol);
+
+    document.addEventListener("startTokenTimer", (event) => {
+        const { new_expiracion } = event.detail;
+        startTokenTimer(new_expiracion);
+    });
 
     // Eventos generales
     document.getElementById("logoutBtn")?.addEventListener("click", async (e) => {
@@ -65,7 +71,7 @@ async function tryRefreshToken() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 refresh_token: refreshToken,
-                device_id: api_user.getDeviceId(),  // <-- paréntesis acá
+                device_id: api_user.deviceId,  // <-- paréntesis acá
                 user_agent: api_user.getBrowserInfo()
             })
         });
@@ -78,13 +84,17 @@ async function tryRefreshToken() {
             api_user.storage.set("rol", data.rol);
             api_user.storage.set("exp", data.exp);
             showAlert("✅ Token refrescado", "success", 4000);
-            startTokenTimer(data.exp);
+            console.log("EXP: " + data.exp)
+            document.dispatchEvent(new CustomEvent("startTokenTimer", {
+                detail: { new_expiracion: parseFloat(data.exp) }
+            }));
         } else {
-            throw new Error(`Error ${data.msg} ${data.code}`);
+            showAlert(`⚠️ Error al refrescar token: ${data.msg}`, "danger", 5000);
             await api_user.logout("intentos");
         }
     } catch (err) {
-        handleError(err)
+        handleError(err);
+        showAlert("❌ No se pudo renovar sesión. Inicia sesión de nuevo.", "danger", 5000);
         await api_user.logout("intentos");
     }
 }
@@ -100,13 +110,20 @@ function startTokenTimer(expTimestamp) {
             timerElement.textContent = "⏱ Token expirado";
             timerElement.classList.replace("text-success", "text-danger");
             clearInterval(tokenTimerInterval);
-            tryRefreshToken(); // ⚙️ Refresh automático
             return;
         }
-
+        // ⚡ Refrescar automáticamente 30s antes de expirar
+        if (remaining <= 30000) {
+            showAlert("♻️ Refrescando sesión automáticamente...", "info", 3000);
+            timerElement.textContent = "♻️ Renovando token...";
+            clearInterval(tokenTimerInterval);
+            tryRefreshToken();
+            return;
+        }
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
         timerElement.textContent = `⏱ Expira en ${minutes}:${seconds.toString().padStart(2, "0")}`;
+        timerElement.classList.add("text-success");
     }, 1000);
 }
 function applyRoleVisibility(rol) {

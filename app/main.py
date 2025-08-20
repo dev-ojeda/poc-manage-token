@@ -16,32 +16,24 @@ def main() -> None:
     Punto de entrada principal de la app.
     """
     ic("🚀 Servidor iniciado en:")
-    ic(f"🌐 http://localhost:{Config.PORT}")
-    ic(f"🌐 https://localhost:{Config.PORT}")
-    ic(f"🔒 https://localhost:{Config.PORT} (SSL activo)")
-    ic(f"🔒 https://127.0.0.1:{Config.PORT} (SSL activo)")
+    ic(f"🌐 http://{Config.HOST}:{Config.PORT}")
+    ic(f"🔒 https://{Config.HOST}:{Config.PORT} (si SSL está activo)")
 
-    # Detectar entorno para toggle de SSL
-    # use_ssl = os.getenv("FLASK_USE_SSL", "true").lower() == "true"
+    use_ssl = os.getenv("FLASK_USE_SSL", "false").lower() == "true"
 
-    # if use_ssl:
-    #     app.run(ssl_context=(Config.PATH_CRT_APP, Config.PATH_KEY_APP),host=Config.HOST,port=Config.PORT,debug=False)
-    # else:
-    #     app.run(
-    #         host=Config.HOST,
-    #         port=Config.PORT,
-    #         debug=Config.DEBUG
-    #     )
-    listener = eventlet.listen(("0.0.0.0", 5000))
-    ssl_args = {
-        "certfile": Config.PATH_CRT,
-        "keyfile": Config.PATH_KEY,
-        "server_side": True
-    }
-    ssl_listener = eventlet.wrap_ssl(listener, **ssl_args)
-     # Usar el socket SSL en el servidor WSGI
-    eventlet.wsgi.server(ssl_listener, app)
+    listener = eventlet.listen((Config.HOST, Config.PORT))
+
+    if use_ssl:
+        ssl_args = {
+            "certfile": Config.PATH_CRT,
+            "keyfile": Config.PATH_KEY,
+            "server_side": True
+        }
+        listener = eventlet.wrap_ssl(listener, **ssl_args)
+        ic("✅ SSL habilitado")
+
+    # Lanza el servidor WSGI
+    eventlet.wsgi.server(listener, app, log_output=True)
 
 if __name__ == "__main__":
     main()
-    

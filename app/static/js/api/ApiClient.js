@@ -165,7 +165,6 @@ export class ApiClient {
     async logout_admin() {
         showAlert(`👋 Admin ha cerrado sesión`, "info", 4000);
         clearSession(); // tokens, flags, device_id, etc.
-        window.history.replaceState({}, document.title, window.location.pathname);
         location.href = "/";
 
     }
@@ -175,8 +174,9 @@ export class ApiClient {
             const access_token = this.accessToken;
             const refresh_token = this.refreshToken;
             const device_id = this.deviceId;
+            const user_agent = this.getBrowserInfo();
 
-            if (!access_token) throw new Error("Token no existe");
+            if (!access_token && !refresh_token) throw new Error("Token no existe");
 
             const res = await fetch(`${this.baseURL}/api/auth/logout`, {
                 method: "POST",
@@ -185,7 +185,7 @@ export class ApiClient {
                     "Content-Type": "application/json",
                     "X-Token-Type": "refresh",
                 },
-                body: JSON.stringify({ access_token, refresh_token, device_id, reason }),
+                body: JSON.stringify({ access_token, refresh_token, device_id, reason, user_agent }),
             });
 
             const data = await res.json();
@@ -198,7 +198,6 @@ export class ApiClient {
             console.warn("Logout error:", err);
         } finally {
             clearSession();
-            window.history.replaceState({}, document.title, window.location.pathname);
             location.href = "/";
         }
     }
