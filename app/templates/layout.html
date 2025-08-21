@@ -6,7 +6,7 @@
     <title>{% block title %}Dashboard{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
 
 </head>
@@ -70,18 +70,13 @@
                             <div class="collapse ps-3" id="seguridadCollapse">
                                 <ul class="btn-toggle-nav list-unstyled fw-normal small">
                                     <li>
-                                        <button type="button" class="nav-btn btn-link text-start" data-action="sesiones">
-                                            Sesiones activas
+                                        <button type="button" class="btn btn-link text-start" aria-pressed="true" data-action="sesiones">
+                                            <i class="bi bi-people"></i> Sesiones activas
                                         </button>
                                     </li>
                                     <li>
-                                        <button type="button" class="nav-btn btn-link text-start" data-action="sesiones-auditadas">
-                                            Sesiones Auditadas
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" class="nav-btn btn-link text-start" data-action="tokens">
-                                            Tokens
+                                        <button type="button" class="btn btn-link text-start" aria-pressed="true" data-action="sesiones-auditadas">
+                                            <i class="bi bi-people-fill"></i> Sesiones Auditadas
                                         </button>
                                     </li>
                                 </ul>

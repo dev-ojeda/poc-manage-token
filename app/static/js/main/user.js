@@ -35,9 +35,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     openChat(user_rol);
 
     document.addEventListener("startTokenTimer", (event) => {
+        console.log("TIMER: " + tokenTimerInterval);
+        const progressBar = document.getElementById("tokenProgress");
+        progressBar.classList.remove("bg-danger");
+        progressBar.classList.add("bg-success");
         const { new_expiracion } = event.detail;
         startTokenTimer(new_expiracion);
     });
+
 
     // Eventos generales
     document.getElementById("logoutBtn")?.addEventListener("click", async (e) => {
@@ -84,6 +89,8 @@ async function tryRefreshToken() {
             api_user.storage.set("rol", data.rol);
             api_user.storage.set("exp", data.exp);
             showAlert("✅ Token refrescado", "success", 4000);
+            
+            console.log("TIMER 1: " + tokenTimerInterval)
             console.log("EXP: " + data.exp)
             document.dispatchEvent(new CustomEvent("startTokenTimer", {
                 detail: { new_expiracion: parseFloat(data.exp) }
@@ -101,18 +108,39 @@ async function tryRefreshToken() {
 
 function startTokenTimer(expTimestamp) {
     const timerElement = document.getElementById("tokenTimer");
-    if (!timerElement || !expTimestamp) return;
-    clearInterval(tokenTimerInterval);  // ⚠️ Evita múltiples intervalos
+    const progressBar = document.getElementById("tokenProgress");
+    if (!timerElement || !expTimestamp || !progressBar) return;
 
+    clearInterval(tokenTimerInterval);  // Evita múltiples intervalos
+
+    const expDate = new Date(expTimestamp * 1000);
+    console.log("🕒 Expira exactamente en:", expDate.toLocaleString("es-CL"));
+
+    // Guardamos el tiempo total del token (en ms) desde ahora hasta expiración
+    const totalDuration = expTimestamp * 1000 - Date.now();
+    // Transiciones suaves (ancho y color)
     tokenTimerInterval = setInterval(() => {
         const remaining = expTimestamp * 1000 - Date.now();
+        let percentage = Math.max(0, Math.floor((remaining / totalDuration) * 100));
         if (remaining <= 0) {
             timerElement.textContent = "⏱ Token expirado";
             timerElement.classList.replace("text-success", "text-danger");
+            progressBar.classList.remove("bg-success", "bg-warning");
+            progressBar.classList.add("bg-danger");
             clearInterval(tokenTimerInterval);
             return;
         }
-        // ⚡ Refrescar automáticamente 30s antes de expirar
+
+        // Actualizar barra de progreso
+        progressBar.style.width = `${percentage}%`;
+        if (percentage <= 29) {
+            progressBar.classList.replace("bg-warning", "bg-danger");
+        }
+        else if (percentage <= 49) {
+            progressBar.classList.replace("bg-success", "bg-warning");
+        }
+        else progressBar.classList.add("bg-success");
+        // Refrescar automáticamente 30s antes de expirar
         if (remaining <= 30000) {
             showAlert("♻️ Refrescando sesión automáticamente...", "info", 3000);
             timerElement.textContent = "♻️ Renovando token...";
@@ -120,6 +148,7 @@ function startTokenTimer(expTimestamp) {
             tryRefreshToken();
             return;
         }
+
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
         timerElement.textContent = `⏱ Expira en ${minutes}:${seconds.toString().padStart(2, "0")}`;
@@ -140,3 +169,81 @@ function applyRoleVisibility(rol) {
         el.style.display = hasAccess ? "" : "none";
     });
 }
+
+//let tokenTimer = {
+//    intervalId: null,
+//    endTimestamp: null,
+//    progressBar: document.getElementById("tokenProgress"),
+
+//    start(expTimestamp) {
+//        this.stop();
+//        this.endTimestamp = expTimestamp;
+
+//        this.intervalId = setInterval(() => {
+//            const remainingMs = this.endTimestamp * 1000 - Date.now();
+
+//            if (remainingMs <= 0) {
+//                this.updateUI(0, "⏱ Token expirado", "danger");
+//                this.stop();
+//                return;
+//            }
+
+//            // Refrescar token automáticamente 30s antes
+//            if (remainingMs <= 30000) {
+//                this.stop();
+//                showAlert("♻️ Renovando token automáticamente...", "info", 3000);
+//                tryRefreshToken();
+//            }
+
+//            this.updateUI(remainingMs);
+//        }, 500); // actualización más fluida
+//    },
+
+//    stop() {
+//        if (this.intervalId) {
+//            clearInterval(this.intervalId);
+//            this.intervalId = null;
+//        }
+//    },
+
+//    updateUI(remainingMs, text = null, status = null) {
+//        const timerElement = document.getElementById("tokenTimer");
+//        const totalMs = this.endTimestamp * 1000 - (Date.now() - remainingMs);
+//        const percent = Math.max(0, Math.min(100, (remainingMs / totalMs) * 100));
+
+//        // Actualizar texto
+//        if (timerElement) {
+//            if (!text) {
+//                const minutes = Math.floor(remainingMs / 60000);
+//                const seconds = Math.floor((remainingMs % 60000) / 1000);
+//                text = `⏱ Expira en ${minutes}:${seconds.toString().padStart(2, "0")}`;
+//            }
+//            timerElement.textContent = text;
+
+//            // Cambiar color según tiempo restante
+//            timerElement.classList.remove("text-success", "text-warning", "text-danger");
+//            if (status) {
+//                timerElement.classList.add(`text-${status}`);
+//            } else if (percent <= 10) {
+//                timerElement.classList.add("text-danger");
+//            } else if (percent <= 30) {
+//                timerElement.classList.add("text-warning");
+//            } else {
+//                timerElement.classList.add("text-success");
+//            }
+//        }
+
+//        // Actualizar barra de progreso
+//        if (this.progressBar) {
+//            this.progressBar.style.transition = "width 0.5s linear";
+//            this.progressBar.style.width = `${percent}%`;
+
+//            // Cambiar color según tiempo restante
+//            this.progressBar.classList.remove("bg-success", "bg-warning", "bg-danger");
+//            if (percent <= 10) this.progressBar.classList.add("bg-danger");
+//            else if (percent <= 30) this.progressBar.classList.add("bg-warning");
+//            else this.progressBar.classList.add("bg-success");
+//        }
+//    }
+//};
+

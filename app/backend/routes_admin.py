@@ -48,9 +48,8 @@ def login():
     #     return jsonify({"msg": "Credenciales incorrectas", "code": "INVALID_CREDENTIALS"}), 401
 
     existing_token = auth_service.is_token_in_use(user_model.username)
-    ic(existing_token)
     if existing_token and existing_token["device_id"] == data.get("device_id"):
-        if auth_service.is_token_expired(existing_token["refresh_token"]):
+        if auth_service.is_token_expired(exp=float(existing_token["expires_at"].timestamp())):
             # Token expirado → nuevo jti y tokens
             jti = str(uuid4())
             access_token, refresh_token = auth_service.generate_tokens({

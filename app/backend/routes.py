@@ -77,9 +77,8 @@ def login():
 
     # 5️⃣ Manejo de tokens
     existing_token = auth_service.is_token_in_use(user_model.username)
-    ic(existing_token)
     if existing_token and existing_token["device_id"] == device_id:
-        if auth_service.is_token_expired(existing_token["refresh_token"]):
+        if auth_service.is_token_expired(exp=float(existing_token["expires_at"].timestamp())):
             # Token expirado → nuevo jti y tokens
             jti = str(uuid4())
             access_token, refresh_token = auth_service.generate_tokens({
@@ -123,6 +122,12 @@ def login():
             "device_id": device_id,
             "jti": jti
         })
+
+        valor = auth_service.get_token_payload(token=refresh_token)
+        salida = valor["exp"]
+        ic(f"TIPO: {type(salida)} ")
+        ic(f"EXPIRACION: {salida} ")
+
         # Guardar refresh token
         upsert_ok = auth_service.upsert_new_token(
             username=user_model.username,
@@ -210,8 +215,8 @@ def refresh():
             return jsonify({"msg": "Se alcanzó el máximo de intentos de refresh", "code": "MaxAttemptsExceeded"}), 403
 
         # Verificar firma y expiración
-        payload = auth_service.get_token_payload(refresh_token)
-        if auth_service.is_token_expired(exp=payload["exp"]):
+        payload = auth_service.get_token_payload(token=refresh_token)
+        if auth_service.is_token_expired(exp=float(payload["exp"])):
             return jsonify({"msg": "Token expirado", "code": "Expired"}), 401
 
         username, jti = payload["sub"], payload["jti"] # 🔑 Mantener jti del refresh
@@ -259,6 +264,9 @@ def refresh():
 
         # Responder con tokens actualizados
         decoded = auth_service.get_token_payload(new_refresh_token)
+        salida = decoded["exp"]
+        ic(f"TIPO: {type(salida)} ")
+        ic(f"EXPIRACION: {salida} ")
         return jsonify({
             "access_token": access_token,
             "refresh_token": new_refresh_token,
@@ -309,7 +317,7 @@ def logout(user,user_token_refresh):
         # 📝 Log opcional (auditoría)
         
         user_model: User = us.get_user_by_username(username=username)
-        user_sesion = ss.update_session(user_id=ObjectId(user_model.id), token=refresh_token, reason="logout")
+        user_sesion = ss.update_session(user_id=ObjectId(user_model.id), token=refresh_token, reason=reason)
         
         if not user_sesion.get("success"):
             return jsonify({"msg": user_sesion.get("message"), "code": "INVALID_SESSION_CLOSED"})

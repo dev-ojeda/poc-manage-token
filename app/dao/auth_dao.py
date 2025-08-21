@@ -84,7 +84,7 @@ class AuthDao:
             "username": username,
             "used_at": {"$ne": None}  # distinto de None => ya usado
         }
-        projection = {"_id": 1, "username": 1, "device_id": 1, "refresh_token": 1, "jti": 1}
+        projection = {"_id": 1, "username": 1, "device_id": 1, "refresh_token": 1, "jti": 1, "expires_at": 1}
         token_doc = self.db.find_one(self.refresh_tokens,query=query,projection=projection)
         return token_doc if token_doc else None
 

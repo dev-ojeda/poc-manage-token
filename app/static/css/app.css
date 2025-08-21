@@ -143,3 +143,48 @@ main {
                 color: #6c757d;
             }
 }
+
+.progress-bar {
+    transition: width 0.5s linear, background-color 0.5s linear;
+}
+/* Barra de progreso base */
+#tokenProgress {
+    transition: width 0.5s linear, background-color 0.5s ease-in-out;
+    height: 20px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+}
+
+    /* Estados de colores */
+    #tokenProgress.bg-success {
+        background-color: #28a745 !important; /* Verde */
+    }
+
+    #tokenProgress.bg-warning {
+        background-color: #ffc107 !important; /* Amarillo */
+    }
+
+    #tokenProgress.bg-danger {
+        background-color: #dc3545 !important; /* Rojo */
+    }
+    /* Degradado animado para estado crítico */
+    #tokenProgress.bg-danger {
+        background: linear-gradient(90deg, #ff4d4d, #dc3545, #ff4d4d);
+        background-size: 200% 200%;
+        animation: pulseDanger 2s infinite;
+    }
+
+@keyframes pulseDanger {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}

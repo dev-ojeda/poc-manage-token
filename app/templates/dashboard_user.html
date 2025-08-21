@@ -6,19 +6,29 @@
 <div id="dashboardContent" style="display:none;">
     <h2><span id="userName"></span></h2>
     <p id="tokenTimer" class="fw-bold text-success"></p>
+    <div class="mb-3">
+        <p id="tokenTimer" class="fw-bold text-success"></p>
+        <div class="progress">
+            <div id="tokenProgress" class="progress-bar bg-success" role="progressbar"></div>
+        </div>
+    </div>
+
 
     <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-4 mb-3">
             <div class="card border-primary">
-                <div class="card-header bg-primary text-white">Estado</div>
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-check-circle"></i> Estado de la sesión
+                </div>
                 <div class="card-body">
                     <p class="card-text">Tu sesión es válida y activa.</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-8">
+
+        <div class="col-md-8 mb-3">
             <div class="card">
-                <div class="card-header">Resumen</div>
+                <div class="card-header"><i class="bi bi-speedometer2"></i> Resumen</div>
                 <div class="card-body">
                     <ul>
                         <li>Rol: Usuario</li>
@@ -28,9 +38,11 @@
             </div>
         </div>
     </div>
-    <button id="chatToggle"
-            class="btn btn-primary rounded-circle p-3" disabled>
-    </button>
+    <div class="d-flex justify-content-end mt-3">
+        <button id="chatToggle" class="btn btn-primary rounded-circle p-3" disabled>
+            <i class="bi bi-chat-dots"></i>
+        </button>
+    </div>
 </div>
 <script type="module" src="{{ url_for('static', filename='js/main/user.js') }}"></script>
 <script type="module">
