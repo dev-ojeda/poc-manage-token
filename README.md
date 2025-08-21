@@ -49,3 +49,7 @@ MONGO_URI=mongodb://localhost:27017/manage_token
 TOKEN_EXP_MINUTES=15
 REFRESH_TOKEN_EXP_DAYS=7
 ```
+
+## 📌 Casos de Uso
+
+![CU-Login](https://github.com/dev-ojeda/poc-manage-token/tree/feature/init/app/UML/login/cu.png)

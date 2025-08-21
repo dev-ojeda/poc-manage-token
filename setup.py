@@ -7,9 +7,9 @@ setup(
     author="dev-ojeda",
     author_email="neo1sr3@email.com",
     url="https://github.com/dev-ojeda/poc-manage-token",
-    packages=find_packages(where="app"),
-    include_package_data=True,
-    package_dir={"": "app"},  # raíz de los paquetes
+    platforms=["any"],
+    packages=find_packages(),
+    package_dir={"app": "app"},  # raíz de los paquetes
     install_requires=[
         "Flask",
         "pymongo",
@@ -21,7 +21,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "app_manage_token=app.main:main",  # si tienes una función main() en myapp/app.py
+            "app_manage_token=app:main",  # si tienes una función main() en myapp/app.py
         ],
     },
     classifiers=[

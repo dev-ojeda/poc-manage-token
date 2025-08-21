@@ -1,0 +1,322 @@
+@startuml
+' ======================================================
+' 1. Diagrama de Componentes - Arquitectura de la App
+' ======================================================
+title 📦 Arquitectura de la App Flask
+
+component "Flask App" as app
+component "Config" as config
+component "Security Middleware" as security
+component "Extensions" {
+  [SocketIO]
+  [Bootstrap]
+  [CORS]
+}
+component "Blueprints" {
+  [BackendBP]
+  [AdminBP]
+  [FrontendBP]
+  [DBManagerBP]
+  [SocketIOBP]
+}
+
+app --> config
+app --> security
+app --> [SocketIO]
+app --> [Bootstrap]
+app --> [CORS]
+app --> [BackendBP]
+app --> [AdminBP]
+app --> [FrontendBP]
+app --> [DBManagerBP]
+app --> [SocketIOBP]
+
+@enduml
+
+@startuml
+skinparam classAttributeIconSize 0
+
+' ========================================
+' Paquetes principales
+' ========================================
+package "App" {
+    class FlaskApp {
+        +create_app()
+        +register_blueprints()
+    }
+
+    package "Extensions" {
+        class SocketIO
+        class Bootstrap
+        class CORS
+    }
+
+    package "Middleware" {
+        class SecurityMiddleware {
+            +apply_secure_headers(app)
+        }
+    }
+
+    package "Backend" {
+        class BackendBP
+        class AdminBP
+        class AuthService
+        class UserService
+        class SessionService
+        class AuditService
+    }
+
+    package "Frontend" {
+        class FrontendBP
+    }
+
+    package "WebSocket" {
+        class SocketIOBP
+    }
+
+    package "Utils" {
+        class DBManagerBP
+        class Helpers
+    }
+}
+
+' ========================================
+' Relaciones principales
+' ========================================
+FlaskApp --> BackendBP : registers
+FlaskApp --> AdminBP : registers
+FlaskApp --> FrontendBP : registers
+FlaskApp --> SocketIOBP : registers
+FlaskApp --> DBManagerBP : registers
+FlaskApp --> SecurityMiddleware : uses
+FlaskApp --> SocketIO : initializes
+FlaskApp --> Bootstrap : initializes
+FlaskApp --> CORS : initializes
+
+BackendBP --> AuthService
+BackendBP --> UserService
+BackendBP --> SessionService
+BackendBP --> AuditService
+
+SocketIOBP --> SocketIO
+
+@enduml
+
+@startuml
+' ======================================================
+' 2. Diagrama de Secuencia - Flujo de Inicialización
+' ======================================================
+title 🔄 Flujo de Inicialización de la App Flask
+
+actor "Usuario/Cliente" as U
+participant "Flask App" as A
+participant "Config" as C
+participant "SecurityMiddleware" as S
+participant "SocketIO" as SO
+participant "Bootstrap" as B
+participant "CORS" as CO
+participant "Blueprints" as BP
+
+U -> A: Llama create_app()
+A -> C: Cargar Config
+A -> S: apply_secure_headers(app)
+A -> SO: socketio.init_app(app,...)
+A -> B: bootstrap.init_app(app)
+A -> CO: cors.init_app(app,...)
+A -> BP: register_blueprints(app)
+BP -> BP: Registrar BackendBP, AdminBP, etc.
+A --> U: Retorna instancia de app lista
+
+@enduml
+
+@startuml
+' ======================================================
+' 3. Diagrama de Clases - Relaciones Principales
+' ======================================================
+title 🏗️ Clases Principales de la App Flask
+
+skinparam class {
+  BackgroundColor #fdfdfd
+  ArrowColor #333
+  BorderColor #333
+}
+
+class FlaskApplication {
+  +create_app()
+  +register_blueprints()
+}
+
+class Config {
+  +CORS_ORIGINS: list
+}
+
+class SecurityMiddleware {
+  +apply_secure_headers(app)
+}
+
+class SocketIO {
+  +init_app(app, async_mode, cors_allowed_origins, ...)
+}
+
+class Bootstrap {
+  +init_app(app)
+}
+
+class CORS {
+  +init_app(app, resources, supports_credentials)
+}
+
+class Blueprint {
+  +name: str
+  +url_prefix: str
+}
+
+class BackendBP
+class AdminBP
+class FrontendBP
+class DBManagerBP
+class SocketIOBP
+
+FlaskApplication --> Config
+FlaskApplication --> SecurityMiddleware
+FlaskApplication --> SocketIO
+FlaskApplication --> Bootstrap
+FlaskApplication --> CORS
+FlaskApplication --> Blueprint
+
+Blueprint <|-- BackendBP
+Blueprint <|-- AdminBP
+Blueprint <|-- FrontendBP
+Blueprint <|-- DBManagerBP
+Blueprint <|-- SocketIOBP
+@enduml
+
+
+
+@startuml
+actor Client
+participant RefreshRoute as "LoginRoute /auth/refresh"
+participant UserService
+participant AuthService
+participant SessionService
+participant AuditService
+participant UserDAO
+participant AuthDAO
+participant SessionDAO
+
+== Refresh Token Request ==
+Client -> RefreshRoute: POST /auth/refresh {refresh_token, device_id, user_agent}
+RefreshRoute -> AuthService: get_refresh_token_from_db(refresh_token)
+AuthService -> AuthDAO: find token in DB
+AuthDAO --> AuthService: token data
+
+alt token not found
+    RefreshRoute --> Client: 401 InvalidTokenError
+else
+    RefreshRoute -> AuthService: get_active_token_by_user_and_device(username, device_id)
+    AuthService --> RefreshRoute: active token?
+
+    alt device mismatch
+        RefreshRoute --> Client: 403 DeviceMismatch
+    else token revoked or attempts exceeded
+        RefreshRoute --> Client: 401/403 RevokedToken or MaxAttemptsExceeded
+    else token valid
+        RefreshRoute -> AuthService: get_token_payload(refresh_token)
+        AuthService --> RefreshRoute: payload
+        RefreshRoute -> AuthService: revoke_old_token(username, device_id, refresh_token)
+        AuthService --> RefreshRoute: success
+
+        RefreshRoute -> AuthService: generate_tokens({username, jti, device_id, rol})
+        AuthService --> RefreshRoute: access_token, new_refresh_token
+
+        RefreshRoute -> AuthService: upsert_new_token(...)
+        AuthService --> RefreshRoute: success
+
+        RefreshRoute -> UserService: get_user_by_username(username)
+        UserService -> UserDAO: find_by_username(username)
+        UserDAO --> UserService: User object
+
+        alt user exists
+            RefreshRoute -> SessionService: update_session(user_id, token=new_refresh_token, reason="refresh_token")
+            SessionService -> SessionDAO: update session in DB
+            SessionDAO --> SessionService: success
+            SessionService --> RefreshRoute: session updated
+
+            RefreshRoute -> AuditService: update_session_activity(user_id, ip, user_agent)
+            AuditService --> RefreshRoute: done
+        else user not found
+            RefreshRoute --> Client: 500 INVALID_USER_TOKEN
+        end
+    end
+end
+
+RefreshRoute --> Client: 200 {access_token, refresh_token, device_id, username, rol, exp}
+
+@enduml
+
+@startuml
+actor Client
+participant LoginRoute as "POST /auth/acceso"
+participant RefreshRoute as "POST /auth/refresh"
+participant DashboardRoute as "GET /auth/dashboard"
+participant UserService
+participant AuthService
+participant SessionService
+participant AuditService
+participant UserDAO
+participant AuthDAO
+participant SessionDAO
+
+== LOGIN FLOW ==
+Client -> LoginRoute: {username, password, device_id, user_agent}
+LoginRoute -> UserService: validate_login_payload(data)
+LoginRoute -> UserService: authenticate_user(username, password)
+UserService -> UserDAO: find_by_username(username)
+UserDAO --> UserService: User object
+LoginRoute -> AuthService: generate_tokens(...)
+AuthService --> LoginRoute: access_token, refresh_token
+LoginRoute -> SessionService: register_session(...)
+LoginRoute -> AuditService: update_session_activity(...)
+LoginRoute --> Client: 200 {access_token, refresh_token, device_id, rol}
+
+== REFRESH FLOW ==
+Client -> RefreshRoute: {refresh_token, device_id, user_agent}
+RefreshRoute -> AuthService: get_refresh_token_from_db(refresh_token)
+AuthService -> AuthDAO: find token in DB
+AuthDAO --> AuthService: token data
+RefreshRoute -> AuthService: validate token & device
+RefreshRoute -> AuthService: revoke_old_token(...)
+RefreshRoute -> AuthService: generate_tokens(...)
+RefreshRoute -> AuthService: upsert_new_token(...)
+RefreshRoute -> UserService: get_user_by_username(username)
+UserService -> UserDAO: find_by_username(username)
+UserDAO --> UserService: User object
+RefreshRoute -> SessionService: update_session(...)
+RefreshRoute -> AuditService: update_session_activity(...)
+RefreshRoute --> Client: 200 {access_token, refresh_token, device_id, username, rol, exp}
+
+== DASHBOARD FLOW ==
+Client -> DashboardRoute: GET /auth/dashboard
+DashboardRoute -> jwt_required_custom: validate token
+DashboardRoute --> Client: 200 {username, rol, device_id, exp, jti}
+
+@enduml
+
+@startuml
+actor Client
+participant AnyProtectedRoute as "Ruta Protegida"
+participant jwt_required_custom
+participant TokenGenerator
+
+Client -> AnyProtectedRoute: request con Authorization header
+AnyProtectedRoute -> jwt_required_custom: verificar token
+jwt_required_custom -> TokenGenerator: verify_token(token, expected_type)
+TokenGenerator --> jwt_required_custom: payload o error
+jwt_required_custom --> AnyProtectedRoute: payload como argumento
+AnyProtectedRoute --> Client: respuesta JSON
+
+note right
+Si token ausente, inválido o expirado:
+jwt_required_custom responde 401
+end note
+@enduml

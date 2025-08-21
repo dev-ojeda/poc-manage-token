@@ -1,0 +1,149 @@
+@startuml
+' ======================================================
+' 1. Diagrama de Casos de Uso (Login)
+' ======================================================
+actor Usuario #LightGray
+rectangle "Sistema de Autenticaci&#242;n" {
+    usecase "Ingresar credenciales\n(username + password)" as UC1 #LightBlue
+    usecase "Recibir Access y Refresh Tokens" as UC2 #LightBlue
+    usecase "Refrescar Token" as UC3 #LightBlue
+    usecase "Acceder a Dashboard\n(con Access Token)" as UC4 #LightBlue
+}
+
+Usuario --> UC1
+UC1 --> UC2
+Usuario --> UC3
+Usuario --> UC4
+@enduml
+
+@startuml
+' ======================================================
+' 2. Diagrama de Clases (Login)
+' ======================================================
+class User {
+  -_id: ObjectId
+  -_username: str
+  -_password: str
+  -_rol: str
+  +authenticate(password)
+  +is_blocked_now()
+}
+
+class UserSession {
+  -_user_id: ObjectId
+  -device_id: str
+  -refresh_token: str
+  +revoke()
+  +to_dict()
+}
+
+class UserDAO {
+  +find_by_username(username): User
+  +update(query, update)
+}
+
+class AuthDAO {
+  +get_refresh_token_from_db(token)
+  +upsert_new_token(...)
+}
+
+class UserService {
+  +authenticate_user(username, password)
+  +handle_failed_login(user)
+  +reset_login_attempts(user)
+}
+
+class AuthService {
+  +is_token_in_use(username)
+  +generate_tokens(payload)
+  +refresh_access_token(refresh_token)
+  +upsert_new_token(...)
+}
+
+class SessionService {
+  +register_session(user_session)
+  +update_session(user_id, token)
+}
+
+class AuditService {
+  +update_session_activity(user_id, ip, browser)
+}
+
+UserService --> UserDAO
+AuthService --> AuthDAO
+SessionService --> UserSession
+AuditService --> MongoDB
+@enduml
+
+@startuml
+' ======================================================
+' 3. Diagrama de Componentes (Login)
+' ======================================================
+actor "Usuario / Cliente" as User #LightGray
+
+component "Login Route /auth/acceso" as LoginRoute #Wheat
+component "UserService" #LightSkyBlue
+component "AuthService" #LightGoldenRodYellow
+component "SessionService" #LightGreen
+component "AuditService" #LightBlue
+component "UserDAO" #D6F527
+component "AuthDAO" #9C434E
+database "MongoDB" #LightGray
+
+User --> LoginRoute
+LoginRoute --> UserService
+UserService --> UserDAO
+LoginRoute --> AuthService
+AuthService --> AuthDAO
+AuthService --> MongoDB
+LoginRoute --> SessionService
+SessionService --> MongoDB
+LoginRoute --> AuditService
+AuditService --> MongoDB
+@enduml
+
+@startuml
+' ======================================================
+' 3. Diagrama de Secuencias (Login)
+' ======================================================
+actor User
+participant LoginRoute #Wheat
+participant UserService #LightSkyBlue
+participant UserDAO  #LightGoldenRodYellow
+participant AuthService #LightGreen
+participant AuthDAO #LightBlue
+participant SessionService #D6F527
+participant AuditService #9C434E
+database MongoDB
+
+User -> LoginRoute: POST /auth/acceso (username, password, device, user_agent)
+LoginRoute -> UserService: validate_login_payload(data)
+LoginRoute -> UserService: authenticate_user(username, password)
+UserService -> UserDAO: find_by_username(username)
+UserDAO -> MongoDB: query user
+UserDAO --> UserService: return User
+UserService --> LoginRoute: return user_model
+
+LoginRoute -> UserService: handle_failed_login(user_model)
+UserService -> UserDAO: update failed_attempts / blocked_until
+
+LoginRoute -> AuthService: is_token_in_use(username)
+AuthService -> AuthDAO: query refresh_token activo
+AuthDAO -> MongoDB: find token
+AuthDAO --> AuthService: token info
+AuthService --> LoginRoute: token status
+
+alt Token expirado o no existe
+    AuthService -> AuthService: generate_tokens(payload)
+    AuthService -> AuthDAO: upsert_new_token(refresh_token)
+    AuthDAO -> MongoDB: insert/update token
+end
+
+LoginRoute -> SessionService: register_session(user_session)
+SessionService -> MongoDB: insert session
+
+LoginRoute -> AuditService: update_session_activity(user_id, ip, browser)
+AuditService -> MongoDB: save audit
+
+LoginRoute --> User: return JSON {access_token, refresh_token, rol, device_id}
+@enduml
