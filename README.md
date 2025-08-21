@@ -51,5 +51,13 @@ REFRESH_TOKEN_EXP_DAYS=7
 ```
 
 ## 📌 Casos de Uso
+<img src="cu.png" width="800" alt="Caso de Uso Login" />
 
-![CU-Login](https://github.com/dev-ojeda/poc-manage-token/tree/feature/init/app/UML/login/cu.png)
+## 🏗️ Diagrama de Clases
+<img src="dc.png" width="800" alt="Clases Login" />
+
+## 🧩 Diagrama de Componentes
+<img src="com.png" width="800" alt="Componentes Login" />
+
+## 🔄 Diagrama de Componentes
+ <img src="sec.png" width="800" alt="Secuencias Login" />

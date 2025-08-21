@@ -17,90 +17,112 @@ Usuario --> UC4
 @enduml
 
 @startuml
-' ======================================================
-' 2. Diagrama de Clases (Login)
-' ======================================================
 class User {
-  -_id: ObjectId
-  -_username: str
-  -_password: str
-  -_rol: str
-  +authenticate(password)
-  +is_blocked_now()
+  +id: ObjectId
+  +username: str
+  +password_hash: str
+  +rol: str
 }
 
 class UserSession {
-  -_user_id: ObjectId
-  -device_id: str
-  -refresh_token: str
-  +revoke()
-  +to_dict()
-}
-
-class UserDAO {
-  +find_by_username(username): User
-  +update(query, update)
-}
-
-class AuthDAO {
-  +get_refresh_token_from_db(token)
-  +upsert_new_token(...)
-}
-
-class UserService {
-  +authenticate_user(username, password)
-  +handle_failed_login(user)
-  +reset_login_attempts(user)
+  +id: ObjectId
+  +user_id: ObjectId
+  +token: str
+  +created_at: datetime
+  +last_activity: datetime
 }
 
 class AuthService {
-  +is_token_in_use(username)
-  +generate_tokens(payload)
-  +refresh_access_token(refresh_token)
-  +upsert_new_token(...)
+  +generate_tokens()
+  +verify_token()
+  +upsert_new_token()
+  +revoke_old_token()
+}
+
+class UserService {
+  +authenticate_user()
+  +get_user_by_username()
 }
 
 class SessionService {
-  +register_session(user_session)
-  +update_session(user_id, token)
+  +register_session()
+  +update_session()
 }
 
 class AuditService {
-  +update_session_activity(user_id, ip, browser)
+  +update_session_activity()
 }
 
-UserService --> UserDAO
-AuthService --> AuthDAO
+UserService --> User
 SessionService --> UserSession
-AuditService --> MongoDB
+AuthService --> UserSession
 @enduml
 
 @startuml
-' ======================================================
-' 3. Diagrama de Componentes (Login)
-' ======================================================
-actor "Usuario / Cliente" as User #LightGray
+skinparam componentStyle component
+skinparam componentStyle package
+skinparam shadowing true
+skinparam component {
+  BackgroundColor<<API>> LightSkyBlue
+  BackgroundColor<<Services>> LightGoldenRodYellow
+  BackgroundColor<<DAOs>> LightGreen
+  BackgroundColor<<Models>> Wheat
+  BackgroundColor<<DB>> LightGray
+}
+skinparam package {
+  BackgroundColor<<API>> LightSkyBlue
+  BackgroundColor<<Services>> LightGoldenRodYellow
+  BackgroundColor<<DAOs>> LightGreen
+  BackgroundColor<<Models>> Wheat
+  BackgroundColor<<DB>> LightGray
+}
 
-component "Login Route /auth/acceso" as LoginRoute #Wheat
-component "UserService" #LightSkyBlue
-component "AuthService" #LightGoldenRodYellow
-component "SessionService" #LightGreen
-component "AuditService" #LightBlue
-component "UserDAO" #D6F527
-component "AuthDAO" #9C434E
-database "MongoDB" #LightGray
+package "Routes" <<API>> {
+    component "Login Route\nPOST /auth/acceso" as LoginRoute
+    component "Refresh Route\nPOST /auth/refresh" as RefreshRoute
+    component "Dashboard Route\nGET /auth/dashboard" as DashboardRoute
+}
+
+package "Services" <<Services>> {
+    component "UserService\n<<Service>>" as UserService
+    component "AuthService\n<<Service>>" as AuthService
+    component "SessionService\n<<Service>>" as SessionService
+    component "AuditService\n<<Service>>" as AuditService
+}
+
+package "DAO" <<DAOs>> {
+    component "UserDAO\n<<DAO>>" as UserDAO
+    component "AuthDAO\n<<DAO>>" as AuthDAO
+    component "AuditDAO\n<<DAO>>" as AuditDAO
+    component "SessionDAO\n<<DAO>>" as SessionDAO
+}
+
+package "Models" <<Models>> {
+    component "User\n<<Model>>" as User
+    component "UserSession\n<<Model>>" as UserSession
+}
+
+database "MongoDB" as DB
 
 User --> LoginRoute
+User --> RefreshRoute
+User --> DashboardRoute
+UserSession --> User
 LoginRoute --> UserService
-UserService --> UserDAO
-LoginRoute --> AuthService
-AuthService --> AuthDAO
-AuthService --> MongoDB
+LoginRoute ---> AuthService
 LoginRoute --> SessionService
-SessionService --> MongoDB
 LoginRoute --> AuditService
-AuditService --> MongoDB
+UserService --> UserDAO
+AuthService --> AuthDAO
+SessionService --> SessionDAO
+AuditService --> AuditDAO
+AuditDAO -> DB
+UserDAO --> DB
+AuthDAO --> DB
+SessionDAO --> DB
+
 @enduml
+
 
 @startuml
 ' ======================================================
