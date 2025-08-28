@@ -3,8 +3,8 @@ import mongomock
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 
-from app.dao.audit_dao import AuditLogDAO
-from app.model.audit_session import AuditLog
+from app.dao import AuditLogDAO
+from app.model import AuditLogModel
 
 
 # --- Fixtures ---
@@ -73,7 +73,7 @@ def sample_logs():
 
 # --- Tests ---
 def test_insert_logs_audit(audit_dao, mock_db):
-    log = AuditLog(
+    log = AuditLogModel(
         session_id=str(ObjectId()),
         user_id="userX",
         event_type="login",

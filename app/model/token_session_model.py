@@ -1,18 +1,19 @@
-from datetime import datetime, timezone
+import datetime
+from datetime import timezone
 from bson import ObjectId
 
-class TokenSession:
+class TokenSessionModel:
     def __init__(
         self,
         username: str,
         device_id: str,
         jti: str,
         refresh_token: str,
-        created_at: datetime,
-        expires_at: datetime,
-        update_at: datetime = None,
-        revoked_at: datetime = None,
-        used_at: datetime = None,
+        created_at: datetime.datetime,
+        expires_at: datetime.datetime,
+        update_at: datetime.datetime = None,
+        revoked_at: datetime.datetime = None,
+        used_at: datetime.datetime = None,
         refresh_attempts: int = 0,
         browser: str = None,
         os: str = None,
@@ -77,7 +78,7 @@ class TokenSession:
 
     def revoke(self):
         """Revoca la sesión marcando revoked_at"""
-        self.revoked_at = datetime.now(timezone.utc)
+        self.revoked_at = datetime.datetime.now(tz=timezone.utc)
 
     def increment_attempts(self):
         """Incrementa los intentos de refresco"""
@@ -88,11 +89,11 @@ class TokenSession:
 
     def is_expired(self) -> bool:
         """Verifica si el token expiró"""
-        return datetime.now(timezone.utc) > self.expires_at
+        return datetime.datetime.now(tz=timezone.utc) > self.expires_at
 
     def mark_used(self):
         """Marca el token como usado"""
-        self.used_at = datetime.now(timezone.utc)
+        self.used_at = datetime.datetime.now(tz=timezone.utc)
 
     def is_active(self) -> bool:
         """Verifica si el token está activo (no expirado, no revocado)"""

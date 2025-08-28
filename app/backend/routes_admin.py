@@ -1,22 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
 from uuid import uuid4
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from dotenv import load_dotenv
 from icecream import ic
 
-from app.auth.services.audit_service import AuditService
-from app.auth.services.auth_service import AuthService
+from app.auth import AuditService, AuthService, SessionService, UserService
+from app.dao.format_date import parse_iso8601
 from app.web_socket.event_socket import notificar_revocacion
-from app.auth.services.session_service import SessionService
-from app.auth.services.user_service import UserService
-from app.dao.user_dao import UserDAO
-from app.utils.db_manager import DbManager
 from app.midleware.jwt_guard import admin_required
-from app.model.token_generator import TokenGenerator
+from app.model import UserModel, TokenGeneratorModel
 
 
 load_dotenv()
@@ -37,10 +32,7 @@ def login():
     if missing:
         return jsonify({"msg": f"Faltan campos: {', '.join(missing)}", "code": "MISSING_FIELDS"}), 400
 
-    tg = TokenGenerator()
-    user_model_dao = UserDAO()
-
-    user_model = user_model_dao.find_by_username(username=data.get("username"))
+    user_model: UserModel = user_service.get_user_by_username(username=data.get("username"))
     if not user_model:
         return jsonify({"msg": "Usuario no encontrado"}), 404
 
@@ -107,7 +99,8 @@ def login():
         if not upsert_ok.get("success"):
             return jsonify({"msg": upsert_ok.get("message"), "code": "UPSERT_TOKEN_FAILED"}), 500
 
-    decoded = tg.verify_token(access_token, expected_type="access")
+    token_generator_model = TokenGeneratorModel()
+    decoded: dict = token_generator_model.verify_token(access_token, expected_type="access")
     
     validate_upsert_user_token = user_service.persist_refresh_token_admin(decoded, refresh_token, user_agent, ip_address)
     if not validate_upsert_user_token.get("success"):
@@ -186,8 +179,8 @@ def get_active_sessions(user):
                     "browser": session["browser"],
                     "sistena": session["os"],
                     "device_id": session["device_id"],
-                    "login_at": int(datetime.fromisoformat(session["login_at"]).timestamp()),
-                    "last_refresh_at":int(datetime.fromisoformat(session["last_refresh_at"]).timestamp()),
+                    "login_at": parse_iso8601(iso_str=session["login_at"],tz_name="America/Santiago")["timestamp_ms"],
+                    "last_refresh_at": parse_iso8601(iso_str=session["last_refresh_at"],tz_name="America/Santiago")["timestamp_ms"],
                     "refresh_token": session["refresh_token"],
                     "is_revoked": session["is_revoked"],
                     "reason": session["reason"],

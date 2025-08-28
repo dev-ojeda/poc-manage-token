@@ -1,12 +1,13 @@
 # models/user_session.py
 
 from __future__ import annotations
-from datetime import datetime, timezone
+import datetime
+from datetime import timezone
 from typing import Optional, Any, Dict
 from bson import ObjectId
 
 
-class UserSession:
+class UserSessionModel:
     # Constantes / enums
     REASONS = {
         "ip_change",
@@ -16,7 +17,8 @@ class UserSession:
         "logout",
         "expiration",
         "login",
-        "refresh_token"
+        "refresh_token",
+        "close"
     }
 
     STATUSES = {"active", "revoked", "expired"}
@@ -28,11 +30,11 @@ class UserSession:
         ip_address: str,
         browser: Optional[str],
         os: Optional[str],
-        login_at: Optional[datetime] = None,
+        login_at: Optional[datetime.datetime] = None,
         refresh_token: Optional[str] = None,
         is_revoked: bool = False,
-        last_refresh_at: Optional[datetime] = None,
-        revoked_at: Optional[datetime] = None,
+        last_refresh_at: Optional[datetime.datetime] = None,
+        revoked_at: Optional[datetime.datetime] = None,
         reason: Optional[str] = None,
         status: str = "active",
         role: Optional[str] = None,
@@ -48,7 +50,7 @@ class UserSession:
         self.browser = browser
         self.os = os
 
-        now = datetime.now(timezone.utc)
+        now = datetime.datetime.now(tz=timezone.utc)
         self.login_at = login_at or now
         self.last_refresh_at = last_refresh_at
         self.refresh_token = refresh_token
@@ -130,22 +132,22 @@ class UserSession:
         self._os = None if v is None else str(v)
 
     @property
-    def login_at(self) -> datetime:
+    def login_at(self) -> datetime.datetime:
         return self._login_at
 
     @login_at.setter
-    def login_at(self, v: datetime):
-        if not isinstance(v, datetime):
+    def login_at(self, v: datetime.datetime):
+        if not isinstance(v, datetime.datetime):
             raise ValueError("login_at debe ser datetime")
         self._login_at = v.astimezone(timezone.utc)
 
     @property
-    def last_refresh_at(self) -> Optional[datetime]:
+    def last_refresh_at(self) -> Optional[datetime.datetime]:
         return self._last_refresh_at
 
     @last_refresh_at.setter
-    def last_refresh_at(self, v: Optional[datetime]):
-        if v is not None and not isinstance(v, datetime):
+    def last_refresh_at(self, v: Optional[datetime.datetime]):
+        if v is not None and not isinstance(v, datetime.datetime):
             raise ValueError("last_refresh_at debe ser datetime o None")
         self._last_refresh_at = v.astimezone(timezone.utc) if v is not None else None
 
@@ -166,12 +168,12 @@ class UserSession:
         self._is_revoked = bool(v)
 
     @property
-    def revoked_at(self) -> Optional[datetime]:
+    def revoked_at(self) -> Optional[datetime.datetime]:
         return self._revoked_at
 
     @revoked_at.setter
-    def revoked_at(self, v: Optional[datetime]):
-        if v is not None and not isinstance(v, datetime):
+    def revoked_at(self, v: Optional[datetime.datetime]):
+        if v is not None and not isinstance(v, datetime.datetime):
             raise ValueError("revoked_at debe ser datetime o None")
         self._revoked_at = v.astimezone(timezone.utc) if v is not None else None
 
@@ -234,7 +236,7 @@ class UserSession:
         return doc
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "UserSession":
+    def from_dict(cls, data: Dict) -> "UserSessionModel":
         """
         Construye un UserSession desde un documento Mongo (o dict equivalente).
         Acepta user_id / _id en formatos str o ObjectId.
@@ -266,18 +268,18 @@ class UserSession:
         if reason not in self.REASONS:
             raise ValueError("reason inválido al revocar")
         self.is_revoked = True
-        self.revoked_at = datetime.now(timezone.utc)
+        self.revoked_at = datetime.datetime.now(tz=timezone.utc)
         self.reason = reason
         self.status = "revoked"
 
     def mark_expired(self) -> None:
         self.status = "expired"
         self.is_revoked = True
-        self.revoked_at = datetime.now(timezone.utc)
+        self.revoked_at = datetime.datetime.now(tz=timezone.utc)
         self.reason = "expiration"
 
-    def touch_last_refresh(self, at: Optional[datetime] = None) -> None:
-        self.last_refresh_at = (at or datetime.now(timezone.utc))
+    def touch_last_refresh(self, at: Optional[datetime.datetime] = None) -> None:
+        self.last_refresh_at = (at or datetime.datetime.now(tz=timezone.utc))
 
     def is_active(self) -> bool:
         return (not self.is_revoked) and (self.status == "active")

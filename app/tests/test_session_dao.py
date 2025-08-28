@@ -1,11 +1,11 @@
 # tests/test_session_dao.py
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from bson import ObjectId
 import pytest
 from unittest.mock import MagicMock
 
-from app.dao.session_dao import SessionDAO
-from app.model.user_session import UserSession
+from app.dao import SessionDAO
+from app.model import UserSessionModel
 
 @pytest.fixture
 def mock_dao():
@@ -59,7 +59,7 @@ def mock_dao():
 @pytest.fixture
 def sample_session():
     now = datetime.now(timezone.utc)
-    return UserSession(
+    return UserSessionModel(
         user_id=ObjectId(),
         device_id="device123",
         ip_address="127.0.0.1",
@@ -74,7 +74,7 @@ def sample_session():
     )
 
 def test_insert_session(mock_dao):
-    session = UserSession(
+    session = UserSessionModel(
         user_id=ObjectId(),
         device_id="device123",
         ip_address="127.0.0.1",

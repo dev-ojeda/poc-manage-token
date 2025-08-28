@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/.venv/Scripts python
 # -*- coding: utf-8 -*-
 import os
 

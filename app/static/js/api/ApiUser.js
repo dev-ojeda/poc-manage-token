@@ -1,52 +1,195 @@
-import { ApiClient } from "../api/ApiClient.js"
-import { handleError } from "../utils/errors.js"
+import { ApiClient } from "../api/ApiClient.js";
+import { handleError, clearSession } from "../utils/errors.js";
 
+/**
+ * Clase que contiene los métodos necesarios
+ * para el acceso del Usuario
+ */
 export class ApiUser extends ApiClient {
+    constructor(opts) {
+        super({
+            baseURL: opts.baseURL,
+            storage: opts.storage,
+            timeout: opts.timeout || 10000
+        });
+        this.isRefreshing = false;   // lock
+        this.refreshQueue = [];      // cola de promesas
+    }
+
+    /**
+     * Login de usuario
+     */
     async login(username, password) {
         try {
-            const device = this.getDeviceId();
+            const device = await this.getDeviceId();
             const user_agent = this.getBrowserInfo();
-            const rol = "User";
+
             const res = await this.post("/api/auth/acceso", {
                 username,
                 password,
                 device,
-                rol,
+                rol: "User",
                 user_agent
             });
-            // Guardar tokens y datos
-            this.storage.set("access_token", res.access_token);
-            this.storage.set("refresh_token", res.refresh_token);
-            this.storage.set("device_id", res.device_id);
-            this.storage.set("username", username);
-            this.storage.set("rol", res.rol || "User");
 
-            return res; // Retornar la respuesta completa
+            if (res?.access_token && res?.refresh_token) {
+                await this.setTokens(res);
+            }
+            return res;
         } catch (err) {
-            handleError(err);
+            await handleError(err);
             return null;
         }
     }
 
-    async user_dashboard() {
+    // =============================
+    // Logout Unificado con broadcast
+    // =============================
+    async logout({ endpoint = "/api/auth/logout", reason = "logout" } = {}) {
         try {
-            if (!this.deviceId) throw new Error("Device ID no definido");
+            // 🔹 Primero obtengo los tokens ANTES de limpiar
+            let access_token = await this.accessToken();
+            let refresh_token = await this.refreshToken();
+            let device_id = await this.deviceId();
+            let user_agent = this.getBrowserInfo();
 
-            const res = await this.get("/api/auth/dashboard");
-            const now = Math.floor(Date.now() / 1000);
+            if (!access_token && !refresh_token) {
+                throw new Error("Token no existe");
+            }
 
-            if (res.exp && now > res.exp) throw new Error("⏰ Token expirado del lado cliente");
+            // 🔄 Aviso al backend con keepalive
+            const res = await this.post(endpoint, {
+                access_token,
+                refresh_token,
+                device_id,
+                user_agent,
+                reason
+            }); // 🔹 útil si cerrás pestaña rápido
 
-            this.storage.set("username", res.username);
-            this.storage.set("rol", res.rol);
-            this.storage.set("device_id", res.device_id);
-            this.storage.set("exp", res.exp);
-            this.storage.set("jti", res.jti);
+            // 🔹 Aviso al usuario
+            this.notifier?.(`👋 ${res.msg}`, "info", 4000);
 
-            return true;
         } catch (err) {
             handleError(err);
-            return false;
+            throw err;
+        } finally {
+            // 🔹 Redirigir al login
+            window.location.href = "/?logout=true";
+        }
+    }
+
+    /**
+     * Fetch con token + reintento en caso de expiración
+     */
+    async fetchWithAuth(url, options = {}) {
+        let access_token = await this.storage.get("access_token");
+
+        const baseHeaders = {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${access_token}`,
+            "X-Token-Type": "access"
+        };
+
+        let res = await fetch(url, {
+            ...options,
+            headers: { ...baseHeaders, ...(options.headers || {}) }
+        });
+
+        // Si expiró el access_token
+        if (res.status === 401) {
+            await this.tryRefreshToken();
+            access_token = await this.storage.get("access_token");
+
+            res = await fetch(url, {
+                ...options,
+                headers: {
+                    ...baseHeaders,
+                    "Authorization": `Bearer ${access_token}`
+                }
+            });
+        }
+
+        return res;
+    }
+
+    /**
+     * Refresh de token con lock para evitar condiciones de carrera
+     */
+    async tryRefreshToken() {
+        if (this.isRefreshing) {
+            return new Promise((resolve, reject) => {
+                this.refreshQueue.push({ resolve, reject });
+            });
+        }
+
+        this.isRefreshing = true;
+
+        try {
+            const refresh_token = await this.refreshToken();
+            if (!refresh_token) throw new Error("No hay refresh_token disponible");
+
+            const device_id = await this.deviceId();
+            const user_agent = this.getBrowserInfo();
+
+            const res = await this.post("/api/auth/refresh", {
+                refresh_token,
+                device_id,
+                user_agent
+            });
+
+            if (res?.access_token) {
+                await this.setTokens(res);
+
+                // Notificar a los listeners (ej: main/user.js) del nuevo exp
+                const decoded = this.decodeJwt(res.access_token);
+                document.dispatchEvent(new CustomEvent("startTokenTimer", {
+                    detail: { new_expiracion: decoded.exp }
+                }));
+
+                this.refreshQueue.forEach(p => p.resolve(res));
+                this.refreshQueue = [];
+            }
+
+            return res;
+        } catch (err) {
+            this.refreshQueue.forEach(p => p.reject(err));
+            this.refreshQueue = [];
+            await handleError(err);
+            throw err;
+        } finally {
+            this.isRefreshing = false;
+        }
+    }
+
+    decodeJwt(token) {
+        try {
+            return JSON.parse(atob(token.split(".")[1]));
+        } catch {
+            return {};
+        }
+    }
+
+    /**
+     * Dashboard del usuario
+     */
+    //async getDashboard() {
+    //    try {
+    //        return await this.get("/api/auth/dashboard");
+    //    } catch (err) {
+    //        await handleError(err);
+    //        return null;
+    //    }
+    //}
+
+    /**
+     * Guarda access_token y refresh_token en storage
+     */
+    async setTokens(res) {
+        if (res?.access_token) {
+            await this.storage.set("access_token", res.access_token);
+        }
+        if (res?.refresh_token) {
+            await this.storage.set("refresh_token", res.refresh_token);
         }
     }
 }

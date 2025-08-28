@@ -1,65 +1,91 @@
 import { ApiUser } from "../js/api/ApiUser.js";
 import { ApiAdmin } from "../js/api/ApiAdmin.js";
-import { LocalStorageAdapter } from "../js/adapters/LocalStorageAdapter.js";
+import { IndexedDBStorage } from "../js/adapters/IndexedDBStorage.js";
 import { clearSession, handleError } from "../js/utils/errors.js"
-const api_user = new ApiUser({
-    baseURL: import.meta.env?.VITE_API_URL || "https://localhost:5000",
-    storage: new LocalStorageAdapter()
-});
+// =======================
+// Instancias API
+// =======================
+// =======================
+// Configuración global
+// =======================
+const API_BASE = import.meta.env?.VITE_API_URL || "https://localhost:5000";
+const storage = new IndexedDBStorage("AuthDB", "tokens");
 
-const api_admin = new ApiAdmin({
-    baseURL: import.meta.env?.VITE_API_URL || "https://localhost:5000",
-    storage: new LocalStorageAdapter()
-});
+// Instancias API
+const api = {
+    user: new ApiUser({ baseURL: API_BASE, storage }),
+    admin: new ApiAdmin({ baseURL: API_BASE, storage }),
+};
 
+// =======================
+// Helpers
+// =======================
+async function doLogin(username, password) {
+    const isAdmin = username.includes("admin");
+    return isAdmin
+        ? api.admin.login_admin(username, password)
+        : api.user.login(username, password);
+}
+//async function fetchDashboard(username) {
+//    const isAdmin = username.includes("admin");
+//    return isAdmin
+//        ? api.admin.getDashboard()
+//        : api.user.getDashboard();
+//}
 
-document.addEventListener("DOMContentLoaded", () => {
+function redirectByRole(role) {
+    location.replace(role === "Admin" ? "/admin/dashboard" : "/dashboard");
+}
 
+// =======================
+// Inicialización
+// =======================
+document.addEventListener("DOMContentLoaded", async () => {
     const params = new URLSearchParams(window.location.search);
-    if (params.has("logged_out")) {
-        clearSession();
-        history.replaceState(null, "", window.location.pathname);
-        // Redirigir explícitamente a la raíz del SPA
-        window.location.href = "/";
-    }
 
-    window.addEventListener("pageshow", (event) => {
+    // ✅ Logout explícito
+    if (params.has("logged_out")) {
+        await clearSession();
+        history.replaceState(null, "", window.location.pathname);
+        window.location.href = "/";
+        return;
+    }
+    // ✅ Cache back-forward nav (Safari/Firefox)
+    window.addEventListener("pageshow", async (event) => {
         if (event.persisted) {
-            clearSession();
+            await clearSession();
             window.location.href = "/";
-            //window.location.reload();
         }
     });
+    // =======================
+    // Login form
+    // =======================
     const form = document.getElementById("loginForm");
-    if (!form) return; // Evita ejecutar en páginas sin login
+    if (!form) return;
+
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         try {
-            const user = document.getElementById("username").value.trim();
-            const pass = document.getElementById("password").value;
+  
+            const username = String(document.getElementById("username").value.trim());
+            const password = document.getElementById("password").value;
 
-            let res = null;
-            if (user.includes("admin")) {  // Esto lo vamos a eliminar después, pero lo dejamos momentáneamente
-                res = await api_admin.login_admin(user, pass);
-            } else {
-                res = await api_user.login(user, pass);
-            }
+            // 🔑 Login
+            const res = await doLogin(username, password);
+            if (!res) return;
 
-            if (!res) return; // login falló
+            // 📊 Dashboard
+            //const dashboard = await fetchDashboard(username);
+            //console.log("DASHBOARD", dashboard);
 
-            const role = res.rol || "User";
+            //if (!dashboard) return;
 
-            const dashboardValid = role === "Admin"
-                ? await api_admin.admin_dashboard()
-                : await api_user.user_dashboard();
+            // 🔥 Redirección según rol
+            redirectByRole(res.rol || "User");
 
-            if (!dashboardValid) return;
-
-            location.replace(role === "Admin" ? "/admin/dashboard" : "/dashboard");
-
-        } catch (error) {
-            handleError(error);
-            console.error("Error en login:", error);
+        } catch (err) {
+            await handleError(err);
+            throw err;
         }
         e.stopPropagation();
     });

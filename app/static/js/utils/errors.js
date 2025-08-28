@@ -1,53 +1,88 @@
-import { LocalStorageAdapter } from "../adapters/LocalStorageAdapter.js";
 import { showAlert } from "../layout.js";
+import { IndexedDBStorage } from "../adapters/IndexedDBStorage.js"
 
-const almacenamiento = new LocalStorageAdapter();
+const storage = new IndexedDBStorage("AuthDB", "tokens");
 
-export function handleError(err) {
+export async function handleError(err) {
     const msg = err?.message || "";
-    console.error("Error capturado:", msg);
+    const code = err?.code || "";
 
-    if (msg.includes("expirada") || msg.includes("ExpiredSignatureError")) {
-        clearSession();
-        showAlert("⏳ Tu sesión ha expirado. Iniciá sesión nuevamente.", "info", 6000);
-    }
-    else if (msg.includes("Bloqueado")) {
-        showAlert(msg, "warning", 8000);
-    }
-    else if (msg.includes("InvalidAudienceError")) {
-        showAlert("⚠️ El token no corresponde a este cliente (audiencia inválida).", "danger", 8000);
-    }
-    else if (msg.includes("InvalidIssuerError")) {
-        showAlert("⚠️ Emisor del token inválido. Contactá a soporte.", "danger", 8000);
-    }
-    else if (msg.includes("InvalidTokenError") || msg.includes("Token inválido")) {
-        clearSession();
-        showAlert("❌ Token inválido o corrupto. Por favor, volvé a iniciar sesión.", "danger", 8000);
-    }
-    else if (msg.includes("Error 403")) {
-        showAlert("🚫 Demasiados intentos. Esperá un momento antes de intentar de nuevo.", "warning", 8000);
-    }
-    else if (msg.includes("Error 401") || msg.includes("Credenciales incorrectas")) {
-        showAlert("❌ Usuario o contraseña incorrecta", "danger", 5000);
-    }
-    else if (msg.includes("409 Conflict")) {
-        showAlert("❌ Device existente", "danger", 5000);
-    }
-    else if (msg.includes("AbortError")) {
-        showAlert(`❌ ${msg}`, "danger", 8000);
-    }
-    else if (msg.includes("Error")) {
-        showAlert(msg, "danger", 8000);
-    }
-    else {
-        showAlert(`❌ Error inesperado: ${msg}`, "danger", 8000);
+    // Helpers
+    async function endSession(message, type = "danger", timeout = 6000) {
+        await clearSession();
+        showAlert(message, type, timeout);
     }
 
-    // Resetear la URL para evitar query params "sucios"
+    switch (code) {
+        case "USER_BLOCKED":
+            showAlert(msg, "warning", 8000);
+            break;
+
+        case "INVALID_CREDENTIALS":
+            showAlert("❌ Usuario o contraseña incorrecta", "danger", 5000);
+            break;
+
+        case "USER_ALREADY_HAS_TOKEN":
+            showAlert("⚠️ Ya tenés sesión activa en otro dispositivo.", "warning", 6000);
+            break;
+
+        case "UPSERT_TOKEN_FAILED":
+        case "REGISTER_SESSION_FAILED":
+            showAlert("⚠️ Error interno. Contactá a soporte.", "danger", 8000);
+            break;
+
+        case "INVALID_JSON":
+        case "MISSING_FIELDS":
+            showAlert(`⚠️ ${msg}`, "warning", 6000);
+            break;
+
+        case "UNAUTHORIZED":
+        case "TOKEN_EXPIRED":
+            await endSession("⏳ Tu sesión ha expirado o no es válida. Iniciá sesión nuevamente.", "info");
+            break;
+
+        case "CONFLICT":
+            showAlert("❌ Ya existe una sesión activa en otro dispositivo.", "danger", 5000);
+            break;
+        case "INVALID_REVOKED_TOKEN_BLACKLIST":
+            await endSession(`⚠️ ${msg}`, "warning", 8000);
+            break;
+
+        default: {
+            const msgStr = String(msg);
+            const codeStr = String(code);
+
+            if (codeStr.includes("ExpiredSignatureError")) {
+                await endSession("⏳ Tu sesión ha expirado. Iniciá sesión nuevamente.", "info");
+            } else if (codeStr.includes("InvalidAudienceError")) {
+                showAlert("⚠️ El token no corresponde a este cliente (audiencia inválida).", "danger", 8000);
+            } else if (codeStr.includes("ImmatureSignatureError")) {
+                await endSession("⚠️ Token aún no es válido (nbf).", "danger", 8000);
+            } else if (codeStr.includes("MaxAttemptsExceeded")) {
+                await endSession(`🚫 ${msgStr}`, "danger", 8000);
+            } else if (codeStr.includes("InvalidIssuerError")) {
+                showAlert("⚠️ Emisor del token inválido. Contactá a soporte.", "danger", 8000);
+            } else if (codeStr.includes("InvalidTokenError") || msgStr.includes("Token inválido")) {
+                await endSession("❌ Token inválido o corrupto. Volvé a iniciar sesión.", "danger", 8000);
+            } else if (codeStr.includes("AbortError")) {
+                // Mejor como info o ignorar: no es un error real
+                console.info("⚠️ Petición abortada:", msgStr);
+                return;
+            } else {
+                await endSession(`❌ Error inesperado: ${msgStr}`, "danger", 8000);
+            }
+        }
+    }
+
+    // 🧹 Limpieza de URL
     window.history.replaceState({}, document.title, window.location.pathname);
+
+    // 🔎 Logging solo en dev
+    if (import.meta.env?.DEV) {
+        console.error("🔴 handleError:", err);
+    }
 }
 
-export function clearSession() {
-    almacenamiento.clear();
-    console.log("STORAGE limpiado. Total items:", almacenamiento.count());
+export async function clearSession() {
+    await storage.clearAll();
 }

@@ -1,17 +1,18 @@
-from datetime import datetime, timedelta, timezone
+import datetime
+from datetime import timedelta, timezone
 
 from bson import SON
 from icecream import ic
 
-from app.dao.audit_dao import AuditLogDAO
 from app.dao.session_dao import SessionDAO
+from app.dao.audit_dao import AuditLogDAO
 from app.utils.db_mongo import MongoDatabase
 
 
 class AuthDao:
     def __init__(self, db=None):
         self.db = db or MongoDatabase()
-        self.session_dao = SessionDAO()
+        self.session_dao = SessionDAO(self.db)
         self.audit_dao = AuditLogDAO()
         # Si es mongomock o un Database de pymongo, exponemos la colección
         if hasattr(self.db, "__getitem__"):
@@ -22,7 +23,7 @@ class AuthDao:
   
 
     def get_active_token_by_user_and_device(self, username: str, device_id: str):
-        now = datetime.now(timezone.utc)
+        now = datetime.datetime.now(tz=timezone.utc)
         match_filter = {
             "username": username,
             "revoked_at": None,
@@ -44,7 +45,7 @@ class AuthDao:
         return result[0] if result else None
 
     def get_active_token_by_username(self, username: str):
-        now = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+        now = datetime.datetime.now(tz=timezone.utc)
         match_filter = {
             "username": username,
             "revoked_at": None,
@@ -90,7 +91,7 @@ class AuthDao:
 
     def revoke_all_tokens_for_user(self, username):
         query = {"username": username, "revoked_at": None}
-        update = {"$set": {"revoked_at": datetime.fromisoformat(datetime.now(timezone.utc).isoformat())}}
+        update = {"$set": {"revoked_at": datetime.datetime.now(tz=timezone.utc)}}
         if self.collection:
             result = self.collection.update_many(query, update)
         else:
@@ -99,7 +100,7 @@ class AuthDao:
 
     def revoke_token_by_jti(self, jti):
         query = {"jti": jti, "revoked_at": None}
-        update = {"$set": {"revoked_at": datetime.fromisoformat(datetime.now(timezone.utc).isoformat())}}
+        update = {"$set": {"revoked_at": datetime.datetime.now(tz=timezone.utc)}}
         if self.collection:
             result = self.collection.update_many(query, update)
         else:
@@ -114,7 +115,7 @@ class AuthDao:
 
     def revoke_token_by_device_id(self, device_id) -> int | None:
         query = {"device_id": device_id}
-        update = {"$set": {"revoked_at": datetime.fromisoformat(datetime.now(timezone.utc).isoformat())}}
+        update = {"$set": {"revoked_at": datetime.datetime.now(tz=timezone.utc)}}
         if self.collection:
             result = self.collection.update_many(query, update)
         else:
@@ -137,8 +138,8 @@ class AuthDao:
 
         update = {
             "$set": {
-                "revoked_at": datetime.fromisoformat(datetime.now(timezone.utc).isoformat()),
-                "used_at": datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+                "revoked_at": datetime.datetime.now(tz=timezone.utc),
+                "used_at": datetime.datetime.now(tz=timezone.utc)
             }
         }
         if self.collection:
@@ -148,7 +149,7 @@ class AuthDao:
         return result.modified_count
            
     def revoke_refresh_token(self, username: str, device_id: str, refresh_token: str) -> dict:
-        revoked_at = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+        revoked_at = datetime.datetime.now(tz=timezone.utc)
         return self.db.update_with_log(self.refresh_tokens,
             {"username": username, "device_id": device_id, "refresh_token": refresh_token, "revoked_at": None},
             {
@@ -160,18 +161,15 @@ class AuthDao:
         )
 
     def update_refresh_token(self, **kwargs) -> dict:
-        expires_at =  datetime.fromisoformat(datetime.now(timezone.utc).isoformat()) + timedelta(seconds=360)
-        created_at =  datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
-        update_at =  datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
-        used_at =  datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+        now = datetime.datetime.now(tz=timezone.utc)
         return self.db.update_with_log(self.refresh_tokens,
              {"username":  kwargs["username"], "device_id":  kwargs["device_id"]},
              {
                  "$set": {
                      "jti": kwargs["jti"],
                      "refresh_token": kwargs["refresh_token"],
-                     "update_at": update_at,
-                     "expires_at": expires_at,
+                     "update_at": now,
+                     "expires_at": now + timedelta(minutes=4),
                      "revoked_at": None,
                      "refresh_attempts": kwargs["refresh_attempts"],
                      "browser": kwargs["browser"],
@@ -181,8 +179,8 @@ class AuthDao:
                  "$setOnInsert": {
                      "username": kwargs["username"],
                      "device_id": kwargs["device_id"],
-                     "created_at": created_at,
-                     "used_at": used_at
+                     "created_at": now,
+                     "used_at": now
                  }
              },
              upsert=True,

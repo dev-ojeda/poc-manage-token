@@ -1,19 +1,20 @@
-from datetime import datetime, timezone
+import datetime
+from datetime import timezone
 from typing import Optional, Literal
 from bson import ObjectId
 import bcrypt
 
-class User:
+class UserModel:
     def __init__(
         self,
         username: str,
         password: str,
         rol: Literal["User", "Admin"],
         email: Optional[str] = None,
-        created_at: Optional[datetime] = None,
-        updated_at: Optional[datetime] = None,
+        created_at: Optional[datetime.datetime] = None,
+        updated_at: Optional[datetime.datetime] = None,
         failed_attempts: int = 0,
-        blocked_until: Optional[datetime] = None,
+        blocked_until: Optional[datetime.datetime] = None,
         _id: Optional[ObjectId] = None
     ):
         self._id = _id or ObjectId()
@@ -22,8 +23,8 @@ class User:
         self.password = password
         self._email = email
         self._rol = rol
-        self._created_at = created_at or datetime.now(timezone.utc)
-        self._updated_at = updated_at or datetime.now(timezone.utc)
+        self._created_at = created_at or datetime.datetime.now(tz=timezone.utc)
+        self._updated_at = updated_at or datetime.datetime.now(tz=timezone.utc)
         self._failed_attempts = failed_attempts
         self._blocked_until = blocked_until
 
@@ -77,16 +78,16 @@ class User:
 
     # created_at solo getter (no se debe cambiar)
     @property
-    def created_at(self) -> datetime:
+    def created_at(self) -> datetime.datetime:
         return self._created_at
 
     # updated_at getter y setter
     @property
-    def updated_at(self) -> datetime:
+    def updated_at(self) -> datetime.datetime:
         return self._updated_at
 
     @updated_at.setter
-    def updated_at(self, value: datetime):
+    def updated_at(self, value: datetime.datetime):
         self._updated_at = value
 
     # failed_attempts getter y setter
@@ -102,11 +103,11 @@ class User:
 
     # blocked_until getter y setter
     @property
-    def blocked_until(self) -> Optional[datetime]:
+    def blocked_until(self) -> Optional[datetime.datetime]:
         return self._blocked_until
 
     @blocked_until.setter
-    def blocked_until(self, value: Optional[datetime]):
+    def blocked_until(self, value: Optional[datetime.datetime]):
         self._blocked_until = value
 
     # Métodos que ya tenías (sin cambios salvo usar propiedades internas)
@@ -135,13 +136,13 @@ class User:
     def is_blocked_now(self) -> bool:
         return self.blocked_until is not None and self.update_timestamp() < self.blocked_until.replace(tzinfo=timezone.utc)
 
-    def update_timestamp(self) -> datetime:
-        self.updated_at = datetime.now(timezone.utc)
+    def update_timestamp(self) -> datetime.datetime:
+        self.updated_at = datetime.datetime.now(tz=timezone.utc)
         return self.updated_at
 
     @staticmethod
-    def from_dict(data: dict) -> "User":
-        return User(
+    def from_dict(data: dict) -> "UserModel":
+        return UserModel(
             username=data.get("username"),
             password=data.get("password"),
             email=data.get("email"),

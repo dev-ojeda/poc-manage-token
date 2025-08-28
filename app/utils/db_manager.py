@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, timedelta, timezone
+import datetime
+from datetime import timedelta, timezone
 from flask import Blueprint, request
 
 from app.utils.db_mongo import MongoDatabase
-from app.model.token_generator import TokenGenerator
+from app.model import TokenGeneratorModel
 
 db_Manager_bp = Blueprint("dbManager", __name__)
 
 class DbManager:
     def __init__(self):
         self.conexion = MongoDatabase()
-        self.generate_token = TokenGenerator()
+        self.generate_token = TokenGeneratorModel()
         self.refresh_tokens = "refresh_tokens"
         self.token_blacklist = "token_blacklist"
         self.global_tokens = "global_tokens"
@@ -21,7 +22,7 @@ class DbManager:
    
     def get_active_devices(self,username: str):
         devices = self.conexion.find(self.refresh_tokens,
-            {"username": username, "revoked_at": None, "expires_at": {"$gt": datetime.now(timezone.utc)}},
+            {"username": username, "revoked_at": None, "expires_at": {"$gt": datetime.datetime.now(tz=timezone.utc)}},
             {"_id": 0, "device_id": 1, "user_agent": 1, "ip_address": 1, "expires_at": 1}
         )
         return list(devices)
@@ -31,7 +32,7 @@ class DbManager:
             {"username": username, "device_id": device_id },
             {
                 "$set": {
-                    "revoked_at": datetime.now(timezone.utc)
+                    "revoked_at": datetime.datetime.now(tz=timezone.utc)
                 }
             },
             upsert=True,
@@ -43,7 +44,7 @@ class DbManager:
             {
                 "refresh_token": refresh_token,
                 "device_id": device_id,
-                "expires_at": {"$gt": datetime.now(timezone.utc)}
+                "expires_at": {"$gt": datetime.datetime.now(tz=timezone.utc)}
             }
         )
 
@@ -60,7 +61,7 @@ class DbManager:
     def revoke_tokens_by_device(self, device_id: str) -> int:
         update = {
             "$set": {
-                "revoked_at": datetime.now(timezone.utc)
+                "revoked_at": datetime.datetime.now(tz=timezone.utc)
             }
         }
         return self.conexion.update_many(self.refresh_tokens, {"device_id": device_id}, update)
@@ -73,8 +74,8 @@ class DbManager:
             ip = request.remote_addr
             result = self.conexion.insert_with_log(self.global_tokens,{
                 "token": global_token,
-                "created_at": datetime.now(timezone.utc),
-                "expires_at": datetime.now(timezone.utc) + timedelta(minutes=60),
+                "created_at": datetime.datetime.now(tz=timezone.utc),
+                "expires_at": datetime.datetime.now(tz=timezone.utc) + timedelta(minutes=60),
                 "ip_address": ip,
                 "user_agent": user_agent
             },context="Insertar Token Global")
@@ -92,7 +93,7 @@ class DbManager:
             # Convertir a lista de strings
         else:
             return self.conexion.find_one(self.global_tokens,
-                   {"expires_at": {"$gt": datetime.now(timezone.utc)}},
+                   {"expires_at": {"$gt": datetime.datetime.now(tz=timezone.utc)}},
                     projection={
                         "_id": 0,
                         "token": 1,
@@ -115,7 +116,7 @@ class DbManager:
 
         if since:
             if isinstance(since, str):
-                since = datetime.fromisoformat(since)
+                since = datetime.datetime.fromisoformat(since)
             query["last_refresh_at"] = {"$gte": since}
 
         projection = {
@@ -158,12 +159,12 @@ class DbManager:
             "new_value": new_value,
             "ip_address": ip_address,
             "user_agent": user_agent,
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.datetime.now(tz=timezone.utc)
         }
         self.conexion.insert_one(self.session_audit, event)
 
-    def get_datetime_now(self) -> datetime:
-        return datetime.now(timezone.utc)
+    def get_datetime_now(self) -> datetime.datetime:
+        return datetime.datetime.now(tz=timezone.utc)
 
-    def update_datetime_format_iso(self, fecha: datetime) -> datetime:
+    def update_datetime_format_iso(self, fecha: datetime.datetime) -> datetime.datetime:
         return fecha.fromisoformat(fecha.isoformat())

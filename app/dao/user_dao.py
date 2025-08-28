@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from datetime import datetime, timezone
+import datetime
+from datetime import timezone
 from typing import List, Optional
 from bson import ObjectId
 from pymongo.errors import PyMongoError
-from app.model.user import User
+from app.model import UserModel
 from icecream import ic
 
 from app.utils.db_mongo import MongoDatabase
@@ -16,7 +17,7 @@ class UserDAO:
         self.users = "users"
         self.active_sessions = "active_sessions"
 
-    def find_by_id(self, user_id: str) -> User | None:
+    def find_by_id(self, user_id: str) -> UserModel | None:
         query = {"_id": ObjectId(user_id)}
         projection = {
             "_id": 0,
@@ -31,7 +32,7 @@ class UserDAO:
         }
         return self.find_one(query=query, projection=projection) 
    
-    def find_by_username(self, username: str) -> Optional[User]:
+    def find_by_username(self, username: str) -> Optional[UserModel]:
              
         query = {"username": username}
         projection = {
@@ -47,13 +48,13 @@ class UserDAO:
         }
 
         return self.find_one(query=query, projection=projection)  # Podés incluir `projection` si extendés el método
-    def find_one(self, query: Optional[dict] = None, projection: Optional[dict] = None) -> User | None:
+    def find_one(self, query: Optional[dict] = None, projection: Optional[dict] = None) -> UserModel | None:
         query = query or {}
         projection = projection or {}
         try:
             result = self.db.find_one(collection=self.users, query=query, projection=projection)
             ic(f"[FIND ONE USER]: {result}")
-            return User.from_dict(result) if result else None
+            return UserModel.from_dict(result) if result else None
         except PyMongoError as e:
             ic(f"❌ Error en find_one: {e}")
             return None
@@ -74,7 +75,7 @@ class UserDAO:
             ic(f"❌ Error en find_ids_users: {e}")
             raise
 
-    def find_all(self, query: Optional[dict] = None, projection: Optional[dict] = None) -> List[User]:
+    def find_all(self, query: Optional[dict] = None, projection: Optional[dict] = None) -> List[UserModel]:
         """
         Busca usuarios completos según query y proyección.
         Devuelve una lista de objetos User.
@@ -85,7 +86,7 @@ class UserDAO:
             if not isinstance(docs, list):
                 docs = list(docs)
 
-            return [User.from_dict(doc) for doc in docs]
+            return [UserModel.from_dict(doc) for doc in docs]
         except PyMongoError as e:
             ic(f"❌ Error en find_all: {e}")
             raise
@@ -101,7 +102,7 @@ class UserDAO:
     def find_blocked(self) -> int:
         try:
             query = {
-               "blocked_until": { "$gt": datetime.now(timezone.utc) }
+               "blocked_until": { "$gt": datetime.datetime.now(tz=timezone.utc) }
             }
             result = self.db.count_documents(self.users,query)
             return result if result else 0
@@ -109,7 +110,7 @@ class UserDAO:
             ic(f"Error en find_one: {e}")
             raise
 
-    def create(self, user: User) -> bool:
+    def create(self, user: UserModel) -> bool:
         try:
             self.db.insert_with_log(self.users,user.to_dict())
             ic(f"Usuario creado: {user.username}")

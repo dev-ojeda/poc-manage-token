@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
 
+import datetime
+from datetime import timezone
 from bson import ObjectId
 
-from app.dao.audit_dao import AuditLogDAO
-from app.dao.session_dao import SessionDAO
-from app.model.audit_session import AuditLog
+from app.dao import AuditLogDAO, SessionDAO
+from app.model import AuditLogModel
 
 
 class AuditService:
@@ -18,13 +18,13 @@ class AuditService:
         if not session:
             raise ValueError("Sesión no encontrada")
 
-        now_iso = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+        now_iso = datetime.datetime.now(tz=timezone.utc)
         reason = ""
         cambios = False
 
         # Detectar cambio de navegador/User-Agent
         if session.get("browser") != user_agent:
-            audit_log = AuditLog(
+            audit_log = AuditLogModel(
                 session_id=str(session["_id"]),
                 user_id=str(session["user_id"]),
                 event_type="user_agent_change",
@@ -40,7 +40,7 @@ class AuditService:
 
         # Registrar auditoría por razón previa
         if session.get("reason"):
-            audit_log = AuditLog(
+            audit_log = AuditLogModel(
                 session_id=str(session["_id"]),
                 user_id=str(session["user_id"]),
                 event_type=session["reason"],

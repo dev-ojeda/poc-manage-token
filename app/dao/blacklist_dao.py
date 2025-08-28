@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+import datetime
+from datetime import timezone
 
 from app.utils.db_mongo import MongoDatabase
 
@@ -25,7 +26,7 @@ class TokenBlacklistDao:
             "username": username,
             "device_id": device_id,
             "reason": reason,
-            "created_at": datetime.now(timezone.utc)
+            "created_at": datetime.datetime.now(tz=timezone.utc)
         }
         try:
             self.collection.insert_one(doc)
@@ -36,7 +37,7 @@ class TokenBlacklistDao:
 
     def revoke_token_blacklist(self, token: str, device_id=None, username=None, reason=None) -> dict:
         update_fields = {
-            "revoked_at": datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+            "revoked_at": datetime.datetime.now(tz=timezone.utc)
         }
 
         if reason is not None:

@@ -7,6 +7,7 @@
     <h2><span id="userName"></span></h2>
     <p id="tokenTimer" class="fw-bold text-success"></p>
     <div class="mb-3">
+        <p id="fechaCountry" class="fw-bold"></p>
         <p id="tokenTimer" class="fw-bold text-success"></p>
         <div class="progress">
             <div id="tokenProgress" class="progress-bar bg-success" role="progressbar"></div>
@@ -45,7 +46,7 @@
     </div>
 </div>
 <script type="module" src="{{ url_for('static', filename='js/main/user.js') }}"></script>
-<script type="module">
+<!--<script type="module">
     import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
     import { showAlert } from "../static/js/layout.js";
     import { clearSession } from "../static/js/utils/errors.js";
@@ -71,6 +72,6 @@
     socket.on("disconnect", () => {
         console.log("Desconectado de SocketIO");
     });
-</script>
+</script>-->
 
 {% endblock %}

@@ -1,15 +1,13 @@
 # app/services/user_service.py
-
-from datetime import datetime, timedelta, timezone
+import datetime
+from datetime import timedelta, timezone
 from typing import List, Optional
 
 from bson import ObjectId
 
 
-from app.dao.auth_dao import AuthDao
-from app.utils.db_manager import DbManager
-from app.model.user import User
-from app.dao.user_dao import UserDAO
+from app.model import UserModel
+from app.dao import UserDAO, AuthDao
 
 
 class UserService:
@@ -18,10 +16,12 @@ class UserService:
         self.BLOCK_TIME_SECONDS = 120  # 2 min
         self.auth_dao = AuthDao()
         self.user_dao = UserDAO()
-    def get_user_by_username(self, username: str) -> Optional[User]:
+
+
+    def get_user_by_username(self, username: str) -> Optional[UserModel]:
         return self.user_dao.find_by_username(username)
 
-    def get_user_by_id(self, user_id: str) -> User | None:
+    def get_user_by_id(self, user_id: str) -> UserModel | None:
         return self.user_dao.find_by_id(user_id=user_id)
     def get_ids_users (self) -> List[ObjectId]:
         return self.user_dao.find_ids_users()
@@ -30,23 +30,23 @@ class UserService:
         required_fields = ['username', 'password', 'device', 'rol', 'user_agent']
         return [f for f in required_fields if not data.get(f)]
 
-    def authenticate_user(self, username: str, password: str) -> User:
+    def authenticate_user(self, username: str, password: str) -> UserModel:
         user = self.user_dao.find_by_username(username)
-        if user and User.verify_password(password, user.password):
+        if user and UserModel.verify_password(password, user.password):
             return user
         return None
 
-    def handle_failed_login(self, user_model: User) -> dict:
+    def handle_failed_login(self, user_model: UserModel) -> dict:
         attempts = user_model.failed_attempts + 1
         update = {"$set": {"failed_attempts": attempts}}
 
         if attempts >= self.MAX_ATTEMPTS:
-            update["$set"]["blocked_until"] = datetime.now(timezone.utc) + timedelta(seconds=self.BLOCK_TIME_SECONDS)
+            update["$set"]["blocked_until"] = datetime.datetime.now(tz=timezone.utc) + timedelta(seconds=self.BLOCK_TIME_SECONDS)
             update["$set"]["failed_attempts"] = 0
 
         return self.user_dao.update({"username": user_model.username, "rol": user_model.rol}, update, upsert=True, context="Intentos Fallidos")
 
-    def reset_login_attempts(self, user_model: User) -> dict:
+    def reset_login_attempts(self, user_model: UserModel) -> dict:
         return self.user_dao.update({"username": user_model.username, "rol": user_model.rol}, {
             "$set": {"failed_attempts": 0, "blocked_until": None}
         }, upsert=True, context="Reset Intentos")

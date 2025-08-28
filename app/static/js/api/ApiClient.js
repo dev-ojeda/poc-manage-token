@@ -1,57 +1,50 @@
 import { showAlert } from "../layout.js";
-import { handleError, clearSession } from "../utils/errors.js";
+import { handleError } from "../utils/errors.js";
 
+/**
+ * Clase base que contien los metodos necesarios de acceso y salida.
+ */
 export class ApiClient {
-    constructor(params = {}) {
-        const {
-            baseURL,
-            storage,
-            timeout = 8000,
-            retries = 2,
-            retryDelay = 1000,
-        } = params;
+    constructor({ baseURL, storage, timeout = 10000, notifier = showAlert }) {
         this.baseURL = baseURL;
         this.storage = storage;
         this.timeout = timeout;
-        this.retries = retries;
-        this.retryDelay = retryDelay;
+        this.notifier = notifier;
     }
 
-  
+    // =============================
+    // Tokens & Metadata
+    // =============================
+    async safeGet(key) {
+        try {
+            return await this.storage.get(key);
+        } catch (err) {
+            console.error(`Error leyendo ${key}:`, err);
+            return null;
+        }
+    }
+    async accessToken() { return await this.safeGet("access_token"); }
+    async refreshToken() { return await this.safeGet("refresh_token"); }
+    async deviceId() { return await this.safeGet("device_id"); }
+    async userRol() { return await this.safeGet("rol"); }
+    async userName() { return await this.safeGet("username"); }
+    async tokenExp() { return await this.safeGet("exp"); }
+    async userJti() { return await this.safeGet("jti"); }
 
-    get accessToken() {
-        return this.storage.get("access_token");
+    setTokens({ access_token, refresh_token }) {
+        this.storage.set("access_token", access_token);
+        this.storage.set("refresh_token", refresh_token);
     }
 
-    get refreshToken() {
-        return this.storage.get("refresh_token");
+    async clearTokens() {
+        await this.storage.clear();
     }
 
-    get deviceId() {
-        return this.storage.get("device_id");
-    }
-
-    get userRol() {
-        return this.storage.get("rol");
-    }
-
-    get userName() {
-        return this.storage.get("username");
-    }
-
-    get tokenExp() {
-        return this.storage.get("exp");
-    }
-
-    get userJti() {
-        return this.storage.get("jti");
-    }
-
-    getDeviceId() {
-        let device = this.storage.get("device_id");
+    async getDeviceId() {
+        let device = await this.safeGet("device_id");
         if (!device) {
             device = crypto.randomUUID();
-            this.storage.set("device_id", device);
+            await this.storage.set("device_id", device);
         }
         return device;
     }
@@ -59,7 +52,6 @@ export class ApiClient {
     getBrowserInfo() {
         const ua = navigator.userAgent;
         let browser = "Desconocido";
-
         if (ua.includes("Chrome") && !ua.includes("Edg")) browser = "Chrome";
         else if (ua.includes("Firefox")) browser = "Firefox";
         else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
@@ -76,133 +68,96 @@ export class ApiClient {
         return { browser, os };
     }
 
-    async fetchWithTimeout(resource, options = {}) {
-        const controller = new AbortController();
-        const timeout = options.timeout ?? this.timeout;
-        const id = setTimeout(() => controller.abort(), timeout);
 
-        const opts = {
-            ...options,
-            signal: controller.signal,
-        };
+    // =============================
+    // Core Fetch with Timeout
+    // =============================
+    async fetch(endpoint, options = {}) {
+        //const controller = new AbortController();
+        //const id = setTimeout(() => controller.abort(), this.timeout);
+        //const token = await this.safeGet("access_token");
+        //console.log("TOKEN", token);
+        //const headers = {
+        //    "Content-Type": "application/json",
+        //    ...(token ? { Authorization: `Bearer ${token}`, "X-Token-Type": "access" } : {}),
+        //    ...options.headers,
+        //};
 
         try {
-            const response = await fetch(resource, opts);
-            return response;
-        } catch (error) {
-            if (error.name === "AbortError") {
-                throw new Error(
-                    `⏱️ La solicitud a ${resource} fue abortada por timeout (${timeout}ms)`
-                );
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+            const token = await this.accessToken();
+            const headers = {
+                "Content-Type": "application/json",
+                ...(options.headers || {}),
+            };
+            if (token) {
+                headers["Authorization"] = `Bearer ${token}`;
+                headers["X-Token-Type"] = "access";
             }
-            throw error;
-        } finally {
-            clearTimeout(id);
-        }
-    }
-
-    async fetch(endpoint, options = {}, retries = this.retries, retryDelay = this.retryDelay) {
-        const headers = {
-            "Content-Type": "application/json",
-            ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}`, "X-Token-Type": "access" } : {}),
-            ...options.headers,
-        };
-
-        try {
-            const response = await this.fetchWithTimeout(`${this.baseURL}${endpoint}`, {
+            const response = await fetch(`${this.baseURL}${endpoint}`, {
                 ...options,
                 headers,
+                signal: controller.signal,
+                keepalive: true,
             });
+
+            clearTimeout(timeoutId);
 
             const contentType = response.headers.get("Content-Type") || "";
             const data = contentType.includes("application/json")
                 ? await response.json()
-                : await response.text();
+                : { msg: await response.text(), code: "UNKNOWN" };
 
-            if ([400, 403].includes(response.status)) {
-                const errorMsg =
-                    response.status === 403
-                        ? `🚫 Bloqueado: ${data.msg} hasta ${data.bloqueado_hasta}`
-                        : `🚫 ${data.code}`;
-                throw new Error(errorMsg);
+            // 🚨 Errores específicos
+            if (response.status === 401) {
+                throw { message: `${data.message}`, code: data.code || "UNAUTHORIZED", raw: data };
             }
-
-            if (response.status === 401 && this.refreshToken) {
-                throw new Error(`401 Unauthorized: ${data.msg} ${data.code}`);
+            if (response.status === 403) {
+                throw { message: `🚫 Bloqueado: ${data.msg} ${data.bloqueado_hasta ? "hasta " + data.bloqueado_hasta : ""}`, code: data.code || "FORBIDDEN", raw: data };
+            }
+            if (response.status === 409) {
+                throw { message: `⚠️ ${data.msg}`, code: data.code || "CONFLICT", raw: data };
+            }
+            if (response.status === 500) {
+                throw { message: `💥 ${data.msg}`, code: data.code || "INTERNAL_SERVER_ERROR", raw: data };
             }
 
             if (!response.ok) {
-                throw new Error(`Error ${data.msg || "desconocido"} ${data.code || ""}`);
+                throw { message: data.msg || "Error desconocido", code: data.code || "UNKNOWN_ERROR", raw: data };
             }
 
             return data;
+        
         } catch (err) {
-            if (retries > 0) {
-                showAlert(`🔁 Reintentando ${retries}...`, "warning");
-                await this.delay(retryDelay);
-                return this.fetch(endpoint, options, retries - 1, retryDelay * 2);
+            handleError(err);
+            throw err; // Permitir catch a nivel superior
+        }
+    }
+
+    
+   
+
+
+    /**
+     * Método privado para centralizar almacenamiento
+     * @param {Object} data
+     */
+    async _saveUserData(data) {
+        for (const [key, value] of Object.entries(data)) {
+            if (value === undefined || value === null) continue;
+            try {
+                await this.storage.set(key, value);
+            } catch (err) {
+                console.error(`Error guardando ${key}:`, err);
             }
-            handleError(err);
-            throw err;
         }
     }
 
-    delay(ms) {
-        return new Promise((res) => setTimeout(res, ms));
-    }
-
-    setTokens({ access_token, refresh_token }) {
-        this.storage.set("access_token", access_token);
-        this.storage.set("refresh_token", refresh_token);
-    }
-
-    async getRefreshToken() {
-        const token = this.storage.get("refresh_token");
-        if (!token) throw new Error("Token no encontrado");
-        return token;
-    }
-
-    async logout_admin() {
-        showAlert(`👋 Admin ha cerrado sesión`, "info", 4000);
-        clearSession(); // tokens, flags, device_id, etc.
-        location.href = "/";
-
-    }
-
-    async logout(reason = "logout") {
-        try {
-            const access_token = this.accessToken;
-            const refresh_token = this.refreshToken;
-            const device_id = this.deviceId;
-            const user_agent = this.getBrowserInfo();
-
-            if (!access_token && !refresh_token) throw new Error("Token no existe");
-
-            const res = await fetch(`${this.baseURL}/api/auth/logout`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${refresh_token || ""}`,
-                    "Content-Type": "application/json",
-                    "X-Token-Type": "refresh",
-                },
-                body: JSON.stringify({ access_token, refresh_token, device_id, reason, user_agent }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) throw new Error(data.msg || "Error al cerrar sesión");
-
-            showAlert(`👋 ${data.msg}`, "info", 4000);
-        } catch (err) {
-            handleError(err);
-            console.warn("Logout error:", err);
-        } finally {
-            clearSession();
-            location.href = "/";
-        }
-    }
-
+    // =============================
     // Métodos HTTP base
+    // =============================
     async get(endpoint, options = {}) {
         return this.fetch(endpoint, { ...options, method: "GET" });
     }

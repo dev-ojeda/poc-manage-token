@@ -1,9 +1,8 @@
-
-from datetime import datetime, timezone
-
+import datetime
+from datetime import timezone
 from bson import ObjectId
 from app.utils.db_mongo import MongoDatabase
-from app.model.user_session import UserSession
+from app.model import UserSessionModel
 
 class SessionDAO:
     def __init__(self,db=None):
@@ -11,7 +10,7 @@ class SessionDAO:
         self.active_sessions = "active_sessions"
         self.users = "users"
 
-    def insert_session(self, session: UserSession) -> dict:
+    def insert_session(self, session: UserSessionModel) -> dict:
         return self.db.insert_with_log(self.active_sessions,session.to_dict(),context="Insertar sesión activa")
     def get_active_session(self, user_id: ObjectId, device_id: str) -> dict:
         query={
@@ -78,7 +77,7 @@ class SessionDAO:
         }
         return self.db.find_one(self.active_sessions,query=query,projection=projection)
     def revoked_session(self, user_id: ObjectId, reason: str):
-        revoked_at = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+        revoked_at = datetime.datetime.now(tz=timezone.utc)
         query={"user_id": user_id}
         update_fields = {
             "$set": {
@@ -90,7 +89,7 @@ class SessionDAO:
         }
         return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Revocar Session")
     def update_session(self, user_id:ObjectId, token: str, reason: str):
-        last_refresh_at = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+        last_refresh_at = datetime.datetime.now(tz=timezone.utc)
         query={"user_id": user_id}
         update_fields = {
             "$set": {
@@ -105,7 +104,7 @@ class SessionDAO:
         }
         return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Session Cerrada")
     def update_session_for_audit(self, user_id: ObjectId, ip_address: str, browser: str, reason: str) -> dict:
-        last_refresh_at = datetime.fromisoformat(datetime.now(timezone.utc).isoformat())
+        last_refresh_at = datetime.datetime.now(tz=timezone.utc)
         query={"user_id": user_id}
         update_fields = {
             "$set": {

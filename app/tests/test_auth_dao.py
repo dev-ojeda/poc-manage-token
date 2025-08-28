@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import mongomock
 import pytest
-from app.dao.auth_dao import AuthDao
+from app.dao import AuthDao
 
 @pytest.fixture
 def mock_db():

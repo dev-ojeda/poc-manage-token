@@ -1,9 +1,9 @@
-from datetime import datetime, timezone
-
+import datetime
+from datetime import timezone
 from icecream import ic
 
 
-from app.model.audit_session import AuditLog
+from app.model import AuditLogModel
 from app.utils.db_mongo import MongoDatabase
 
 
@@ -12,7 +12,7 @@ class AuditLogDAO:
         self.db = MongoDatabase()
         self.session_audit = "session_audit"
 
-    def insert_logs_audit(self, audit_log: AuditLog, context: str = "") -> dict:
+    def insert_logs_audit(self, audit_log: AuditLogModel, context: str = "") -> dict:
         return self.db.insert_with_log(collection=self.session_audit, document=audit_log.to_dict(), context=context)
 
     def get_logs_audit(self, **kwargs) -> dict:
@@ -38,9 +38,9 @@ class AuditLogDAO:
         if start or end:
             time_filter["timestamp"] = {}
             if start:
-                time_filter["timestamp"]["$gte"] = datetime.fromtimestamp(float(start), tz=timezone.utc)
+                time_filter["timestamp"]["$gte"] = datetime.datetime.fromtimestamp(float(start), tz=timezone.utc)
             if end:
-                time_filter["timestamp"]["$lte"] = datetime.fromtimestamp(float(end), tz=timezone.utc)
+                time_filter["timestamp"]["$lte"] = datetime.datetime.fromtimestamp(float(end), tz=timezone.utc)
 
         skip = (page - 1) * limit
 
@@ -76,7 +76,7 @@ class AuditLogDAO:
 
         # Convertir timestamps en ISO8601
         for log in data["data"]:
-            if isinstance(log.get("timestamp"), datetime):
+            if isinstance(log["timestamp"], datetime.datetime):
                 log["timestamp"] = log["timestamp"].isoformat()
 
         total_count = data["totalCount"][0]["count"] if data["totalCount"] else 0
@@ -97,7 +97,7 @@ class AuditLogDAO:
             audit_events = {
                  "username": kwargs["username"],
                  "device_id": kwargs["device_id"],
-                 "timestamp": datetime.now(timezone.utc),
+                 "timestamp": datetime.datetime.now(tz=timezone.utc),
                  "old_ip_address": previous_session.get("ip_address"),
                  "new_ip_address": kwargs["ip_address"],
                  "old_user_agent": previous_session.get("user_agent"),

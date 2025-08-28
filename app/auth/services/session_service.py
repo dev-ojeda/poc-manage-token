@@ -1,15 +1,14 @@
 
-from datetime import datetime, timezone
 from bson import ObjectId
-from app.dao.session_dao import SessionDAO 
-from app.model.user_session import UserSession
+from app.dao import SessionDAO 
+from app.model import UserSessionModel
 
 
 class SessionService:
     def __init__(self):
         self.session_dao = SessionDAO()
 
-    def register_session(self, user_session: UserSession) -> dict:
+    def register_session(self, user_session: UserSessionModel) -> dict:
         return self.session_dao.insert_session(session=user_session)
     def revoke_session(self, user_id:ObjectId) -> dict:
         return self.session_dao.revoked_session(user_id=user_id, reason="revoked")

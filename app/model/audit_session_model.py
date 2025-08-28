@@ -1,9 +1,9 @@
-from datetime import datetime
+import datetime
 from typing import Optional
 
 
-class AuditLog:
-    VALID_EVENT_TYPES = {"ip_change", "user_agent_change", "revoked", "login", "logout", "refresh_token"}
+class AuditLogModel:
+    VALID_EVENT_TYPES = {"ip_change", "user_agent_change", "revoked", "login", "logout", "refresh_token", "close"}
 
     def __init__(
         self,
@@ -12,7 +12,7 @@ class AuditLog:
         event_type: str,
         old_value: str,
         new_value: str,
-        timestamp: datetime,
+        timestamp: datetime.datetime,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ):
@@ -104,12 +104,12 @@ class AuditLog:
 
     # --- timestamp ---
     @property
-    def timestamp(self) -> datetime:
+    def timestamp(self) -> datetime.datetime:
         return self._timestamp
 
     @timestamp.setter
-    def timestamp(self, value: datetime):
-        if not isinstance(value, datetime):
+    def timestamp(self, value: datetime.datetime):
+        if not isinstance(value, datetime.datetime):
             raise ValueError("timestamp debe ser un objeto datetime")
         self._timestamp = value
 
@@ -137,5 +137,5 @@ class AuditLog:
             new_value=data.get("new_value"),
             ip_address=data.get("ip_address"),
             user_agent=data.get("user_agent"),
-            timestamp=data.get("timestamp") if isinstance(data.get("timestamp"), datetime) else datetime.fromisoformat(data.get("timestamp"))
+            timestamp=data.get("timestamp") if isinstance(data.get("timestamp"), datetime.datetime) else datetime.datetime.fromisoformat(data.get("timestamp"))
         )

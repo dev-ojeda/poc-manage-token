@@ -1,21 +1,21 @@
 # app/services/auth_service.py
 
-from datetime import datetime, timezone
-from turtle import st
+import datetime
+from datetime import timezone
 from app.dao.auth_dao import AuthDao
 from app.utils.db_manager import DbManager
-from app.model.token_generator import TokenGenerator
+from app.model import TokenGeneratorModel
 
 class AuthService:
     def __init__(self):
         self.dm = DbManager()
-        self.gt = TokenGenerator()
+        self.gt = TokenGeneratorModel()
         self.auth_dao = AuthDao()
     def get_token_payload(self, token: str):
         return self.gt.verify_token(token=token, expected_type="refresh")
 
-    def get_active_token_by_user_and_device(self, username, device_id=None):
-        return self.auth_dao.get_active_token_by_user_and_device(username, device_id)
+    def get_active_token_by_user_and_device(self, username: str, device_id: str):
+        return self.auth_dao.get_active_token_by_user_and_device(username=username, device_id=device_id)
     def get_active_token_by_username(self, username):
         return self.auth_dao.get_active_token_by_username(username)
     def is_token_in_use(self, username) -> dict:
@@ -27,8 +27,10 @@ class AuthService:
     def revoke_token_by_device_id(self, device_id) -> bool:
         return bool(self.auth_dao.revoke_token_by_device_id(device_id))
     def is_token_expired(self, exp: float) -> bool:
-        now_ts = float(datetime.now(timezone.utc).timestamp())
-        return now_ts > exp
+        exp_ms = int(exp * 1000)  # en milisegundos
+        now = datetime.datetime.now(tz=timezone.utc)
+        now_ms = int(now.timestamp() * 1000)
+        return now_ms > exp_ms
 
     def detect_reuse(self, stored: dict) -> bool:
         return stored.get("used_at") is not None
