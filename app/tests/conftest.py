@@ -5,6 +5,7 @@ from flask import Flask
 from unittest.mock import patch
 from bson import ObjectId
 
+from app.auth import AuthException
 from app.backend.routes import backend_bp
 
 # ===========================
@@ -17,7 +18,6 @@ def app():
     app = Flask(__name__)
     app.register_blueprint(backend_bp)
     app.testing = True
-    return app
 
 @pytest.fixture
 def client(app):

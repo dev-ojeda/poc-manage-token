@@ -188,3 +188,101 @@ main {
         background-position: 0% 50%;
     }
 }
+
+th.sorted-asc::after {
+    content: " ⬆️";
+}
+
+th.sorted-desc::after {
+    content: " ⬇️";
+}
+
+/* Basic styling for an audit summary container */
+.audit-summary {
+    background-color: #f8f8f8; /* Light grey background */
+    border: 1px solid #ddd; /* Light grey border */
+    padding: 15px; /* Inner spacing */
+    margin-bottom: 20px; /* Space below the summary */
+    border-radius: 5px; /* Slightly rounded corners */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+    /* Styling for a title or heading within the summary */
+    .audit-summary h3 {
+        color: #333; /* Darker text color for heading */
+        margin-top: 0; /* Remove default top margin */
+        margin-bottom: 10px; /* Space below heading */
+        font-size: 1.2em; /* Slightly larger font size */
+    }
+
+    /* Styling for individual audit items or errors */
+    .audit-summary ul {
+        list-style: none; /* Remove default bullet points */
+        padding: 0; /* Remove default padding */
+        margin: 0; /* Remove default margin */
+    }
+
+    .audit-summary li {
+        margin-bottom: 5px; /* Space between list items */
+        color: #666; /* Medium grey text color */
+    }
+
+    /* Styling for critical errors or warnings within the summary */
+    .audit-summary .error-item {
+        color: #d9534f; /* Red color for errors */
+        font-weight: bold; /* Bold text for emphasis */
+    }
+
+    .audit-summary .warning-item {
+        color: #f0ad4e; /* Orange color for warnings */
+    }
+
+/*#userTable th {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 15px;
+}
+
+    #userTable th.sort-asc {
+        color: #0d6efd;*/ /* azul Bootstrap */
+    /*}
+
+    #userTable th.sort-desc {
+        color: #dc3545;*/ /* rojo Bootstrap */
+    /*}*/
+#userTable th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+    #userTable th.sort-asc svg,
+    #userTable th.sort-desc svg {
+        stroke: #0d6efd; /* azul Bootstrap */
+    }
+
+.table-spinner {
+    text-align: center;
+    padding: 20px;
+}
+
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0d6efd; /* azul Bootstrap */
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

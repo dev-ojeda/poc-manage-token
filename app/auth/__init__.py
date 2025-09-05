@@ -5,6 +5,7 @@ from .services.user_service import UserService
 from .services.audit_service import AuditService
 from .services.session_service import SessionService
 from .services.blacklist_service import TokenBlacklistService
+from .services.performance_metrics_services import PerformanceMetricsService
 from .exceptions.auth_exceptions import AuthException
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "AuditService",
     "TokenBlacklistService",
     "SessionService",
+    "PerformanceMetricsService",
     "AuthException"
 ]

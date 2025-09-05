@@ -139,7 +139,8 @@ class TokenGeneratorModel:
                 raise AuthException(
                     f"Tipo de token inválido. Se esperaba '{expected_type}', se recibió '{decoded.get('type')}'",
                     "InvalidTypeToken",
-                    401
+                    401,
+                    "error"
                 )
 
             return decoded
@@ -197,7 +198,7 @@ class TokenGeneratorModel:
             raise AuthException("Token no válido. Por favor vuelve a iniciar sesión.", "InvalidTokenError", 401, "error")
 
         except Exception as e:
-            raise AuthException(f"Error inesperado: {str(e)}", "UnexpectedError", 500)
+            raise AuthException(f"Error inesperado: {str(e)}", "UnexpectedError", 500, "error")
    
     
     def verify_token(self, token: str, expected_type: str = "access") -> dict:

@@ -5,7 +5,6 @@
 import logging
 import traceback
 from flask import jsonify, request
-from icecream import ic
 
 from app.auth import AuthException
 

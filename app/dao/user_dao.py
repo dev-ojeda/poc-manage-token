@@ -4,6 +4,7 @@ import datetime
 from datetime import timezone
 from typing import List, Optional
 from bson import ObjectId
+from pymongo.cursor import SON
 from pymongo.errors import PyMongoError
 from app.model import UserModel
 from icecream import ic
@@ -53,7 +54,6 @@ class UserDAO:
         projection = projection or {}
         try:
             result = self.db.find_one(collection=self.users, query=query, projection=projection)
-            ic(f"[FIND ONE USER]: {result}")
             return UserModel.from_dict(result) if result else None
         except PyMongoError as e:
             ic(f"❌ Error en find_one: {e}")
@@ -113,7 +113,6 @@ class UserDAO:
     def create(self, user: UserModel) -> bool:
         try:
             self.db.insert_with_log(self.users,user.to_dict())
-            ic(f"Usuario creado: {user.username}")
             return True
         except PyMongoError as e:
             ic(f"Error en create: {e}")
@@ -122,3 +121,34 @@ class UserDAO:
     def update(self, query: dict, update: dict, upsert: bool = False, context: str = "") -> dict:
         return self.db.update_with_log(self.users, query, update, upsert, context=context)
         
+    def get_all_users(self) -> dict:
+        pipeline = [
+            {"$match": {"rol": {"$ne": "Admin"}}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "username": 1,
+                    "rol": 1,
+                    "created_at": 1,
+                    "updated_at": 1,
+                    "failed_attempts": 1,
+                    "blocked_until": 1
+                }
+            }
+        ]
+
+        result = list(self.db.aggregate(self.users, pipeline=pipeline))
+        logs = result
+        total_count = len(logs)
+        # Normalizar timestamps a ISO
+        for log in logs:
+            if isinstance(log.get("created_at"), datetime.datetime):
+                log["created_at"] = log["created_at"].isoformat()
+            if isinstance(log.get("updated_at"), datetime.datetime):
+                log["updated_at"] = log["updated_at"].isoformat()
+            if isinstance(log.get("blocked_until"), datetime.datetime):
+                log["blocked_until"] = log["blocked_until"].timestamp()
+        return {
+            "logs": logs,
+            "total_count": total_count
+        }

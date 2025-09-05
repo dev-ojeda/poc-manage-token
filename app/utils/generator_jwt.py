@@ -4,6 +4,7 @@ import datetime
 from datetime import timezone, timedelta
 from cryptography.hazmat.primitives import serialization
 
+from app.auth import AuthException
 from app.config import Config
 # 🔑 Clave secreta (puede ser una env var)
 def load_key(path, is_private=False):
@@ -44,7 +45,12 @@ def verificar_jwt(token: str, expected_type: str) -> dict:
     try:
         decoded = jwt.decode(token, public_key, algorithms=["RS256"])
         if decoded["type"] != expected_type:
-            raise
+            raise AuthException(
+                    f"Tipo de token inválido. Se esperaba '{expected_type}', se recibió '{decoded.get('type')}'",
+                    "InvalidTypeToken",
+                    401,
+                    "error"
+                )
         return decoded
     except jwt.ExpiredSignatureError:
         return {"error": "❌ Token expirado"}

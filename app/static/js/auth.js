@@ -23,7 +23,7 @@ const api = {
 async function doLogin(username, password) {
     const isAdmin = username.includes("admin");
     return isAdmin
-        ? api.admin.login_admin(username, password)
+        ? api.admin.login(username, password)
         : api.user.login(username, password);
 }
 //async function fetchDashboard(username) {
@@ -65,28 +65,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        try {
   
-            const username = String(document.getElementById("username").value.trim());
-            const password = document.getElementById("password").value;
+        const username = String(document.getElementById("username").value.trim());
+        const password = document.getElementById("password").value;
 
-            // 🔑 Login
-            const res = await doLogin(username, password);
-            if (!res) return;
+        // 🔑 Login
+        const res = await doLogin(username, password);
+        if (!res) return;
 
-            // 📊 Dashboard
-            //const dashboard = await fetchDashboard(username);
-            //console.log("DASHBOARD", dashboard);
+        // 📊 Dashboard
+        //const dashboard = await fetchDashboard(username);
+        //console.log("DASHBOARD", dashboard);
 
-            //if (!dashboard) return;
+        //if (!dashboard) return;
 
-            // 🔥 Redirección según rol
-            redirectByRole(res.rol || "User");
+        // 🔥 Redirección según rol
+        redirectByRole(res.rol || "User");
 
-        } catch (err) {
-            await handleError(err);
-            throw err;
-        }
         e.stopPropagation();
     });
 });

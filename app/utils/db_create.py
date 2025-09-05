@@ -1,16 +1,79 @@
-# from pymongo import DESCENDING, MongoClient, ASCENDING, errors
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import datetime 
+from datetime import timedelta, timezone
+import json
+import random
+import uuid
+
+from pymongo.cursor import SON
 from app.config import Config
 from pymongo import ASCENDING, DESCENDING, errors
 from pymongo.mongo_client import MongoClient, OperationFailure
 from pymongo.server_api import ServerApi
-from datetime import datetime, timezone
 from icecream import ic
-
+from faker import Faker
 # client = MongoClient("mongodb://localhost:27017/")
 client = MongoClient(Config.MONGO_URI_CLUSTER_X509, tls=True, tlsCertificateKeyFile=Config.MONGODB_X509, server_api=ServerApi('1'),tz_aware=True, tzinfo=timezone.utc)
 db = client[Config.MONGO_DB]
+faker = Faker()
+# Eventos disponibles
+event_types = [
+    "ip_change", 
+    "user_agent_change", 
+    "revoked",
+    "login", 
+    "logout", 
+    "refresh_token", 
+    "close", 
+    "session_update", 
+    "multiple_attempts", 
+    "expiration"
+]
+# Posibles IPs base
+ips = ["192.168.1.", "10.0.0.", "172.16.0."]
 
+# Posibles User Agents
+user_agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "Mozilla/5.0 (Linux; Android 11)",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "PostmanRuntime/7.31.3"
+]
 
+# Configuración
+roles = "User"
+browsers = ["Chrome", "Firefox", "Safari", "Edge", "Opera"]
+oses = ["Windows", "Linux", "MacOS", "Android", "iOS"]
+reasons = [
+    "ip_change",
+    "user_agent_change",
+    "revoked",
+    "multiple_attempts",
+    "logout",
+    "expiration",
+    "login",
+    "refresh_token",
+    "close"
+],
+statuses = ["active", "revoked", "expired"]
+base_date = datetime.datetime(2025, 8, 1, 12, 0, 0)
+# Datos base del JSON proporcionado
+base_user = {
+    "_id": {"$oid": "68734c48ee99af408e0781a0"},
+    "username": "user@example.com",
+    "password": "$2b$12$xOjASwdN4rZxUgztrC.WPO1UeLDt4mmM0NWZUH8k7ZyaHl8PUVxi6",
+    "email": "user@example.com",
+    "rol": "User",
+    "created_at": {"$date": "2025-07-13T06:03:50.279Z"},
+    "updated_at": {"$date": "2025-07-13T06:03:50.848Z"},
+    "failed_attempts": 0,
+    "blocked_until": None
+}
+
+roles = ["User"]
+domains = ["example.com", "test.com", "mail.com", "demo.org"]
 def db_create_collection():
     # 1. Crear colección con validación opcional
     try:
@@ -84,15 +147,24 @@ def db_create_collection():
                 db.create_collection("session_audit", validator={
                     "$jsonSchema": {
                         "bsonType": "object",
-                        "required": ["session_id", "user_id", "event_type", "old_value", "new_value", "timestamp"],
+                        "required": ["session_id", "user_id", "event_type", "timestamp"],
                         "properties": {
                             "session_id": { "bsonType": "string" },
                             "user_id": { "bsonType": "string" },
                             "event_type": {
-                                "enum": ["ip_change", "user_agent_change", "revoked"]
+                                "enum": [
+                                    "ip_change", 
+                                    "user_agent_change", 
+                                    "revoked",
+                                    "login", 
+                                    "logout", 
+                                    "refresh_token", 
+                                    "close", 
+                                    "session_update"
+                                ]
                             },
-                            "old_value": { "bsonType": "string" },
-                            "new_value": { "bsonType": "string" },
+                            "old_value": { "bsonType": ["string", "null"] },
+                            "new_value": { "bsonType": ["string", "null"] },
                             "ip_address": { "bsonType": "string" },
                             "user_agent": { "bsonType": "string" },
                             "timestamp": { "bsonType": "date" }
@@ -106,23 +178,15 @@ def db_create_collection():
                 ic(f"La colección ya existe, continuando con los índices... {e}")
             try:
                 db.session_audit.create_index(
-                    [("session_id", ASCENDING), ("device_id", ASCENDING), ("timestamp", DESCENDING)],
-                    name="idx_session_device_id_timestamp"
+                    [("user_id", ASCENDING), ("event_type", ASCENDING), ("timestamp", DESCENDING)],
+                    name="idx_user_event_time"
                 )
                 db.session_audit.create_index(
-                    [("user_id", ASCENDING)],
-                    name="idx_user_id"
+                    [("event_type", ASCENDING), ("timestamp", DESCENDING)],
+                    name="idx_event_time"
                 )
                 db.session_audit.create_index(
-                    [("session_id", ASCENDING)],
-                    name="idx_session_id"
-                )
-                db.session_audit.create_index(
-                    [("event_type", ASCENDING)],
-                    name="idx_event_type"
-                )
-                db.session_audit.create_index(
-                    [("timestamp", ASCENDING)],
+                    [("timestamp", DESCENDING)],
                     name="idx_timestamp"
                 )
             except errors.OperationFailure as e:
@@ -320,41 +384,367 @@ def db_create_collection():
     except errors.CollectionInvalid as e:
         ic(f"La colección ya existe -> {e}")
 
-def db_create_user():
-    db.users.insert_one({
-    "username": "admin@example.com",
-    "password": "$2b$12$xOjASwdN4rZxUgztrC.WPO1UeLDt4mmM0NWZUH8k7ZyaHl8PUVxi6",
-    "email": "admin@example.com",
-    "rol": "Admin",
-    "created_at": datetime.now(timezone.utc),
-    "updated_at": datetime.now(timezone.utc),
-    "failed_attempts": 0,
-    "blocked_until": None
-})
-#     db.users.insert_one({
-#     "username": "user@example.com",
-#     "password": "$2b$12$xOjASwdN4rZxUgztrC.WPO1UeLDt4mmM0NWZUH8k7ZyaHl8PUVxi6",
-#     "email": "user@example.com",
-#     "rol": "User",
-#     "created_at": datetime.now(timezone.utc),
-#     "updated_at": datetime.now(timezone.utc),
-#     "failed_attempts": 0,
-#     "blocked_until": None
-# })
-#     db.users.insert_one({
-#     "username": "user1@example.com",
-#     "password": "$2b$12$xOjASwdN4rZxUgztrC.WPO1UeLDt4mmM0NWZUH8k7ZyaHl8PUVxi6",
-#     "email": "user1@example.com",
-#     "rol": "User",
-#     "created_at": datetime.now(timezone.utc),
-#     "updated_at": datetime.now(timezone.utc),
-#     "failed_attempts": 0,
-#     "blocked_until": None
-# })
+def db_create_audit():
+    # Generar 200 logs de prueba
+    try:
+        docs = []
+        for _ in range(200):
+            user_id = str(random.randint(1, 10))
+            session_id = f"session_{random.randint(1000, 9999)}"
+            event_type = random.choice(event_types)
+
+            old_value = faker.ipv4() if event_type == "ip_change" else faker.user_agent()
+            new_value = faker.ipv4() if event_type == "ip_change" else faker.user_agent()
+
+            timestamp = faker.date_time_between(
+                start_date="-30d", end_date="now", tzinfo=datetime.timezone.utc
+            )
+
+            docs.append({
+                "session_id": session_id,
+                "user_id": user_id,
+                "event_type": event_type,
+                "old_value": old_value,
+                "new_value": new_value,
+                "ip_address": faker.ipv4(),
+                "user_agent": faker.user_agent(),
+                "timestamp": timestamp
+            })
+
+        # Insertar en la colección
+        db.session_audit.insert_many(docs)
+        ic("✅ Datos de prueba insertados")
+    except OperationFailure as e:
+        ic(f"Error : {str(e)}")
+ 
+def db_create_audit_details():
+    try:
+        # --- Configuración de prueba ---
+        num_users = 10
+        sessions_per_user = 3
+        changes_per_session = 2  # cambios múltiples por sesión
+        docs = []
+
+        for user_id in range(1, num_users + 1):
+            for _ in range(sessions_per_user):
+                session_id = f"session_{random.randint(1000,9999)}"
+                old_ip = faker.ipv4()
+                old_ua = faker.user_agent()
+
+                # Registrar todos los cambios en un solo evento "session_update"
+                change_summary = []
+                timestamp = faker.date_time_between(start_date="-7d", end_date="now", tzinfo=datetime.timezone.utc)
+
+                for _ in range(changes_per_session):
+                    event_type = random.choice(["ip_change", "user_agent_change"])
+                    if event_type == "ip_change":
+                        new_ip = faker.ipv4()
+                        change_summary.append(f"ip_address: {old_ip} → {new_ip}")
+                        old_ip = new_ip
+                    elif event_type == "user_agent_change":
+                        new_ua = faker.user_agent()
+                        change_summary.append(f"user_agent: {old_ua} → {new_ua}")
+                        old_ua = new_ua
+
+                # Documento único por sesión con todos los cambios
+                doc = {
+                    "session_id": session_id,
+                    "user_id": str(user_id),
+                    "event_type": "session_update",
+                    "old_value": "",
+                    "new_value": "; ".join(change_summary),
+                    "ip_address": old_ip,
+                    "user_agent": old_ua,
+                    "timestamp": timestamp
+                }
+
+                docs.append(doc)
+
+        # Insertar en MongoDB
+        db.session_audit.insert_many(docs)
+        ic(f"✅ Insertados {len(docs)} logs tipo 'session_update' con cambios múltiples por sesión")
+
+    except OperationFailure as e:
+        ic(f"Error : {str(e)}")
+        
+def create_mock_json_audit():
+    # Generar 100 registros
+    start_time = datetime.datetime(2025, 8, 10, 0, 0, 0)
+    end_time = datetime.datetime(2025, 8, 29, 0, 0, 0)
+    logs = []
+
+    for i in range(200):
+        session_id = f"session_{random.randint(1000,9999)}"
+        user_id = f"user{random.randint(1, 20)}"
+        event_type = random.choice(event_types)
+        timestamp = faker.date_time_between(start_date="-7d", end_date="now", tzinfo=datetime.timezone.utc)
+        ip_address = random.choice(ips) + str(random.randint(1, 254))
+        user_agent = random.choice(user_agents)
+
+        # Simulación de cambios (solo algunos eventos generan "changes")
+        changes = {}
+        if event_type == "ip_change":
+            changes = {"ip_address": {"old": random.choice(ips) + str(random.randint(1, 254)), "new": ip_address}}
+        elif event_type == "user_agent_change":
+            changes = {"user_agent": {"old": random.choice(user_agents), "new": user_agent}}
+        elif event_type == "revoked":
+            changes = {"status": {"old": "active", "new": "revoked"}}
+        elif event_type == "multiple_attempts":
+            changes = {"attempts": {"old": str(random.randint(1, 3)), "new": str(random.randint(4, 6))}}
+        elif event_type == "expiration":
+            changes = {"exp": {"old": start_time, "new": end_time}}
+        elif event_type == "login":
+            changes = {"access": {"old": start_time, "new": end_time}}
+        elif event_type == "refresh_token":
+            changes = {"attempts": {"old": str(random.randint(1, 3)), "new": str(random.randint(4, 6))}}
+
+        logs.append({
+            "session_id": session_id,
+            "user_id": str(user_id),
+            "event_type": event_type,
+            "old_value": "",
+            "new_value": "",
+            "timestamp": timestamp,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "changes": changes
+        })
+
+    # Insertar en MongoDB
+    db.session_audit.insert_many(logs)
+    ic(f"✅ Insertados {len(logs)} logs tipo 'session_update' con cambios múltiples por sesión")
+
+def create_mock_json_session():
+    sessions = []
+    try:
+        for i in range(100):
+            login_time = base_date + timedelta(days=random.randint(0, 30), hours=random.randint(0, 23))
+            refresh_time = login_time + timedelta(minutes=random.randint(5, 120))
+            revoked = random.choice([True, False])
+            status = random.choice(statuses)
+            revoked_at = refresh_time + timedelta(minutes=random.randint(1, 30)) if revoked else None
+            reason = random.choice(reasons)
+
+            session = {
+                "user_id": {"$oid": f"{uuid.uuid4().hex[:24]}"},
+                "device_id": str(uuid.uuid4()),
+                "ip_address": f"192.168.{random.randint(0, 255)}.{random.randint(1, 254)}",
+                "browser": random.choice(browsers),
+                "os": random.choice(oses),
+                "login_at": {"$date": login_time.isoformat() + "Z"},
+                "refresh_token": f"mock_refresh_token_{i+1}",
+                "is_revoked": revoked,
+                "status": status,
+                "revoked_at": {"$date": revoked_at.isoformat() + "Z"} if revoked else None,
+                "last_refresh_at": {"$date": refresh_time.isoformat() + "Z"},
+                "reason": reason,
+                "role": roles
+            }
+            sessions.append(session)
+
+        # Insertar en MongoDB
+        db.active_sessions.insert_many(sessions)
+        ic(f"✅ Insertados {len(sessions)} logs tipo 'session_update' con cambios múltiples por sesión")
+    except errors.CollectionInvalid as e:
+        ic(f"La colección ya existe -> {e}")
+  
+def create_mock_json_user():
+    # Generar 100 usuarios
+    users = []
+
+    for i in range(2,100):
+        user_id = uuid.uuid4().hex[:24]  # Simular ObjectId
+        username = f"user{i}@{random.choice(domains)}"
+        created_at = datetime.datetime(2025, 7, 1) + timedelta(days=random.randint(0, 60))
+        updated_at = created_at + timedelta(minutes=random.randint(1, 5000))
+        failed_attempts = random.randint(0, 2)
+        blocked_until = None if failed_attempts <= 2 else (updated_at + timedelta(hours=1)).isoformat() + "Z"
+
+        users.append({
+            "username": username,
+            "password": base_user["password"],  # misma hash de prueba
+            "email": username,
+            "rol": "User",
+            "created_at": datetime.datetime.now(tz=timezone.utc),
+            "updated_at": datetime.datetime.now(tz=timezone.utc),
+            "failed_attempts": failed_attempts,
+            "blocked_until": blocked_until
+        })
+
+    # Insertar en MongoDB
+    db.users.insert_many(users)
+    ic(f"✅ Insertados {len(users)}")
+
+def db_delete_audit():
+    db.session_audit.delete_many({})
+# --- Función get_logs_audit ---
+def get_logs_audit(user_id=None, event_type=None, start=None, end=None, page=1, limit=10) -> dict:
+    page = int(1)
+    limit = int(10)
+    fetch_all = True
+
+    # --- Filtros ---
+    filters = {}
+    if user_id:
+        filters["user_id"] = user_id
+    if event_type:
+        filters["event_type"] = event_type
+    if start or end:
+        filters["timestamp"] = {}
+        if start:
+            filters["timestamp"]["$gte"] = start
+        if end:
+            filters["timestamp"]["$lte"] = end
+
+    # --- Pipeline ---
+    pipeline = [{"$match": filters}]
+
+    # Campo dinámico "changes"
+    pipeline.append({
+        "$addFields": {
+            "changes": {
+                "$let": {
+                    "vars": {
+                        "allFields": {
+                            "$mergeObjects": [
+                                {"old_value": {"old": "$old_value", "new": "$new_value"}},
+                                {"ip_address": {"old": "$old_ip", "new": "$ip_address"}},
+                                {"user_agent": {"old": "$old_user_agent", "new": "$user_agent"}},
+                            ]
+                        }
+                    },
+                    "in": {
+                        "$arrayToObject": {
+                            "$filter": {
+                                "input": {"$objectToArray": "$$allFields"},
+                                "as": "field",
+                                "cond": {
+                                    "$ne": [
+                                        {"$ifNull": ["$$field.v.old", None]},
+                                        {"$ifNull": ["$$field.v.new", None]},
+                                    ]
+                                },
+                            }
+                        }
+                    },
+                }
+            }
+        }
+    })
+
+    # --- Paginación o no ---
+    if fetch_all:
+        # Devuelve todo sin skip/limit
+        pipeline.append({
+            "$project": {
+                "_id": 0,
+                "session_id": 1,
+                "user_id": 1,
+                "event_type": 1,
+                "old_value": 1,
+                "new_value": 1,
+                "ip_address": 1,
+                "user_agent": 1,
+                "timestamp": 1,
+                "changes": 1,
+            }
+        })
+    else:
+        skip = (page - 1) * limit
+        pipeline.append({
+            "$facet": {
+                "data": [
+                    {"$skip": skip},
+                    {"$limit": limit},
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "session_id": 1,
+                            "user_id": 1,
+                            "event_type": 1,
+                            "old_value": 1,
+                            "new_value": 1,
+                            "ip_address": 1,
+                            "user_agent": 1,
+                            "timestamp": 1,
+                            "changes": 1,
+                        }
+                    },
+                ],
+                "totalCount": [{"$count": "count"}],
+            }
+        })
+
+    result = list(db.session_audit.aggregate(pipeline=pipeline))
+
+    if fetch_all:
+        logs = result
+        total_count = len(logs)
+    else:
+        data = result[0] if result else {"data": [], "totalCount": []}
+        logs = data.get("data", [])
+        total_count = data.get("totalCount", [{}])
+        total_count = total_count[0].get("count", 0) if total_count else 0
+
+    # Normalizar timestamps a ISO
+    for log in logs:
+        if isinstance(log.get("timestamp"), datetime.datetime):
+            log["timestamp"] = log["timestamp"].isoformat()
+
+    return {
+        "logs": logs,
+        "total_count": total_count,
+        "page": page if not fetch_all else 1,
+        "limit": limit if not fetch_all else total_count,
+    }
+
+def get_all_users() -> dict:
+        pipeline = [
+            {"$match": {"rol": {"$ne": "Admin"}}},
+            {"$sort": SON([("username", 1)])},
+            {
+                "$project": {
+                    "_id": 0,
+                    "username": 1,
+                    "rol": 1,
+                    "created_at": 1,
+                    "updated_at": 1,
+                    "failed_attempts": 1,
+                    "blocked_until": 1
+                }
+            }
+        ]
+
+        result = list(db.users.aggregate(pipeline=pipeline))
+        logs = result
+        total_count = len(logs)
+        # Normalizar timestamps a ISO
+        for log in logs:
+            if isinstance(log.get("create_at"), datetime.datetime):
+                log["create_at"] = log["create_at"].isoformat()
+            if isinstance(log.get("update_at"), datetime.datetime):
+                log["update_at"] = log["update_at"].isoformat()
+        ic(logs)
+        ic(total_count)
+        return {
+            "logs": logs,
+            "total_count": total_count
+        }
+
+def logs_result():
+    # --- Prueba de consulta ---
+    print("\n--- Logs consolidados de usuario 2 ---")
+    result = get_logs_audit()
+    ic(result)
+
+    print(f"\nTotal de logs encontrados: {result['total_count']}")
 
 def main():
-    # db_create_user()
-    db_create_collection()
+    # db_delete_audit()
+    # create_mock_json_audit()
+    get_all_users()
+    # db_create_audit()
+    # db_create_audit_details()
 
 if __name__ == "__main__":
     main()

@@ -69,3 +69,24 @@ def test_dashboard_ok(client, mock_jwt_required):
         data = resp.get_json()
         assert data["username"] == "neo"
         assert data["rol"] == "Admin"
+
+def test_auth_exception(client):
+    resp = client.get("/auth-error")
+    data = resp.get_json()
+    assert resp.status_code == 401
+    assert data["code"] == "InvalidToken"
+    assert data["message"] == "Token inválido"
+
+def test_http_exception(client):
+    resp = client.get("/ruta-no-existe")
+    data = resp.get_json()
+    assert resp.status_code == 404
+    assert data["code"] == "Not Found"
+    assert "message" in data
+
+def test_generic_exception(client):
+    resp = client.get("/generic-error")
+    data = resp.get_json()
+    assert resp.status_code == 500
+    assert data["code"] == "InternalServerError"
+    assert data["message"] == "Ha ocurrido un error inesperado 🚨"

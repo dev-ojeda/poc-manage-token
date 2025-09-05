@@ -10,7 +10,7 @@ from app import create_app
 from app.config import Config
 
 app = create_app()
-ic.configureOutput(prefix="debug-",includeContext=True)
+# ic.configureOutput(prefix="debug-",includeContext=True)
 def main() -> None:
     """
     Punto de entrada principal de la app.

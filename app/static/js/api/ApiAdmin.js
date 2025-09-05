@@ -2,32 +2,46 @@ import { ApiClient } from "../api/ApiClient.js"
 import { handleError } from "../utils/errors.js"
 export class ApiAdmin extends ApiClient {
     constructor(opts) {
-        super(opts); // ApiClient maneja baseURL y headers
-        this.storage = opts.storage;
+        super({
+            baseURL: opts.baseURL,
+            storage: opts.storage,
+            timeout: opts.timeout || 10000
+        });
+        this.isRefreshing = false;   // lock
+        this.refreshQueue = [];      // cola de promesas
     }
-    async login_admin(username, password) {
+    /**
+    * Login de usuario
+    */
+    async login(username, password) {
         try {
-            const device = this.getDeviceId();
+            const device = await this.getDeviceId();
             const user_agent = this.getBrowserInfo();
-            const rol = "Admin";
+
             const res = await this.post("/api/auth/admin", {
                 username,
                 password,
                 device,
-                rol,
+                rol: "Admin",
                 user_agent
             });
 
-            // Guardar tokens y datos
-            this.storage.set("access_token", res.access_token);
-            this.storage.set("refresh_token", res.refresh_token);
-            this.storage.set("device_id", res.device_id);
-            this.storage.set("username", res.username || username);
-            this.storage.set("rol", res.rol || rol);
-            return res; // Retornar la respuesta completa
+            if (res?.access_token && res?.refresh_token) {
+                await this.setTokens(res);
+            }
+            return res;
         } catch (err) {
-            handleError(err);
+            await handleError(err);
             return null;
+        }
+    }
+
+    async setTokens(res) {
+        if (res?.access_token) {
+            await this.storage.set("access_token", res.access_token);
+        }
+        if (res?.refresh_token) {
+            await this.storage.set("refresh_token", res.refresh_token);
         }
     }
 
@@ -55,8 +69,6 @@ export class ApiAdmin extends ApiClient {
     }
 
     async logout_admin() {
-        showAlert(`👋 Admin ha cerrado sesión`, "info", 4000);
-        await this.clearTokens(); // tokens, flags, device_id, etc.
-        location.href = "/";
+        window.location.href = "/?logout=true";
     }
 }

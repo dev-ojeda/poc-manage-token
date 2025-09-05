@@ -1,5 +1,5 @@
 import { ApiClient } from "../api/ApiClient.js";
-import { handleError, clearSession } from "../utils/errors.js";
+import { handleError } from "../utils/errors.js";
 
 /**
  * Clase que contiene los métodos necesarios
@@ -45,7 +45,7 @@ export class ApiUser extends ApiClient {
     // =============================
     // Logout Unificado con broadcast
     // =============================
-    async logout({ endpoint = "/api/auth/logout", reason = "logout" } = {}) {
+    async logout({reason = "logout" } = {}) {
         try {
             // 🔹 Primero obtengo los tokens ANTES de limpiar
             let access_token = await this.accessToken();
@@ -58,7 +58,7 @@ export class ApiUser extends ApiClient {
             }
 
             // 🔄 Aviso al backend con keepalive
-            const res = await this.post(endpoint, {
+            const res = await this.post("/api/auth/logout", {
                 access_token,
                 refresh_token,
                 device_id,

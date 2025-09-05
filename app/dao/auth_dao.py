@@ -73,7 +73,6 @@ class AuthDao:
             result = list(self.collection.aggregate(pipeline))
         else:  # MongoDatabase wrapper
             result = list(self.db.aggregate(collection=self.refresh_tokens, pipeline=pipeline))
-            ic(f"[ACTIVE_TOKEN_USER]: {result}")
         return result[0] if result else None
 
     def is_token_in_use(self, username: str) -> dict:
@@ -194,7 +193,6 @@ class AuthDao:
         # Buscar sesión previa con mismo usuario + dispositivo
         previous_session = self.session_dao.find_previous_session(username=username,device_id=device_id)
 
-        ic(f"[AUDITORÍA] SESSION PREVIOUS: {previous_session}")
 
         if previous_session is not None:
             event_audit = self.audit_dao.insert_event_audit(previous_session=previous_session, **kwargs)

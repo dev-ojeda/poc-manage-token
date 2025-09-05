@@ -261,7 +261,6 @@ class MongoDatabase:
             with self.client.start_session() as session:
                 with session.start_transaction():
                     result = list(self.db[collection].aggregate(pipeline=pipeline,session=session))
-                    self.logger.info("[AGGREGATE]: %s", result)
                     return result
         except PyMongoError as e:
             msg = f"❌ Error al List en MongoDB: {e.__class__.__name__}: {e}"

@@ -43,30 +43,40 @@ def login():
     browser, so = user_agent.get("browser"), user_agent.get("os")
     ip_address, device_id = request.remote_addr, data.get("device")
 
-    # 2️⃣ Autenticación
-    user_model: UserModel = user_service.authenticate_user(
-        username=data.get("username"),
-        password=data.get("password")
-    )
+    user_model = UserModel(
+            username=data.get("username"),
+            password=data.get("password"),
+            rol="User"
+        )
+
+    user_model: UserModel = user_service.get_user_by_username(username=user_model.username)
+
     if not user_model:
-        return jsonify({"msg": "Usuario o contraseña inválidos", "code": "INVALID_CREDENTIALS"}), 403
+        return jsonify({"message": "No existe Usuario", "code": "INVALID_USER", "status": 401})
+
+    # 2️⃣ Autenticación
+    user_model: UserModel = user_service.authenticate_user(username=data.get("username"),password=data.get("password"),)
+    
+    if not user_model:
+          # 4️⃣ Intentos fallidos
+        fail_check = user_service.handle_failed_login(username=data.get("username"))
+        if fail_check.get("success"):
+            return jsonify({"message": "Usuario o contraseña inválidos", "code": "INVALID_CREDENTIALS", "status": 401})
 
     # 3️⃣ Bloqueo temporal
     if user_model.is_blocked_now():
         return jsonify({
             "msg": "⏳ Usuario temporalmente bloqueado",
-            "bloqueado_hasta": user_model.blocked_until.isoformat() + "Z",
-            "code": "USER_BLOCKED"
-        }), 403
+            "bloqueado_hasta": float(user_model.blocked_until.timestamp()),
+            "code": "USER_BLOCKED",
+            "status": 403
+        })
 
-    # 4️⃣ Intentos fallidos
-    fail_check = user_service.handle_failed_login(user_model=user_model)
-    if not fail_check.get("success"):
-        return jsonify({"msg": fail_check.get("message"), "code": "INVALID_FAIL_CREDENTIALS"}), 403
+  
 
-    reset_attempts = user_service.reset_login_attempts(user_model=user_model)
-    if not reset_attempts.get("success"):
-        return jsonify({"msg": reset_attempts.get("message"), "code": "INVALID_RESET_ATTEMPTS"}), 500
+    # reset_attempts = user_service.reset_login_attempts(user_model=user_model)
+    # if not reset_attempts.get("success"):
+    #     return jsonify({"msg": reset_attempts.get("message"), "code": "INVALID_RESET_ATTEMPTS"}), 500
 
     # 5️⃣ Manejo de tokens
     existing_token = auth_service.is_token_in_use(user_model.username)
@@ -153,7 +163,8 @@ def login():
         audit_service.update_session_activity(
             user_id=usuario_existe.user_id,
             ip_address=user_model_session.ip_address,
-            user_agent=user_model_session.browser
+            user_agent=user_model_session.browser,
+            reason="login"
         )
 
     # 7️⃣ Respuesta
@@ -249,7 +260,8 @@ def refresh(user):
         audit_service.update_session_activity(
             user_id=user_model.id,
             ip_address=ip,
-            user_agent=browser
+            user_agent=browser,
+            reason="refresh_token"
         )
 
 
@@ -313,21 +325,21 @@ def logout(user):
         # 📝 Log opcional (auditoría)
         
         user_model: UserModel = user_service.get_user_by_username(username=username)
-        user_sesion = session_service.update_session(user_id=user_model.id, token=refresh_token, reason=reason)
+        user_sesion = audit_service.update_session_activity(
+            user_id=user_model.id,
+            ip_address=client_ip,
+            user_agent=browser,
+            reason=reason
+        )
         
         if not user_sesion.get("success"):
             return jsonify({"msg": user_sesion.get("message"), "code": "INVALID_SESSION_CLOSED"})
         # Crear o actualizar sesión
-        audit_service.update_session_activity(
-            user_id=user_model.id,
-            ip_address=client_ip,
-            user_agent=browser
-        )
+        
 
         ic(f"🔒 Logout: {username} desde IP {client_ip} usando device_id {device_id}")
-        response = make_response(jsonify({"msg": "Sesion Cerrada con exito", "code": "LOGOUT"}), 200)
 
-        return response
+        return jsonify({"msg": "Sesion Cerrada con exito", "code": "LOGOUT"}), 200
 
     except Exception as e:
         ic(f"❌ Error en logout: {str(e)}")
@@ -386,12 +398,13 @@ def close(user):
             audit_service.update_session_activity(
                 user_id=user_model.id,
                 ip_address=client_ip,
-                user_agent=browser
+                user_agent=browser,
+                reason="close"
             )
 
         return jsonify({
             "msg": f"Sesión cerrada ({reason})",
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.datetime.now(timezone.utc).isoformat()
         }), 200
 
     except Exception as e:

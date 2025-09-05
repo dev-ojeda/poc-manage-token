@@ -26,6 +26,9 @@ class UserService:
     def get_ids_users (self) -> List[ObjectId]:
         return self.user_dao.find_ids_users()
 
+    def get_all_users(self) -> dict:
+        return self.user_dao.get_all_users()
+
     def validate_login_payload(self, data: dict) -> list:
         required_fields = ['username', 'password', 'device', 'rol', 'user_agent']
         return [f for f in required_fields if not data.get(f)]
@@ -36,7 +39,8 @@ class UserService:
             return user
         return None
 
-    def handle_failed_login(self, user_model: UserModel) -> dict:
+    def handle_failed_login(self, username: str) -> dict:
+        user_model: UserModel = self.user_dao.find_by_username(username=username)
         attempts = user_model.failed_attempts + 1
         update = {"$set": {"failed_attempts": attempts}}
 

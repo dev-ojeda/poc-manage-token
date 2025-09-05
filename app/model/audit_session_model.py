@@ -1,20 +1,21 @@
 import datetime
-from typing import Optional
+from typing import Any, Optional
 
 
 class AuditLogModel:
-    VALID_EVENT_TYPES = {"ip_change", "user_agent_change", "revoked", "login", "logout", "refresh_token", "close"}
+    VALID_EVENT_TYPES = {"ip_change", "user_agent_change", "revoked", "login", "logout", "refresh_token", "close", "session_update", "multiple_attempts", "expiration"}
 
     def __init__(
         self,
         session_id: str,
         user_id: str,
         event_type: str,
-        old_value: str,
-        new_value: str,
-        timestamp: datetime.datetime,
+        old_value: Optional[str] = None,
+        new_value: Optional[str] = None,
+        timestamp: Optional[datetime.datetime] = None,
         ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None  # 👈 aquí va el snapshot de cambios múltiples
     ):
         self.session_id = session_id
         self.user_id = user_id
@@ -24,6 +25,7 @@ class AuditLogModel:
         self.ip_address = ip_address
         self.user_agent = user_agent
         self.timestamp = timestamp
+        self.details = details or {}
 
     # --- session_id ---
     @property
@@ -60,23 +62,23 @@ class AuditLogModel:
 
     # --- old_value ---
     @property
-    def old_value(self) -> str:
+    def old_value(self) -> str | None:
         return self._old_value
 
     @old_value.setter
-    def old_value(self, value: str):
-        if not isinstance(value, str):
+    def old_value(self, value: str | None):
+        if not isinstance(value, str | None):
             raise ValueError("old_value debe ser string")
         self._old_value = value
 
     # --- new_value ---
     @property
-    def new_value(self) -> str:
+    def new_value(self) -> str | None:
         return self._new_value
 
     @new_value.setter
-    def new_value(self, value: str):
-        if not isinstance(value, str):
+    def new_value(self, value: str | None):
+        if not isinstance(value, str | None):
             raise ValueError("new_value debe ser string")
         self._new_value = value
 
@@ -123,12 +125,15 @@ class AuditLogModel:
             "new_value": self.new_value,
             "ip_address": self.ip_address,
             "user_agent": self.user_agent,
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
+            "details": self.details or None,   # 👈 opcional
         }
 
-    # --- Construir desde MongoDB ---
     @classmethod
     def from_dict(cls, data: dict):
+        ts = data.get("timestamp")
+        if isinstance(ts, str):
+            ts = datetime.datetime.fromisoformat(ts)
         return cls(
             session_id=data.get("session_id"),
             user_id=data.get("user_id"),
@@ -137,5 +142,6 @@ class AuditLogModel:
             new_value=data.get("new_value"),
             ip_address=data.get("ip_address"),
             user_agent=data.get("user_agent"),
-            timestamp=data.get("timestamp") if isinstance(data.get("timestamp"), datetime.datetime) else datetime.datetime.fromisoformat(data.get("timestamp"))
+            timestamp=ts,
+            details=data.get("details"),
         )

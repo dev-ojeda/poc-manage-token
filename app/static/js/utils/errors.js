@@ -1,7 +1,9 @@
 import { showAlert } from "../layout.js";
 import { IndexedDBStorage } from "../adapters/IndexedDBStorage.js"
+import { MetricsStorage } from "../adapters/MetricsStorage.js"
 
 const storage = new IndexedDBStorage("AuthDB", "tokens");
+const metricsStorage = new MetricsStorage();
 
 export async function handleError(err) {
     const msg = err?.message || "";
@@ -14,12 +16,20 @@ export async function handleError(err) {
     }
 
     switch (code) {
+        case "VALUE_ERROR":
+            showAlert(`⚠️ ${msg}`, "warning", 8000);
+            break;
         case "USER_BLOCKED":
             showAlert(msg, "warning", 8000);
             break;
-
+        case "SERVER_ERROR":
+            showAlert(`❌ ${msg}`, "danger", 8000);
+            break;
+        case "INVALID_USER":
+            endSession(`❌ ${msg}`, "danger", 5000);
+            break;
         case "INVALID_CREDENTIALS":
-            showAlert("❌ Usuario o contraseña incorrecta", "danger", 5000);
+            endSession(`❌ ${msg}`, "danger", 5000);
             break;
 
         case "USER_ALREADY_HAS_TOKEN":
@@ -85,4 +95,5 @@ export async function handleError(err) {
 
 export async function clearSession() {
     await storage.clearAll();
+    await metricsStorage.clearAll();
 }

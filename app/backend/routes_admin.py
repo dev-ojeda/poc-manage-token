@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
+import io, csv
+from datetime import timezone
 from uuid import uuid4
 from bson import ObjectId
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 from dotenv import load_dotenv
 from icecream import ic
 
@@ -16,6 +19,8 @@ from app.model import UserModel, TokenGeneratorModel
 
 load_dotenv()
 admin_bp = Blueprint("admin_bp", __name__)
+# Guardamos métricas en memoria por simplicidad (para producción usar DB)
+METRICS = []      # dicts: {type, value, action?, timestamp}
 
 @admin_bp.route("/auth/admin", methods=["POST"])
 def login():
@@ -116,12 +121,16 @@ def login():
 @admin_bp.route("/auth/admin/dashboard", methods=["GET"])
 @admin_required
 def dashboard(user):
+
+    if "error" in user:
+         return jsonify({"message": user.get("message"), "code": user.get("code")}), 400
+
     return jsonify({
-        "username": user.get("username"),
-        "rol": user.get("rol"),
-        "device_id": user.get("device_id"),
-        "exp": user.get("exp"),
-        "jti": user.get("jti")
+        "username": user["sub"],
+        "rol": user["rol"],
+        "device_id": user["device_id"],
+        "exp": user["exp"],
+        "jti": user["jti"]
     }),200
 
 @admin_bp.route("/auth/admin/audit", methods=["POST"])
@@ -129,30 +138,55 @@ def dashboard(user):
 def get_audit_logs(user):
     """
     Obtener logs de auditoría con filtros opcionales:
-    - user_id (str)
-    - event_type (str)
-    - start (timestamp en segundos)
-    - end (timestamp en segundos)
-    - page (int)
-    - limit (int)
+    - user_id (str, opcional)
+    - event_type (str, opcional)
+    - start (timestamp en segundos, opcional)
+    - end (timestamp en segundos, opcional)
+    - page (int, default=1)
+    - limit (int, default=10)
+    - sort_by (str, opcional: "timestamp", "user_id", "event_type", etc.)
+    - direction (str, opcional: "asc" | "desc")
     """
-    ads = AuditService()
     try:
-        data = request.get_json()
-        params = {
-            "user_id": data.get("user_id") or None,
-            "event_type": data.get("event_type") or None,
-            "start": None,
-            "end": None,
-            "page": int(data.get("page", 1)),
-            "limit": int(data.get("limit", 10))
-        }
+        audit_service = AuditService()
+        result = audit_service.get_all_logs_audit()
+        return jsonify({
+            "msg": "✅ Logs obtenidos correctamente",
+            "code": "SUCCESS",
+            "total_count": result.get("total_count", 0),
+            "logs": result.get("logs", [])
+        }), 200
 
-        result = ads.get_logs_audit(**params)
-        return jsonify(result), 200
-
+    except ValueError as ve:
+        return jsonify({"msg": str(ve), "code": "VALUE_ERROR"}), 400
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"msg": "❌ Error interno del servidor", "code": "SERVER_ERROR"}), 500
+
+@admin_bp.route("/auth/admin/user", methods=["POST"])
+@admin_required
+def get_users(user):
+    try:
+        user_service = UserService()
+        result = user_service.get_all_users()
+        return jsonify({
+            "msg": "✅ users obtenidos correctamente",
+            "code": "SUCCESS",
+            "total_count": result.get("total_count", 0),
+            "logs": result.get("logs", [])
+        }), 200
+
+    except ValueError as ve:
+        return jsonify({"msg": str(ve), "code": "VALUE_ERROR"}), 400
+    except Exception as e:
+        return jsonify({"msg": "❌ Error interno del servidor", "code": "SERVER_ERROR"}), 500
+
+@admin_bp.route("/auth/admin/performance", methods=["POST"])
+@admin_required
+def get_performance(user):
+    data = request.get_json()
+    return jsonify({
+        "data": data
+    }),200
 
 @admin_bp.route('/auth/sessions/active', methods=['POST'])
 @admin_required
@@ -221,10 +255,40 @@ def revoke_session(user):
     
     result_revocar = ss.revoke_session(user_id=ObjectId(session_id))
     if not result.get("success"):
-         return jsonify({"msg": result.get("message"), "code": "INVALID_REVOCKED_SESSION"})
-    validar_operacion = ads.update_session_activity(user_id=ObjectId(session_id),ip_address=ip_address,user_agent=user_agent)
+        return jsonify({"msg": result.get("message"), "code": "INVALID_REVOCKED_SESSION"})
+    validar_operacion = ads.update_session_activity(user_id=ObjectId(session_id),ip_address=ip_address,user_agent=user_agent,reason="revoked")
     ic("[VALIDAR_OPERACION]",validar_operacion)
     if not validar_operacion.get("success"):
         return jsonify({"msg": result_revocar.get("message"), "code": "INVALID_REVOCKED"})
     notificar_revocacion(username);
     return jsonify({"msg": "Sesión revocada"}), 200
+
+
+@admin_bp.route("/auth/metrics/export")
+def export_metrics():
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["timestamp","type","value","action"])
+    for m in METRICS:
+        writer.writerow([m.get("timestamp",""), m.get("type",""), m.get("value",""), m.get("action","")])
+    mem = io.BytesIO(output.getvalue().encode("utf-8"))
+    mem.seek(0)
+    return send_file(mem, mimetype="text/csv", as_attachment=True, download_name="metrics.csv")
+
+
+@admin_bp.route("/auth/metrics", methods=["POST"])
+def save_metrics():
+    ic("METRICS",METRICS)
+    data = request.get_json(force=True)
+    data["timestamp"] = datetime.datetime.now(tz=timezone.utc)
+    METRICS.append(data)
+    # Mantener últimas 500 para no crecer infinito
+    if len(METRICS) > 500:
+        del METRICS[:-500]
+    return jsonify(ok=True)
+
+@admin_bp.route("/auth/metrics/latest")
+def latest_metrics():
+    ic("METRICS",METRICS)
+    # Últimas 200 métricas
+    return jsonify(METRICS[-200:])

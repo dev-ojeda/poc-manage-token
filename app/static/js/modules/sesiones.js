@@ -13,28 +13,20 @@ export async function loadActiveSessions(api_admin, reloadFn) {
     const payload = { filtro_status: filtro };
 
     try {
-        const response = await fetch("/api/auth/sessions/active", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${api_admin.accessToken}`,
-                "X-Token-Type": "access"
-            },
-            body: JSON.stringify(payload)
-        });
+        const res = await api_admin.post("/api/auth/sessions/active", { payload });
 
-        if (!response.ok) throw new Error("Error cargando sesiones activas");
+        //if (!response.ok) throw new Error("Error cargando sesiones activas");
 
-        const data = await safeJson(response);
+        //const data = await safeJson(response);
         const tbody = document.querySelector("#tablaSesiones tbody");
         tbody.innerHTML = "";
 
-        if (!data.count) {
+        if (!res.count) {
             tbody.innerHTML = `<tr><td colspan="8" class="text-center">Sin registros</td></tr>`;
             return;
         }
 
-        data.sessions.forEach(session => {
+        res.sessions.forEach(session => {
             const isCurrent = session.device_id === api_admin.getDeviceId();
             const row = document.createElement("tr");
             row.innerHTML = `
@@ -98,7 +90,7 @@ async function revocarSesion(btn, api_admin, reloadFn) {
     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
 
     try {
-        const response = await fetch("/api/auth/sessions/revoke", {
+        const res = await fetch("/api/auth/sessions/revoke", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

@@ -4,6 +4,7 @@ import { ApiUser } from "../api/ApiUser.js";
 import { openChat } from "../modules/chatHandler.js";
 import { handleError } from "../utils/errors.js";
 import { IndexedDBStorage } from "../adapters/IndexedDBStorage.js";
+import { initUserPerformanceAudit } from "../utils/auditMetrics.js";
 // =======================
 // Configuración inicial
 // =======================
@@ -21,7 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
         await storage._init(); // 👈 asegúrate que la DB está lista
         const { user_name, user_rol, expira } = await allKeys();
-
+        initUserPerformanceAudit(user_name);
         if (!user_rol) {
             redirectToLogin("No hay token válido, redirigiendo...");
             return;
@@ -63,7 +64,7 @@ async function allKeys() {
     if (userCache) return userCache;
 
     try {
-        
+
 
         const response = await api_user.get("/api/auth/dashboard");
 

@@ -1,0 +1,977 @@
+[
+  {
+    "timestamp": "2025-08-29T00:00:00+00:00",
+    "event_type": "logout",
+    "user_id": "user20",
+    "ip_address": "192.168.1.177",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:01:00+00:00",
+    "event_type": "logout",
+    "user_id": "user4",
+    "ip_address": "10.0.0.234",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:02:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user17",
+    "ip_address": "172.16.0.139",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:03:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user9",
+    "ip_address": "172.16.0.241",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:04:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user13",
+    "ip_address": "172.16.0.39",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:05:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user19",
+    "ip_address": "192.168.1.26",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:06:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user4",
+    "ip_address": "10.0.0.26",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "ip_address": {
+        "old": "10.0.0.238",
+        "new": "10.0.0.26"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:07:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user5",
+    "ip_address": "192.168.1.192",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:08:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user5",
+    "ip_address": "172.16.0.30",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:09:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user4",
+    "ip_address": "10.0.0.113",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "new": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:10:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user5",
+    "ip_address": "10.0.0.47",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+        "new": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:11:00+00:00",
+    "event_type": "login",
+    "user_id": "user5",
+    "ip_address": "192.168.1.25",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:12:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user8",
+    "ip_address": "10.0.0.234",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:13:00+00:00",
+    "event_type": "login",
+    "user_id": "user6",
+    "ip_address": "10.0.0.56",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:14:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user20",
+    "ip_address": "10.0.0.154",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {
+      "ip_address": {
+        "old": "192.168.1.129",
+        "new": "10.0.0.154"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:15:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user11",
+    "ip_address": "172.16.0.214",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:16:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user8",
+    "ip_address": "172.16.0.154",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:17:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user3",
+    "ip_address": "192.168.1.12",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {
+      "user_agent": {
+        "old": "PostmanRuntime/7.31.3",
+        "new": "PostmanRuntime/7.31.3"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:18:00+00:00",
+    "event_type": "close",
+    "user_id": "user12",
+    "ip_address": "172.16.0.117",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:19:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user3",
+    "ip_address": "192.168.1.101",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {
+      "ip_address": {
+        "old": "10.0.0.220",
+        "new": "192.168.1.101"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:20:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user7",
+    "ip_address": "192.168.1.187",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "ip_address": {
+        "old": "172.16.0.141",
+        "new": "192.168.1.187"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:21:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user17",
+    "ip_address": "10.0.0.202",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:22:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user3",
+    "ip_address": "192.168.1.209",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "ip_address": {
+        "old": "192.168.1.206",
+        "new": "192.168.1.209"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:23:00+00:00",
+    "event_type": "login",
+    "user_id": "user19",
+    "ip_address": "10.0.0.135",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:24:00+00:00",
+    "event_type": "login",
+    "user_id": "user13",
+    "ip_address": "172.16.0.202",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:25:00+00:00",
+    "event_type": "close",
+    "user_id": "user11",
+    "ip_address": "172.16.0.20",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:26:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user5",
+    "ip_address": "10.0.0.36",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+        "new": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:27:00+00:00",
+    "event_type": "login",
+    "user_id": "user9",
+    "ip_address": "172.16.0.114",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:28:00+00:00",
+    "event_type": "close",
+    "user_id": "user5",
+    "ip_address": "10.0.0.19",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:29:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user9",
+    "ip_address": "192.168.1.216",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+        "new": "PostmanRuntime/7.31.3"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:30:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user18",
+    "ip_address": "10.0.0.161",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:31:00+00:00",
+    "event_type": "close",
+    "user_id": "user6",
+    "ip_address": "10.0.0.172",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:32:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user3",
+    "ip_address": "172.16.0.108",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:33:00+00:00",
+    "event_type": "login",
+    "user_id": "user20",
+    "ip_address": "10.0.0.55",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:34:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user1",
+    "ip_address": "192.168.1.209",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:35:00+00:00",
+    "event_type": "login",
+    "user_id": "user16",
+    "ip_address": "172.16.0.131",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:36:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user5",
+    "ip_address": "172.16.0.55",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "ip_address": {
+        "old": "172.16.0.2",
+        "new": "172.16.0.55"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:37:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user11",
+    "ip_address": "192.168.1.98",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:38:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user17",
+    "ip_address": "10.0.0.185",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:39:00+00:00",
+    "event_type": "logout",
+    "user_id": "user4",
+    "ip_address": "172.16.0.159",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:40:00+00:00",
+    "event_type": "login",
+    "user_id": "user17",
+    "ip_address": "10.0.0.143",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:41:00+00:00",
+    "event_type": "close",
+    "user_id": "user6",
+    "ip_address": "192.168.1.167",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:42:00+00:00",
+    "event_type": "logout",
+    "user_id": "user3",
+    "ip_address": "10.0.0.245",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:43:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user15",
+    "ip_address": "172.16.0.70",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Linux; Android 11)",
+        "new": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:44:00+00:00",
+    "event_type": "login",
+    "user_id": "user2",
+    "ip_address": "10.0.0.225",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:45:00+00:00",
+    "event_type": "close",
+    "user_id": "user3",
+    "ip_address": "192.168.1.67",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:46:00+00:00",
+    "event_type": "login",
+    "user_id": "user13",
+    "ip_address": "10.0.0.8",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:47:00+00:00",
+    "event_type": "close",
+    "user_id": "user11",
+    "ip_address": "192.168.1.91",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:48:00+00:00",
+    "event_type": "close",
+    "user_id": "user5",
+    "ip_address": "10.0.0.22",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:49:00+00:00",
+    "event_type": "session_update",
+    "user_id": "user6",
+    "ip_address": "10.0.0.173",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:50:00+00:00",
+    "event_type": "session_update",
+    "user_id": "user14",
+    "ip_address": "10.0.0.197",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:51:00+00:00",
+    "event_type": "close",
+    "user_id": "user11",
+    "ip_address": "172.16.0.113",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:52:00+00:00",
+    "event_type": "logout",
+    "user_id": "user4",
+    "ip_address": "172.16.0.181",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:53:00+00:00",
+    "event_type": "close",
+    "user_id": "user6",
+    "ip_address": "192.168.1.149",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:54:00+00:00",
+    "event_type": "login",
+    "user_id": "user20",
+    "ip_address": "192.168.1.26",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:55:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user6",
+    "ip_address": "172.16.0.223",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:56:00+00:00",
+    "event_type": "login",
+    "user_id": "user15",
+    "ip_address": "10.0.0.186",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:57:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user9",
+    "ip_address": "10.0.0.127",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Linux; Android 11)",
+        "new": "Mozilla/5.0 (Linux; Android 11)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T00:58:00+00:00",
+    "event_type": "session_update",
+    "user_id": "user18",
+    "ip_address": "192.168.1.141",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T00:59:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user7",
+    "ip_address": "172.16.0.137",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:00:00+00:00",
+    "event_type": "close",
+    "user_id": "user7",
+    "ip_address": "10.0.0.28",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:01:00+00:00",
+    "event_type": "close",
+    "user_id": "user2",
+    "ip_address": "192.168.1.130",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:02:00+00:00",
+    "event_type": "close",
+    "user_id": "user12",
+    "ip_address": "172.16.0.96",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:03:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user11",
+    "ip_address": "10.0.0.214",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Linux; Android 11)",
+        "new": "PostmanRuntime/7.31.3"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:04:00+00:00",
+    "event_type": "close",
+    "user_id": "user4",
+    "ip_address": "192.168.1.49",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:05:00+00:00",
+    "event_type": "close",
+    "user_id": "user1",
+    "ip_address": "172.16.0.144",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:06:00+00:00",
+    "event_type": "close",
+    "user_id": "user17",
+    "ip_address": "172.16.0.74",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:07:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user3",
+    "ip_address": "172.16.0.138",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+        "new": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:08:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user13",
+    "ip_address": "172.16.0.174",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+        "new": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:09:00+00:00",
+    "event_type": "close",
+    "user_id": "user18",
+    "ip_address": "192.168.1.154",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:10:00+00:00",
+    "event_type": "session_update",
+    "user_id": "user8",
+    "ip_address": "10.0.0.97",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:11:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user15",
+    "ip_address": "172.16.0.102",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "new": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:12:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user1",
+    "ip_address": "10.0.0.248",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "ip_address": {
+        "old": "172.16.0.66",
+        "new": "10.0.0.248"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:13:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user16",
+    "ip_address": "192.168.1.235",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+        "new": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:14:00+00:00",
+    "event_type": "logout",
+    "user_id": "user13",
+    "ip_address": "192.168.1.97",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:15:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user6",
+    "ip_address": "10.0.0.71",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:16:00+00:00",
+    "event_type": "close",
+    "user_id": "user16",
+    "ip_address": "172.16.0.221",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:17:00+00:00",
+    "event_type": "logout",
+    "user_id": "user2",
+    "ip_address": "172.16.0.154",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:18:00+00:00",
+    "event_type": "close",
+    "user_id": "user12",
+    "ip_address": "172.16.0.119",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:19:00+00:00",
+    "event_type": "session_update",
+    "user_id": "user5",
+    "ip_address": "192.168.1.89",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:20:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user19",
+    "ip_address": "172.16.0.38",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:21:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user7",
+    "ip_address": "192.168.1.107",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:22:00+00:00",
+    "event_type": "close",
+    "user_id": "user20",
+    "ip_address": "10.0.0.29",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:23:00+00:00",
+    "event_type": "session_update",
+    "user_id": "user12",
+    "ip_address": "10.0.0.40",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:24:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user1",
+    "ip_address": "172.16.0.26",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:25:00+00:00",
+    "event_type": "revoked",
+    "user_id": "user4",
+    "ip_address": "10.0.0.236",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "status": {
+        "old": "active",
+        "new": "revoked"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:26:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user16",
+    "ip_address": "10.0.0.93",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+        "new": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:27:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user2",
+    "ip_address": "10.0.0.26",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {
+      "ip_address": {
+        "old": "192.168.1.6",
+        "new": "10.0.0.26"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:28:00+00:00",
+    "event_type": "login",
+    "user_id": "user3",
+    "ip_address": "192.168.1.160",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:29:00+00:00",
+    "event_type": "close",
+    "user_id": "user10",
+    "ip_address": "10.0.0.42",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:30:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user19",
+    "ip_address": "10.0.0.75",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "ip_address": {
+        "old": "10.0.0.77",
+        "new": "10.0.0.75"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:31:00+00:00",
+    "event_type": "refresh_token",
+    "user_id": "user20",
+    "ip_address": "172.16.0.11",
+    "user_agent": "PostmanRuntime/7.31.3",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:32:00+00:00",
+    "event_type": "logout",
+    "user_id": "user15",
+    "ip_address": "172.16.0.208",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:33:00+00:00",
+    "event_type": "logout",
+    "user_id": "user5",
+    "ip_address": "192.168.1.241",
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:34:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user7",
+    "ip_address": "172.16.0.220",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "new": "Mozilla/5.0 (Linux; Android 11)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:35:00+00:00",
+    "event_type": "session_update",
+    "user_id": "user4",
+    "ip_address": "172.16.0.219",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:36:00+00:00",
+    "event_type": "user_agent_change",
+    "user_id": "user18",
+    "ip_address": "192.168.1.57",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "user_agent": {
+        "old": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+        "new": "Mozilla/5.0 (Linux; Android 11)"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:37:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user7",
+    "ip_address": "192.168.1.163",
+    "user_agent": "Mozilla/5.0 (Linux; Android 11)",
+    "changes": {
+      "ip_address": {
+        "old": "10.0.0.149",
+        "new": "192.168.1.163"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-08-29T01:38:00+00:00",
+    "event_type": "login",
+    "user_id": "user17",
+    "ip_address": "192.168.1.16",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {}
+  },
+  {
+    "timestamp": "2025-08-29T01:39:00+00:00",
+    "event_type": "ip_change",
+    "user_id": "user19",
+    "ip_address": "10.0.0.175",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "changes": {
+      "ip_address": {
+        "old": "192.168.1.225",
+        "new": "10.0.0.175"
+      }
+    }
+  }
+]

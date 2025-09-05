@@ -115,7 +115,7 @@ export class ApiClient {
                 throw { message: `${data.message}`, code: data.code || "UNAUTHORIZED", raw: data };
             }
             if (response.status === 403) {
-                throw { message: `🚫 Bloqueado: ${data.msg} ${data.bloqueado_hasta ? "hasta " + data.bloqueado_hasta : ""}`, code: data.code || "FORBIDDEN", raw: data };
+                throw { message: `🚫 Bloqueado: ${data.msg} ${this.formatDateSantiago(data.bloqueado_hasta) ? "hasta " + this.formatDateSantiago(data.bloqueado_hasta) : ""}`, code: data.code || "FORBIDDEN", raw: data };
             }
             if (response.status === 409) {
                 throw { message: `⚠️ ${data.msg}`, code: data.code || "CONFLICT", raw: data };
@@ -128,16 +128,29 @@ export class ApiClient {
                 throw { message: data.msg || "Error desconocido", code: data.code || "UNKNOWN_ERROR", raw: data };
             }
 
+            if (data.status === 401) {
+                throw { message: `${data.message}`, code: data.code };
+            }
+            else if (data.status === 403) {
+                throw { message: `🚫 Bloqueado: ${data.msg} ${this.formatDateSantiago(data.bloqueado_hasta) ? "hasta " + this.formatDateSantiago(data.bloqueado_hasta) : ""}`, code: data.code || "FORBIDDEN", raw: data };
+            }
+
             return data;
         
         } catch (err) {
             handleError(err);
-            throw err; // Permitir catch a nivel superior
+            //throw err; // Permitir catch a nivel superior
         }
     }
 
     
-   
+    formatDateSantiago(expTimestamp) {
+        if (!expTimestamp) return "-";
+        return new Date(expTimestamp * 1000).toLocaleString("es-CL", {
+            timeZone: "America/Santiago",
+            hour12: false,
+        });
+    }
 
 
     /**
