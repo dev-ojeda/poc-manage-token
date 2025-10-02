@@ -219,4 +219,9 @@ marimo/_lsp/
 __marimo__/
 /remove.py
 /zonas.py
+/solid.py
 /app/remove.py
+/limpiar_pip.py
+/app/thresholds.json
+/data.json
+/mdbManageToken.alerts.json

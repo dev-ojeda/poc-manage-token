@@ -262,7 +262,7 @@ function showTableSpinner() {
     if (!tbody) return;
     tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="table-spinner">
+          <td colspan="3" class="table-spinner">
             <span class="loader"></span>
           </td>
         </tr>

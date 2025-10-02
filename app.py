@@ -1,24 +1,21 @@
-#!/.venv/Scripts python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
 import os
-
 import eventlet
 import eventlet.wsgi
-from icecream import ic
-
 from app import create_app
 from app.config import Config
-
-app = create_app()
-# ic.configureOutput(prefix="debug-",includeContext=True)
+from app.utils.logging_config import setup_logging
+# Se ejecuta al iniciar la app
+# Inicializar logging
+logger = setup_logging()
+app = create_app(config_class=Config)
 def main() -> None:
+
     """
     Punto de entrada principal de la app.
     """
-    ic("🚀 Servidor iniciado en:")
-    ic(f"🌐 http://{Config.HOST}:{Config.PORT}")
-    ic(f"🔒 https://{Config.HOST}:{Config.PORT} (si SSL está activo)")
-
     use_ssl = os.getenv("FLASK_USE_SSL", "false").lower() == "true"
 
     listener = eventlet.listen((Config.HOST, Config.PORT))
@@ -30,7 +27,6 @@ def main() -> None:
             "server_side": True
         }
         listener = eventlet.wrap_ssl(listener, **ssl_args)
-        ic("✅ SSL habilitado")
 
     # Lanza el servidor WSGI
     eventlet.wsgi.server(listener, app, log_output=True)

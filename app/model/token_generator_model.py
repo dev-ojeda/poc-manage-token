@@ -16,6 +16,7 @@ from icecream import ic
 
 from app.config import Config
 from app.auth.exceptions.auth_exceptions import AuthException
+from app.hekpers.token_doc import TokenDoc
 
 class TokenGeneratorModel:
     def __init__(self):
@@ -43,25 +44,26 @@ class TokenGeneratorModel:
     def _is_valid_role(self, role) -> bool:
         return role in self.valid_roles
 
-    def _build_payload(self, data: dict, token_type: str, exp_delta: int) -> dict:
-        # Fecha/hora actual en UTC
+    def _build_payload(self, data: dict, token_type: str, exp_delta: int):
         now_utc = datetime.datetime.now(tz=timezone.utc)
-        if token_type == "refresh":
-            exp_ts = now_utc + timedelta(days=exp_delta)
-        else:
-            exp_ts = now_utc + timedelta(minutes=exp_delta)
-        return {
+        exp_ts = now_utc + (timedelta(days=exp_delta) if token_type == "refresh" else timedelta(minutes=exp_delta))
+    
+        standard_claims = {
             "sub": data["username"],
-            **data,
-            "rol": data["rol"],
-            "scope": data["scope"],
             "iat": now_utc.timestamp(),
             "nbf": now_utc.timestamp(),
             "exp": int(exp_ts.timestamp()),
             "iss": self.jwt_issuer,
             "aud": self.jwt_audience,
-            "type": token_type
+            "token_type": token_type,
+            "jti": data.get("jti", str(uuid.uuid4()))
         }
+        custom_claims = {
+            "rol": data["rol"],
+            "scope": data["scope"],
+            "device_id": data.get("device_id")
+        }
+        return {**standard_claims, **custom_claims}
 
     def _build_global_payload(self, token_type: str, exp_minutes: int) -> dict:
         # Fecha/hora actual en UTC
@@ -69,13 +71,13 @@ class TokenGeneratorModel:
         exp_ts = now_utc + timedelta(minutes=exp_minutes)
         return {
             "sub": "admin@example.com",
-            "rol": "Admin",
+            "rol": "System",
             "scope": "full_control",
             "iat": now_utc.timestamp(),
             "nbf": now_utc.timestamp(),
             "exp": int(exp_ts.timestamp()),
             "iss": "flask-root",
-            "type": token_type,
+            "token_type": token_type,
             "jti": str(uuid.uuid4())
         }
 
@@ -98,7 +100,7 @@ class TokenGeneratorModel:
             jwt.encode(payload_refresh, self.private_key, algorithm="RS256")
         )
 
-    def refresh_access_token(self, refresh_token: str) -> str:
+    def get_refresh_access_token(self, refresh_token: str) -> TokenDoc | None:
         """
         Recibe un refresh_token válido y devuelve un nuevo access_token
         con el mismo jti.
@@ -107,6 +109,7 @@ class TokenGeneratorModel:
 
         data = {
             "username": decoded["sub"],
+            "device_id": decoded["device_id"],
             "rol": decoded["rol"],
             "scope": decoded["scope"],
             "jti": decoded["jti"],   # reutilizamos mismo jti
@@ -135,7 +138,7 @@ class TokenGeneratorModel:
                 audience=self.jwt_audience
             )
 
-            if decoded.get("type") != expected_type:
+            if decoded.get("token_type") != expected_type:
                 raise AuthException(
                     f"Tipo de token inválido. Se esperaba '{expected_type}', se recibió '{decoded.get('type')}'",
                     "InvalidTypeToken",
@@ -201,7 +204,7 @@ class TokenGeneratorModel:
             raise AuthException(f"Error inesperado: {str(e)}", "UnexpectedError", 500, "error")
    
     
-    def verify_token(self, token: str, expected_type: str = "access") -> dict:
+    def verify_token(self, token: str, expected_type: str) -> TokenDoc:
         return self._decode(token=token , expected_type=expected_type)
 
     def verify_token_global(self, token: str, expected_type: str = "access") -> dict:

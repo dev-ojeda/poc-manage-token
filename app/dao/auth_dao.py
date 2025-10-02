@@ -1,55 +1,39 @@
 import datetime
-from datetime import timedelta, timezone
-
+from datetime import timezone, timedelta
 from bson import SON
-from icecream import ic
+from typing import Optional
 
+from app.dao.base_dao import BaseDAO
 from app.dao.session_dao import SessionDAO
 from app.dao.audit_dao import AuditLogDAO
 from app.utils.db_mongo import MongoDatabase
 
 
-class AuthDao:
-    def __init__(self, db=None):
-        self.db = db or MongoDatabase()
+class AuthDAO(BaseDAO):
+    def __init__(self, db: Optional[MongoDatabase] = None):
+        super().__init__(db=db, collection_name="refresh_tokens")
         self.session_dao = SessionDAO(self.db)
         self.audit_dao = AuditLogDAO()
-        # Si es mongomock o un Database de pymongo, exponemos la colección
-        if hasattr(self.db, "__getitem__"):
-            self.collection = self.db["refresh_tokens"]
-        else:
-            self.collection = None
-        self.refresh_tokens = "refresh_tokens"
-  
 
-    def get_active_token_by_user_and_device(self, username: str, device_id: str):
-        now = datetime.datetime.now(tz=timezone.utc)
+    def _now(self) -> datetime.datetime:
+        return datetime.datetime.now(tz=timezone.utc)
+
+    # ---------------------
+    # Búsquedas y validaciones
+    # ---------------------
+    def get_active_token_by_user_and_device(self, username: str, device_id=None):
+        match_filter = {"username": username, "revoked_at": None, "expires_at": {"$gt": self._now()}}
+        if device_id: match_filter["device_id"] = device_id
+        pipeline = [{"$match": match_filter}, {"$sort": SON([("created_at", -1)])}, {"$limit": 1}]
+        result = self.aggregate(pipeline)
+        data = result.get("data", [])
+        return {"success": True, "data": data[0] if data else None}
+
+    def get_active_token_by_username(self, username: str, *, context: str = "") -> dict:
         match_filter = {
             "username": username,
             "revoked_at": None,
-            "expires_at": {"$gt": now}
-        }
-        if device_id:
-            match_filter["device_id"] = device_id
-
-        pipeline = [
-            {"$match": match_filter},
-            {"$sort": SON([("created_at", -1)])},
-            {"$limit": 1}
-        ]
-
-        if self.collection:  # MongoMock o pymongo puro
-            result = list(self.collection.aggregate(pipeline))
-        else:  # MongoDatabase wrapper
-            result = list(self.db.aggregate(collection=self.refresh_tokens, pipeline=pipeline))
-        return result[0] if result else None
-
-    def get_active_token_by_username(self, username: str):
-        now = datetime.datetime.now(tz=timezone.utc)
-        match_filter = {
-            "username": username,
-            "revoked_at": None,
-            "expires_at": {"$gt": now}
+            "expires_at": {"$gt": self._now()}
         }
 
         pipeline = [
@@ -65,137 +49,88 @@ class AuthDao:
                 "created_at": 1,
                 "expires_at": 1,
                 "revoked_at": 1,
-                "used_at": 1   # 👉 incluimos el campo
+                "used_at": 1
             }}
         ]
 
-        if self.collection:  # MongoMock o pymongo puro
-            result = list(self.collection.aggregate(pipeline))
-        else:  # MongoDatabase wrapper
-            result = list(self.db.aggregate(collection=self.refresh_tokens, pipeline=pipeline))
-        return result[0] if result else None
+        result = self.aggregate(pipeline, context=context)
+        data = result.get("data", [])
+        return {"success": True, "data": data[0] if data else None, "context": context or "Active Token by Username"}
 
-    def is_token_in_use(self, username: str) -> dict:
-        """
-        Verifica si algún token de este usuario ya ha sido usado.
-        Devuelve True si existe al menos un token con 'used_at' definido.
-        """
+    def get_refresh_token(self, refresh_token: str, *, context: str = "") -> dict:
+        query = {"refresh_token": refresh_token}
+        projection = {"_id": 0, "revoked_at": 1, "refresh_attempts": 1}
+        return self.find_one(query=query, projection=projection, context=context or "Get Refresh Token")
+
+    def is_valid_refresh_token(self, refresh_token: str, device_id: str, *, context: str = "") -> dict:
         query = {
-            "username": username,
-            "used_at": {"$ne": None}  # distinto de None => ya usado
-        }
-        projection = {"_id": 1, "username": 1, "device_id": 1, "refresh_token": 1, "jti": 1, "expires_at": 1}
-        token_doc = self.db.find_one(self.refresh_tokens,query=query,projection=projection)
-        return token_doc if token_doc else None
-
-    def revoke_all_tokens_for_user(self, username):
-        query = {"username": username, "revoked_at": None}
-        update = {"$set": {"revoked_at": datetime.datetime.now(tz=timezone.utc)}}
-        if self.collection:
-            result = self.collection.update_many(query, update)
-        else:
-            result = self.db.update_many(collection=self.refresh_tokens, query=query, update=update)
-        return result.modified_count
-
-    def revoke_token_by_jti(self, jti):
-        query = {"jti": jti, "revoked_at": None}
-        update = {"$set": {"revoked_at": datetime.datetime.now(tz=timezone.utc)}}
-        if self.collection:
-            result = self.collection.update_many(query, update)
-        else:
-            result = self.db.update_with_log(
-                collection=self.refresh_tokens,
-                query=query,
-                update=update,
-                upsert=True,
-                context="Revocar token por JTI"
-            )
-        return result.modified_count
-
-    def revoke_token_by_device_id(self, device_id) -> int | None:
-        query = {"device_id": device_id}
-        update = {"$set": {"revoked_at": datetime.datetime.now(tz=timezone.utc)}}
-        if self.collection:
-            result = self.collection.update_many(query, update)
-        else:
-            result = self.db.update_many(collection=self.refresh_tokens, query=query, update=update)
-        return result.modified_count
-
-    def mark_token_as_used(self, username: str, device_id: str, jti: str, refresh_token: str, created_at: None, expires_at: None, refresh_attempts: int, browser: str, os: str, ip_address:str, upsert: bool):
-        query = {
-            "username": username, 
-            "device_id": device_id, 
-            "jti": jti,
             "refresh_token": refresh_token,
-            "created_at": created_at,
-            "expires_at": expires_at,
-            "refresh_attempts": refresh_attempts,
-            "browser": browser,
-            "os": os,
-            "ip_address": ip_address
+            "device_id": device_id,
+            "expires_at": {"$gt": self._now()}
         }
+        token = self.find_one(query=query, context=context).get("data")
+        valid = bool(token) and not token.get("revoked_at")
+        return {"success": True, "data": valid, "context": context or "Validate Refresh Token"}
 
-        update = {
-            "$set": {
-                "revoked_at": datetime.datetime.now(tz=timezone.utc),
-                "used_at": datetime.datetime.now(tz=timezone.utc)
-            }
-        }
-        if self.collection:
-            result = self.collection.update_one(query, update, upsert=upsert)
-        else:
-            result = self.db.update_with_log(collection=self.refresh_tokens, query=query, update=update, upsert=upsert, context="Marcar Token Usuado y Revocado")
-        return result.modified_count
-           
-    def revoke_refresh_token(self, username: str, device_id: str, refresh_token: str) -> dict:
-        revoked_at = datetime.datetime.now(tz=timezone.utc)
-        return self.db.update_with_log(self.refresh_tokens,
-            {"username": username, "device_id": device_id, "refresh_token": refresh_token, "revoked_at": None},
-            {
-                "$set": 
-                {
-                    "revoked_at": revoked_at
-                }
-            },upsert=False,context="Revocar Refresh Token"
-        )
+    def is_token_in_use(self, username: str, *, context: str = "") -> dict:
+        query = {"username": username, "used_at": {"$ne": None}}
+        projection = {"_id": 1, "username": 1, "device_id": 1, "refresh_token": 1, "jti": 1, "expires_at": 1}
+        result = self.find_one(query=query, projection=projection, context=context)
+        return {"success": True, "data": result["data"], "context": context or "Check Token Usage"}
 
-    def update_refresh_token(self, **kwargs) -> dict:
-        now = datetime.datetime.now(tz=timezone.utc)
-        return self.db.update_with_log(self.refresh_tokens,
-             {"username":  kwargs["username"], "device_id":  kwargs["device_id"]},
-             {
-                 "$set": {
-                     "jti": kwargs["jti"],
-                     "refresh_token": kwargs["refresh_token"],
-                     "update_at": now,
-                     "expires_at": now + timedelta(minutes=4),
-                     "revoked_at": None,
-                     "refresh_attempts": kwargs["refresh_attempts"],
-                     "browser": kwargs["browser"],
-                     "os": kwargs["os"],
-                     "ip_address": kwargs["ip_address"]
-                 },
-                 "$setOnInsert": {
-                     "username": kwargs["username"],
-                     "device_id": kwargs["device_id"],
-                     "created_at": now,
-                     "used_at": now
-                 }
-             },
-             upsert=True,
-             context="Upsert Refresh Token"
-         )
+    # ---------------------
+    # Revocación y actualización de tokens
+    # ---------------------
+    def revoke_tokens(self, query_filter: dict, context: str):
+        update = {"$set": {"revoked_at": self._now()}}
+        return self.update_many(query_filter, update, context=context)
 
-    def upsert_refresh_token(self, **kwargs) -> dict:
+    def revoke_old_token(self, **kwargs) -> dict:
+        now = self._now()
+        query = {k: kwargs[k] for k in ("username", "refresh_token", "jti")}
+        update = {"$set": {"revoked_at": now, "used_at": now}}
+        return self.update_one(query=query, update=update, upsert=kwargs.get("upsert", False), context="Revoke Old Tokens")
+
+
+    def revoke_all_tokens_for_user(self, username: str, *, context: str = "") -> dict:
+        return self.revoke_tokens({"username": username, "revoked_at": None}, context=context or "Revoke All Tokens")
+
+    def revoke_token_by_jti(self, jti: str, *, context: str = "") -> dict:
+        return self.revoke_tokens({"jti": jti, "revoked_at": None}, context=context or "Revoke Token by JTI")
+
+    def revoke_token_by_device_id(self, device_id: str, *, context: str = "") -> dict:
+        return self.revoke_tokens({"device_id": device_id}, context=context or "Revoke Token by Device ID")
+
+    def mark_token_as_used(self, **kwargs) -> dict:
+        now = self._now()
+        query = {k: kwargs[k] for k in ("username", "device_id", "jti", "refresh_token")}
+        update = {"$set": {"revoked_at": now, "used_at": now}}
+        return self.update_one(query=query, update=update, upsert=kwargs.get("upsert", False), context="Mark Token Used")
+
+    # def update_refresh_token(self, **kwargs):
+    #     now = self._now()
+    #     query = {"username": kwargs["username"], "device_id": kwargs["device_id"]}
+    #     update = {"$set": {"jti": kwargs["jti"], "refresh_token": kwargs["refresh_token"], "update_at": now,
+    #                     "expires_at": now + timedelta(minutes=4), "revoked_at": None,
+    #                     "refresh_attempts": kwargs["refresh_attempts"], "browser": kwargs["browser"],
+    #                     "os": kwargs["os"], "ip_address": kwargs["ip_address"]},
+    #             "$setOnInsert": {"username": kwargs["username"], "device_id": kwargs["device_id"], "created_at": now,
+    #                             "used_at": now}}
+    #     return self.update_with_log(query, update, upsert=True, context="Upsert Refresh Token")
+
     
-        device_id = kwargs["device_id"]
-        username = kwargs["username"]
-        # Buscar sesión previa con mismo usuario + dispositivo
-        previous_session = self.session_dao.find_previous_session(username=username,device_id=device_id)
-
-
-        if previous_session is not None:
-            event_audit = self.audit_dao.insert_event_audit(previous_session=previous_session, **kwargs)
-            if not event_audit.get("success"):
-                return event_audit     
-        return self.update_refresh_token(**kwargs)
+    def upsert_refresh_token(self, **kwargs):
+        previous = self.session_dao.find_previous_session(username=kwargs["username"], device_id=kwargs["device_id"])
+        if previous.get("data"):
+            audit_result = self.audit_dao.insert_event_audit(previous_session=previous["data"], **kwargs)
+            if not audit_result.get("success"):
+                return audit_result
+        now = self._now()
+        query = {"username": kwargs["username"], "device_id": kwargs["device_id"]}
+        update = {"$set": {
+            "jti": kwargs["jti"], "refresh_token": kwargs["refresh_token"],
+            "update_at": now, "expires_at": now + timedelta(minutes=4), "revoked_at": None,
+            "refresh_attempts": kwargs["refresh_attempts"], "browser": kwargs["user_agent"]["browser"],
+            "os": kwargs["user_agent"]["os"], "ip_address": kwargs["ip_address"]
+        }, "$setOnInsert": {"username": kwargs["username"], "device_id": kwargs["device_id"], "created_at": now,"used_at": now}}
+        return self.update_one(query, update, upsert=True, context="Upsert Refresh Token")

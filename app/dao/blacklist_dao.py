@@ -1,63 +1,78 @@
 import datetime
 from datetime import timezone
+import logging
+from typing import Any, Optional
 
+from app.dao.base_dao import BaseDAO
 from app.utils.db_mongo import MongoDatabase
 
-class TokenBlacklistDao:
-    def __init__(self, db=None):
-        self.db = db or MongoDatabase()
-        # Si es mongomock o un Database de pymongo, exponemos la colección
-        if hasattr(self.db, "__getitem__"):
-            self.collection = self.db["token_blacklist"]
-        else:
-            self.collection = None
-        self.token_blacklist = "token_blacklist"
 
+class TokenBlacklistDAO(BaseDAO):
+    def __init__(self, db: Optional[MongoDatabase] = None):
+        super().__init__(db=db, collection_name="token_blacklist")
+        self.logger = logging.getLogger(f"DAO.{self.__class__.__name__}")
+    # -------------------------------
+    # Verificar si un token está revocado
+    # -------------------------------
     def is_token_revoked(self, jti: str) -> bool:
-        return self.db.count_documents(self.token_blacklist,{"jti": jti}) > 0
+        try:
+            count = self.count_documents({"jti": jti}).get("count", 0)
+            return count > 0
+        except Exception as e:
+            self.logger.error(f"[is_token_revoked] Error: {e}")
+            return False
 
-    def insert_token(self, token: str, username: str = None, device_id: str = None, reason: str = None) -> bool:
-        """
-        Inserta un nuevo token.
-        """
+    # -------------------------------
+    # Insertar un token en blacklist
+    # -------------------------------
+    def insert_token(
+        self,
+        token: str,
+        jti: Optional[str] = None,
+        username: Optional[str] = None,
+        device_id: Optional[str] = None,
+        reason: Optional[str] = None
+    ) -> dict[str, Any]:
         doc = {
             "token": token,
+            "jti": jti,
             "revoked_at": None,
             "username": username,
             "device_id": device_id,
             "reason": reason,
             "created_at": datetime.datetime.now(tz=timezone.utc)
         }
-        try:
-            self.collection.insert_one(doc)
-            return True
-        except Exception as e:
-            print(f"Error insertando token: {e}")
-            return False
+        return self.insert_with_log(doc, context="Insert Token Blacklist")
 
-    def revoke_token_blacklist(self, token: str, device_id=None, username=None, reason=None) -> dict:
+   # -------------------------------
+    # Revocar token existente
+    # -------------------------------
+    def revoke_token(
+        self,
+        token: str,
+        username: Optional[str] = None,
+        device_id: Optional[str] = None,
+        reason: Optional[str] = None
+    ) -> dict[str, Any]:
         update_fields = {
             "revoked_at": datetime.datetime.now(tz=timezone.utc)
         }
-
-        if reason is not None:
+        if reason:
             update_fields["reason"] = reason
-        if device_id is not None:
-            update_fields["device_id"] = device_id
-        if username is not None:
+        if username:
             update_fields["username"] = username
+        if device_id:
+            update_fields["device_id"] = device_id
 
-        return self.db.update_with_log(
-            self.token_blacklist,
-            {"token": token},
-            {"$set": update_fields},
+        return self.update_with_log(
+            query={"token": token},
+            update={"$set": update_fields},
             upsert=True,
-            context="Revocar Token Blacklist"
+            context="Revoke Token Blacklist"
         )
-  
-    def delete_token(self, token: str) -> bool:
-        """
-        Elimina un token de la colección.
-        """
-        result = self.collection.delete_one({"token": token})
-        return result.deleted_count > 0
+
+    # -------------------------------
+    # Eliminar token de blacklist
+    # -------------------------------
+    def delete_token(self, token: str) -> dict[str, Any]:
+        return self.delete_one({"token": token}, context="Delete Token Blacklist")

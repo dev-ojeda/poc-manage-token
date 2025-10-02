@@ -1,66 +1,89 @@
-# app/services/auth_service.py
-
 import datetime
 from datetime import timezone
-from app.dao.auth_dao import AuthDao
-from app.utils.db_manager import DbManager
-from app.model import TokenGeneratorModel
+from typing import Optional, Tuple
+
+from app.dao.auth_dao import AuthDAO
+from app.hekpers.token_doc import TokenDoc
+from app.model.token_generator_model import TokenGeneratorModel
+
 
 class AuthService:
+    """
+    Servicio para manejar autenticación, tokens de acceso y refresh tokens.
+    """
+
     def __init__(self):
-        self.dm = DbManager()
-        self.gt = TokenGeneratorModel()
-        self.auth_dao = AuthDao()
-    def get_token_payload(self, token: str):
-        return self.gt.verify_token(token=token, expected_type="refresh")
+        self.auth_dao = AuthDAO()
+        self.token_generator_model = TokenGeneratorModel()
 
-    def get_active_token_by_user_and_device(self, username: str, device_id: str):
+    # -------------------------------
+    # Token verification
+    # -------------------------------
+    def get_token_payload(self, token: str, expected_type: str = "refresh") -> dict:
+        return self.token_generator_model.verify_token(token=token, expected_type=expected_type)
+
+    def verify_access_token(self, token: str) -> dict:
+        return self.token_generator_model.verify_token(token, expected_type="access")
+
+    # -------------------------------
+    # Token generation
+    # -------------------------------
+    def generate_tokens(self, payload: dict) -> Tuple[str, str]:
+        return self.token_generator_model.create_tokens(payload)
+
+    def decode_refresh_token(self, token: str) -> TokenDoc | None:
+        return self.token_generator_model.get_refresh_access_token(refresh_token=token)
+
+    # -------------------------------
+    # Refresh token management
+    # -------------------------------
+    def get_active_token_by_user_and_device(self, username: str, device_id: str) -> Optional[dict]:
         return self.auth_dao.get_active_token_by_user_and_device(username=username, device_id=device_id)
-    def get_active_token_by_username(self, username):
+
+    def get_active_token_by_username(self, username: str) -> Optional[dict]:
         return self.auth_dao.get_active_token_by_username(username)
-    def is_token_in_use(self, username) -> dict:
+
+    def is_token_in_use(self, username: str) -> dict:
         return self.auth_dao.is_token_in_use(username)
-    def revoke_all_tokens_for_user(self, username):
-        return self.auth_dao.revoke_all_tokens_for_user(username)
-    def revoke_token_by_jti(self, jti):
-        return self.auth_dao.revoke_token_by_jti(jti)
-    def revoke_token_by_device_id(self, device_id) -> bool:
-        return bool(self.auth_dao.revoke_token_by_device_id(device_id))
-    def is_token_expired(self, exp: float) -> bool:
-        exp_ms = int(exp * 1000)  # en milisegundos
-        now = datetime.datetime.now(tz=timezone.utc)
-        now_ms = int(now.timestamp() * 1000)
-        return now_ms > exp_ms
 
-    def detect_reuse(self, stored: dict) -> bool:
-        return stored.get("used_at") is not None
+    def get_refresh_token(self, refresh_token: str) -> Optional[dict]:
+        return self.auth_dao.get_refresh_token(refresh_token=refresh_token)
 
-    def device_mismatch(self, stored: dict, device_id: str) -> bool:
-        return str(stored.get("device_id", "")).strip() != device_id
-
-    def mark_used(self, **kwargs) -> bool:
-        return self.auth_dao.mark_token_as_used(**kwargs)
-
-    def revoke_old_token(self, username: str, device_id: str, token: str) -> dict:
-        return self.auth_dao.revoke_refresh_token(username=username, device_id=device_id, refresh_token=token)
-
-    def is_valid_refresh(self, token, device_id) -> bool:
-        return self.dm.is_valid_refresh_token(token, device_id)
+    def is_valid_refresh(self, token: str, device_id: str) -> bool:
+        return self.auth_dao.is_valid_refresh_token(token, device_id)
 
     def upsert_new_token(self, **kwargs) -> dict:
         return self.auth_dao.upsert_refresh_token(**kwargs)
 
-    def get_refresh_token_from_db(self, token: str) -> dict | None:
-        return self.dm.get_refresh_token(token)
+    def revoke_old_token(self, username: str, token: str, jti: str, upsert: bool) -> dict:
+        return self.auth_dao.revoke_old_token(username=username, refresh_token=token, jti=jti, upsert=upsert)
 
-    def refresh_access_token(self, token: str) -> str | None:
-        return self.gt.refresh_access_token(token)
+    # -------------------------------
+    # Token revocation
+    # -------------------------------
+    def revoke_all_tokens_for_user(self, username: str) -> dict:
+        return self.auth_dao.revoke_all_tokens_for_user(username)
 
-    def revoke_all_for_device(self, device_id: str):
-        return self.dm.revoke_tokens_by_device(device_id)
+    def revoke_token_by_jti(self, jti: str) -> dict:
+        return self.auth_dao.revoke_token_by_jti(jti)
 
-    def generate_tokens(self, payload: dict) -> tuple[str, str]:
-        return self.gt.create_tokens(payload)
+    def revoke_token_by_device_id(self, device_id: str) -> bool:
+        return bool(self.auth_dao.revoke_token_by_device_id(device_id))
 
-    def verify_access_token(self, token: str):
-        return self.gt.verify_token(token, expected_type="access")
+    # -------------------------------
+    # Token checks & updates
+    # -------------------------------
+    @staticmethod
+    def is_token_expired(exp: float) -> bool:
+        return datetime.datetime.now(tz=timezone.utc).timestamp() > exp
+
+    @staticmethod
+    def detect_reuse(stored: dict) -> bool:
+        return bool(stored and stored.get("used_at"))
+
+    @staticmethod
+    def device_mismatch(stored: dict, device_id: str) -> bool:
+        return str(stored.get("device_id", "")).strip() != device_id
+
+    def mark_used(self, **kwargs) -> bool:
+        return self.auth_dao.mark_token_as_used(**kwargs)

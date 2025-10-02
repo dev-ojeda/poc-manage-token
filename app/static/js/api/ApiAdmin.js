@@ -1,5 +1,6 @@
 import { ApiClient } from "../api/ApiClient.js"
 import { handleError } from "../utils/errors.js"
+
 export class ApiAdmin extends ApiClient {
     constructor(opts) {
         super({
@@ -68,7 +69,25 @@ export class ApiAdmin extends ApiClient {
         }
     }
 
+    async fetchTimeline({ interval = "hour", limit = 24, categories = ["apiresponsetime", "webvitals"], role = "User" } = {}) {
+        try {
+            const catStr = categories.join(",");
+            const url = role ? `/api/metrics/timeline?category=${catStr}&interval=${interval}&limit=${limit}&role=${role}`
+                : `/api/metrics/timeline?category=${catStr}&interval=${interval}&limit=${limit}`;
+            return await this.get(url);
+        } catch (err) {
+            handleError(err);
+            return null;
+        }
+    }
+    async fetchSummary({ minutes = 50, role = "User" } = {}) {
+        const url = role ? `/api/metrics/summary?minutes=${minutes}&role=${role}`
+            : `/api/metrics/summary?minutes=${minutes}`;
+        console.log(url);
+        return await this.get(url);
+    }
     async logout_admin() {
+        await this.clearTokens();  // Limpia storage
         window.location.href = "/?logout=true";
     }
 }

@@ -1,280 +1,220 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from datetime import timezone
-import json
-import traceback
 import logging
-from typing import Optional
-from pymongo.mongo_client import MongoClient, PyMongoError
+import time
+from typing import Any, Dict, List, Optional, Tuple
+from bson import ObjectId
+from pymongo import MongoClient
 from pymongo.server_api import ServerApi
-from pymongo.results import InsertOneResult, UpdateResult
+from pymongo.errors import PyMongoError, NetworkTimeout
 from app.config import Config
-from icecream import ic
-from app.extensions import socketio  # Importar la instancia global de SocketIO
 
 class MongoDatabase:
-    def __init__(self) -> None:
-        """Inicializa la conexión a MongoDB"""
+    def __init__(self, retry: int = 3, backoff: float = 0.5) -> None:
         self.db_name = Config.MONGO_DB
         self.uri = Config.MONGO_URI_CLUSTER_X509
+        self.tls_certificate_key_file = Config.MONGODB_X509
         self.client: Optional[MongoClient] = None
-        self.tls = True
-        self.tlsCertificateKeyFile = Config.MONGODB_X509
-        self.server_api=ServerApi('1')
         self.db = None
-        self.connect()
-         # Configurar logger correctamente
-        self.logger = logging.getLogger("MongoMonitor")
-        self.logger.setLevel(logging.INFO)
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
-        handler.setFormatter(formatter)
-        if not self.logger.handlers:  # Evita múltiples handlers si ya existen
-            self.logger.addHandler(handler)
+        self.retry = retry
+        self.backoff = backoff
 
+        # Logger centralizado
+        self.logger = logging.getLogger("MongoDatabase")
+        self.logger.setLevel(logging.INFO)
+
+        # Conectar automáticamente
+        self.connect()
+
+    # --- Context manager ---
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback_info):
+        self.close()
+
+    # --- Conexión ---
     def connect(self) -> None:
-        """Conecta a MongoDB"""
         try:
-            self.client = MongoClient(self.uri, tls=self.tls, tlsCertificateKeyFile=self.tlsCertificateKeyFile, server_api=self.server_api,tz_aware=True, tzinfo=timezone.utc)
+            self.client = MongoClient(
+                self.uri,
+                tls=True,
+                tlsCertificateKeyFile=self.tls_certificate_key_file,
+                server_api=ServerApi('1'),
+                tz_aware=True,
+                maxPoolSize=50,
+                minPoolSize=5,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=10000,
+            )
             self.db = self.client[self.db_name]
-            ic(f"Conectado a MongoDB -> {self.db_name}")
-        except PyMongoError as e:
-            ic(f"Error al conectar a MongoDB: {e}")
+            self.logger.info(f"Conectado a MongoDB -> {self.db_name}")
+        except (PyMongoError, NetworkTimeout) as e:
+            self.logger.error(f"❌ Error al conectar a MongoDB: {e}")
             raise
 
     def close(self) -> None:
-        """Cierra la conexión a MongoDB"""
         if self.client:
             self.client.close()
-            ic("Conexión a MongoDB cerrada")
+            self.logger.info("Conexión a MongoDB cerrada")
 
-    def insert_one(self, collection: str, document: dict) -> InsertOneResult:
-        """Inserta un solo documento"""
+    # --- Helper ObjectId ---
+    @staticmethod
+    def _convert_objectid(doc: dict) -> dict:
+        for k, v in doc.items():
+            if isinstance(v, ObjectId):
+                doc[k] = str(v)
+        return doc
+
+    # --- Access collection ---
+    def _get_collection(self, name: str):
+        if not self.db:
+            raise RuntimeError("MongoDB no está conectado")
+        return self.db[name]
+
+    # --- Retry decorator interno ---
+    def _retry(func):
+        def wrapper(self, *args, **kwargs):
+            attempts = 0
+            while True:
+                try:
+                    return func(self, *args, **kwargs)
+                except PyMongoError as e:
+                    attempts += 1
+                    if attempts > self.retry:
+                        self.logger.error(f"[{func.__name__}] Excedido máximo retries: {e}")
+                        return {"success": False, "error": str(e)}
+                    self.logger.warning(f"[{func.__name__}] Retry {attempts}/{self.retry} tras error: {e}")
+                    time.sleep(self.backoff)
+        return wrapper
+
+    # --------------------------
+    # CREATE
+    # --------------------------
+    @_retry
+    def insert_one(self, collection: str, document: Dict[str, Any], context: str = "") -> dict:
         try:
-            return self.db[collection].insert_one(document)
+            col = self._get_collection(collection)
+            result = col.insert_one(document)
+            self.logger.info(f"[{context}] Inserted into {collection}: {result.inserted_id}")
+            return {"success": True, "inserted_id": str(result.inserted_id), "context": context}
         except PyMongoError as e:
-            ic(f"Error al insertar: {e}")
-            raise
+            self.logger.error(f"[{context}] insert_one failed: {e}")
+            return {"success": False, "error": str(e), "context": context}
 
-    def insert_many(self, collection: str, documents: list[dict]) -> list:
-        """Inserta múltiples documentos"""
+    @_retry
+    def insert_many(self, collection: str, documents: List[Dict[str, Any]], context: str = "") -> dict:
         try:
-            result = self.db[collection].insert_many(documents)
-            ic("Documentos insertados en batch correctamente")
-            return result.inserted_ids
+            col = self._get_collection(collection)
+            result = col.insert_many(documents)
+            self.logger.info(f"[{context}] Inserted {len(result.inserted_ids)} docs into {collection}")
+            return {"success": True, "inserted_ids": [str(_id) for _id in result.inserted_ids], "context": context}
         except PyMongoError as e:
-            ic(f"Error en batch insert: {e}")
-            raise
+            self.logger.error(f"[{context}] insert_many failed: {e}")
+            return {"success": False, "error": str(e), "context": context}
 
-    def find(self, collection: str, query: Optional[dict] = None, projection: Optional[dict] = None) -> list[dict]:
-        """Realiza una búsqueda y retorna una lista de documentos"""
-        query = query or {}
-        projection = projection or {}
+    # --------------------------
+    # READ
+    # --------------------------
+    @_retry
+    def find_one(
+        self,
+        collection: str,
+        filtro: Dict[str, Any],
+        projection: Optional[Dict[str, int]] = None,
+        context: str = ""
+    ) -> dict:
         try:
-            result = list(self.db[collection].find(query, projection))
-            return result if result else None
+            col = self._get_collection(collection)
+            doc = col.find_one(filtro, projection)
+            if doc:
+                doc = self._convert_objectid(doc)
+            return {"success": True, "data": doc, "context": context}
         except PyMongoError as e:
-            ic(f"Error en búsqueda: {e}")
-            return None
+            self.logger.error(f"[{context}] find_one failed: {e}")
+            return {"success": False, "error": str(e), "context": context}
 
-    def find_one(self, collection: str, query: Optional[dict] = None, projection: Optional[dict] = None) -> Optional[dict]:
-        """Devuelve un solo documento"""
-        query = query or {}
-        projection = projection or {}
+    @_retry
+    def find_many(
+        self,
+        collection: str,
+        filtro: Dict[str, Any],
+        projection: Optional[Dict[str, int]] = None,
+        limit: int = 0,
+        sort: Optional[List[Tuple[str, int]]] = None,
+        context: str = ""
+    ) -> dict:
         try:
-            result = self.db[collection].find_one(query,projection)
-            return result if result else None 
+            col = self._get_collection(collection)
+            cursor = col.find(filtro, projection)
+            if sort:
+                cursor = cursor.sort(sort)
+            if limit > 0:
+                cursor = cursor.limit(limit)
+            results = [self._convert_objectid(doc) for doc in cursor]
+            return {"success": True, "data": results, "count": len(results), "context": context}
         except PyMongoError as e:
-            ic(f"Error en find_one: {e}")
-            return None
+            self.logger.error(f"[{context}] find_many failed: {e}")
+            return {"success": False, "error": str(e), "context": context}
 
-    def count_documents(self, collection: str, filtro: Optional[dict] = None) -> int:
-        """Cuenta documentos que cumplan cierto filtro (vacío = total)"""
-        filtro = filtro or {}
+    @_retry
+    def count_documents(self, collection: str, filtro: Dict[str, Any], context: str = "") -> dict:
         try:
-            return self.db[collection].count_documents(filtro)
+            col = self._get_collection(collection)
+            count = col.count_documents(filtro)
+            return {"success": True, "count": count, "context": context}
         except PyMongoError as e:
-            ic(f"Error en find_one: {e}")
-            raise
+            self.logger.error(f"[{context}] count_documents failed: {e}")
+            return {"success": False, "error": str(e), "context": context}
 
-    def update_many(self, collection: str, query: dict, update: dict):
-        """Actualiza múltiples documentos que coincidan con la consulta"""
+    @_retry
+    def aggregate(self, collection: str, pipeline: Any, context: str = "") -> dict:
         try:
-            result = self.db[collection].update_many(filter=query,update=update,upsert=True)
-            ic(f"Documentos coincidentes: {result.matched_count}")
-            ic(f"Documentos modificados: {result.modified_count}")
-            if result.modified_count > 0:
-                ic(f"{result.modified_count} documentos actualizados exitosamente.")
-            elif result.matched_count > 0:
-                ic("Los documentos ya tenían los valores especificados.")
-            else:
-                ic("No se encontraron documentos que coincidan con la consulta.")
-            return result.modified_count
+            docs = list(self.db[collection].aggregate(pipeline=pipeline))
+            results = [self._convert_objectid(doc) for doc in docs]
+            return {"success": True, "data": results, "context": context}
         except PyMongoError as e:
-            ic(f"Error al actualizar múltiples documentos: {e}")
-            raise
+            self.logger.error(f"[{context}] aggregate failed: {e}")
+            return {"success": False, "error": str(e), "context": context}
 
-    def update_one_revoked(self, collection: str, query: dict, update: dict, upsert: bool) -> UpdateResult:
-        """Actualiza un solo documento"""
-        return self.db[collection].update_one(query, update, upsert)
-
-    def update_mark_token_as_used(self, collection: str, query: dict, update: dict, upsert: bool):
-        """Actualiza un solo documento"""
+    # --------------------------
+    # UPDATE
+    # --------------------------
+    @_retry
+    def update_one(self, collection: str, filtro: Dict[str, Any], update: Dict[str, Any], upsert: bool = False, context: str = "") -> dict:
         try:
-            result = self.db[collection].update_one(query, update, upsert)
-            if result.modified_count == 1:
-                ic(f"Documento actualizado exitosamente. {result.modified_count}")
-            elif result.matched_count == 1 and result.modified_count == 0:
-                ic("El documento ya tenía los valores especificados.")
-            else:
-                ic("No se encontró el documento para actualizar o hubo un error.")
-            return bool(result.modified_count) 
+            col = self._get_collection(collection)
+            result = col.update_one(filtro, {"$set": update}, upsert=upsert)
+            return {"success": True, "matched_count": result.matched_count, "modified_count": result.modified_count, "context": context}
         except PyMongoError as e:
-            ic(f"Error al actualizar: {e}")
-            raise
+            self.logger.error(f"[{context}] update_one failed: {e}")
+            return {"success": False, "error": str(e), "context": context}
 
-    def update_one(self, collection: str, query: dict, update: dict, upsert: bool):
-        """Actualiza un solo documento"""
+    @_retry
+    def upsert_one(self, collection: str, filtro: Dict[str, Any], update: Dict[str, Any], context: str = "") -> dict:
+        return self.update_one(collection, filtro, update, upsert=True, context=context)
+
+    # --------------------------
+    # DELETE
+    # --------------------------
+    @_retry
+    def delete_one(self, collection: str, filtro: Dict[str, Any], context: str = "") -> dict:
         try:
-            result = self.db[collection].update_one(query, update, upsert)
-            if result.modified_count == 1:
-                ic(f"Documento actualizado exitosamente. {result.modified_count}")
-            elif result.matched_count == 1 and result.modified_count == 0:
-                ic("El documento ya tenía los valores especificados.")
-            else:
-                ic("No se encontró el documento para actualizar o hubo un error.")
-            return result.modified_count 
+            col = self._get_collection(collection)
+            result = col.delete_one(filtro)
+            return {"success": True, "deleted_count": result.deleted_count, "context": context}
         except PyMongoError as e:
-            ic(f"Error al actualizar: {e}")
-            raise
+            self.logger.error(f"[{context}] delete_one failed: {e}")
+            return {"success": False, "error": str(e), "context": context}
 
-    def delete_one(self, collection: str, query: dict) -> bool:
-        """Elimina un documento"""
+    # --------------------------
+    # Check connection
+    # --------------------------
+    def ping(self) -> bool:
         try:
-            result = self.db[collection].delete_one(query)
-            ic(f"Documentos eliminados: {result.deleted_count}")
-            return result.deleted_count > 0
-        except PyMongoError as e:
-            ic(f"Error al eliminar: {e}")
-            raise
-
-    def watch_sessions_for_admin(self):
-        with self.db["refresh_tokens"].watch() as stream:
-            ic("⏱️ Escuchando cambios en sesiones...")
-            for change in stream:
-                ic("🔄 Cambio detectado:", json.dumps(change, indent=2))
-                # Aquí puedes filtrar por rol si el documento completo está en `fullDocument`
-                full_doc = change.get("fullDocument")
-                if full_doc and full_doc.get("username") not in ["admin@example.com"]:
-                    continue  # Ignorar cambios de roles no admin
-                # Enviar evento, notificación o actualizar cache, etc.
-                socketio.emit('admin_session_update', {"msg": "Sesión de admin actualizada"}, broadcast=True)
-
-    def insert_with_log(self, collection: str, document: dict, context: str = "") -> dict:
-        """
-        Realiza un insert_one seguro con manejo de errores y log contextual.
-
-        :param collection: Colección PyMongo (db.coleccion)
-        :param document: Documento a insertar (dict)
-        :param context: Nombre del módulo o acción (ej: "Login", "AuditLog")
-        :return: Dict con resultado y mensaje
-        """
-        prefix = f"[{context}] " if context else ""
-
-        try:
-            with self.client.start_session() as session:
-                with session.start_transaction():
-                    result: InsertOneResult = self.db[collection].insert_one(document, session=session)
-                    if result.acknowledged and result.inserted_id:
-                        msg = f"{prefix}✅ Documento insertado correctamente: {result.inserted_id}"
-                    else:
-                        msg = f"{prefix}⚠️ Inserción sin confirmación o sin ID."
-                    self.logger.info(msg)
-                    return {
-                        "success": True,
-                        "context": context,
-                        "acknowledged": result.acknowledged,
-                        "inserted_id": result.inserted_id,
-                        "message": msg
-                    }
- 
-        except PyMongoError as e:
-            msg = f"{prefix}❌ Error al insertar en MongoDB: {e.__class__.__name__}: {e}"
-            self.logger.error(msg)
-            ic(msg)
-            traceback.print_exc()
-            return {
-                "success": False,
-                "error": str(e),
-                "context": context,
-                "trace": traceback.format_exc(),
-                "message": msg
-            }
-
-    def update_with_log(self, collection: str, query: dict, update: dict, upsert: bool, context: str = "") -> dict:
-        """
-        Realiza un update_one seguro con manejo de errores y log contextual.
-
-        :param collection: Nombre de la colección
-        :param query: Filtro para seleccionar el documento a actualizar
-        :param update: Operación de actualización (ej. {"$set": {...}})
-        :param context: Contexto para el log (ej. "Logout", "AuditUpdate")
-        :return: Diccionario con el resultado de la operación
-        """
-        prefix = f"[{context}] " if context else ""
-
-        try:
-            with self.client.start_session() as session:
-                with session.start_transaction():
-                    result: UpdateResult = self.db[collection].update_one(query, update, upsert, session=session)
-                    if result.matched_count == 0:
-                        msg = f"{prefix}⚠️ No se encontró ningún documento para actualizar."
-                    elif result.modified_count == 0:
-                        msg = f"{prefix}ℹ️ Documento encontrado, pero no hubo cambios (ya estaba actualizado)."
-                    else:
-                        msg = f"{prefix}✅ Documento actualizado correctamente."
-
-                    self.logger.info(msg)
-                    return {
-                        "success": True,
-                        "context": context,
-                        "matched_count": result.matched_count,
-                        "modified_count": result.modified_count,
-                        "acknowledged": result.acknowledged,
-                        "message": msg
-                    }
-
-        except PyMongoError as e:
-            msg = f"{prefix}❌ Error al actualizar en MongoDB: {e.__class__.__name__}: {e}"
-            self.logger.error(msg)
-            traceback.print_exc()
-            return {
-                "success": False,
-                "context": context,
-                "error": str(e),
-                "trace": traceback.format_exc(),
-                "message": msg
-            }
-
-    def aggregate(self, collection: str, pipeline: list):
-        try:
-            with self.client.start_session() as session:
-                with session.start_transaction():
-                    result = list(self.db[collection].aggregate(pipeline=pipeline,session=session))
-                    return result
-        except PyMongoError as e:
-            msg = f"❌ Error al List en MongoDB: {e.__class__.__name__}: {e}"
-            self.logger.error(msg)
-            traceback.print_exc()
-            return {
-                "success": False,
-                "error": str(e),
-                "trace": traceback.format_exc(),
-                "message": msg
-            }
-        
-
-
-
-
-
+            self.client.admin.command("ping")
+            return True
+        except Exception as e:
+            self.logger.error(f"Ping MongoDB falló: {e}")
+            return False

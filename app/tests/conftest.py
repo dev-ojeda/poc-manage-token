@@ -46,7 +46,7 @@ def mock_services():
     with patch("app.auth.services.user_service.UserService.get_user_by_username", return_value=None), \
          patch("app.auth.services.auth_service.AuthService.generate_tokens", return_value="fake-access"), \
          patch("app.auth.services.auth_service.AuthService.refresh_access_token", return_value="fake-refresh"), \
-         patch("app.auth.services.auth_service.AuthService.get_refresh_token_from_db", return_value={"refresh_token": "fake-refresh"}), \
+         patch("app.auth.services.auth_service.AuthService.get_refresh_token", return_value={"refresh_token": "fake-refresh"}), \
          patch("app.auth.services.auth_service.AuthService.revoke_old_token", return_value={"success": True}), \
          patch("app.auth.services.session_service.SessionService.register_session", return_value={"success": True}), \
          patch("app.auth.services.session_service.SessionService.update_session", return_value={"success": True}), \

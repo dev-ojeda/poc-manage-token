@@ -4,30 +4,32 @@ import { ApiUser } from "../api/ApiUser.js";
 import { openChat } from "../modules/chatHandler.js";
 import { handleError } from "../utils/errors.js";
 import { IndexedDBStorage } from "../adapters/IndexedDBStorage.js";
-import { initUserPerformanceAudit } from "../utils/auditMetrics.js";
+import { MetricsStorage } from '../adapters/MetricsStorage.js';
+import { loadItemUser } from '../modules/items.js';
 // =======================
 // Configuración inicial
 // =======================
 const API_BASE = import.meta.env?.VITE_API_URL || "https://localhost:5000";
 const storage = new IndexedDBStorage("AuthDB", "tokens");
+const metricsStorage = new MetricsStorage();
 const api_user = new ApiUser({ baseURL: API_BASE, storage });
 
 let tokenTimerInterval = null;
 let userCache = null;
-
+let currentItemPage = 1;
 // =======================
 // Inicialización DOM
 // =======================
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         await storage._init(); // 👈 asegúrate que la DB está lista
-        const { user_name, user_rol, expira } = await allKeys();
-        initUserPerformanceAudit(user_name);
+        await metricsStorage._init();
+        const { user_name, user_rol, expira } = await loadUserCache();
         if (!user_rol) {
             redirectToLogin("No hay token válido, redirigiendo...");
             return;
         }
-
+        initMenuActions();
         renderUserSession(user_name, user_rol);
         startTokenTimer(expira);
         document.getElementById("logoutBtn")?.addEventListener("click", async (e) => {
@@ -36,6 +38,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             e.stopPropagation();
         });
         setupUnloadLogout();
+        initPerformanceAudit();
+        attachClickMetricsCategory();
         openChat(user_rol);
 
     } catch (err) {
@@ -53,12 +57,11 @@ document.addEventListener("startTokenTimer", ({ detail }) => {
     startTokenTimer(new_expiracion);
 });
 
-
 // =======================
 // Funciones principales
 // =======================
 
-async function allKeys() {
+async function loadUserCache() {
     // esperar a que storage esté inicializado
     if (storage.ready) await storage.ready;
     if (userCache) return userCache;
@@ -66,10 +69,8 @@ async function allKeys() {
     try {
 
 
-        const response = await api_user.get("/api/auth/dashboard");
+        const { username, rol, device_id, exp, jti } = await api_user.get("/api/auth/dashboard");
 
-        // Intentar obtener desde backend
-        const { username, rol, device_id, exp, jti } = response;
         userCache = {
             user_name: username,
             user_rol: rol,
@@ -77,20 +78,21 @@ async function allKeys() {
             expira: exp,
             user_jti: jti
         };
-
-        await storage.set("username", username);
-        await storage.set("rol", rol);
-        await storage.set("device_id", device_id);
-        await storage.set("jti", jti);
+        await Promise.all([
+            storage.set("username", username),
+            storage.set("rol", rol),
+            storage.set("device_id", device_id),
+            storage.set("jti", jti),
+            storage.set("exp", exp)
+        ]);
 
         return userCache;
-    } catch (err) {
-        console.warn("⚠️ Dashboard no disponible, usando cache local...", err);
-
-        const user_name = await storage.get("user_name") || "Desconocido";
-        const user_rol = await storage.get("user_rol") || null;
-
-        return (userCache = { user_name, user_rol });
+    } catch {
+        console.warn("⚠️ Dashboard no disponible, usando cache local...");
+        const user_name = await storage.get("username") || "Desconocido";
+        const user_rol = await storage.get("rol") || null;
+        const expira = await storage.get("exp") || null;
+        return (userCache = { user_name, user_rol, expira });
     }
 }
 
@@ -105,7 +107,16 @@ function renderUserSession(user_name, user_rol) {
 function setupUnloadLogout() {
     window.addEventListener("beforeunload", () => api_user.logout("close"));
 }
+function toggleSections(sections, activeKey) {
+    Object.values(sections).forEach(sel => {
+        if (!sel) return;
+        const sec = document.querySelector(sel);
+        if (sec) sec.style.display = "none";
+    });
 
+    const activeSel = sections[activeKey];
+    if (activeSel) document.querySelector(activeSel).style.display = "block";
+}
 function redirectToLogin(msg) {
     if (msg) showAlert(msg, "danger", 5000);
     window.location.href = "/";
@@ -203,3 +214,182 @@ function formatRemaining(ms) {
     const seconds = totalSec % 60;
     return hours > 0 ? `${hours}h ${minutes}m ${seconds}s` : `${minutes}m ${seconds}s`;
 }
+
+
+async function storeMetrics(metric = {}) {
+    if (!userCache) return;
+
+    const enriched = {
+        username: userCache.user_name,
+        rol: userCache.user_rol,
+        type: metric.type,
+        value: metric.value,
+        action: metric.action,
+        category: metric.category || "other",   // 👈 Aquí la clave
+        ts: Date.now()
+    };
+
+    await metricsStorage.set(enriched);
+}
+
+function attachClickMetricsCategory() {
+    // Clicks en cualquier control interactivo
+    document.body.addEventListener("click", e => {
+        const el = e.target.closest("button, a, input, select, textarea");
+        if (el) measureInteraction(el, "click");
+    });
+
+    // Cambios en inputs/select/textarea
+    document.body.addEventListener("change", e => {
+        const el = e.target.closest("input, select, textarea");
+        if (el) measureInteraction(el, "change");
+    });
+
+    // Teclas en inputs/textarea
+    document.body.addEventListener("keydown", e => {
+        const el = e.target.closest("input, textarea");
+        if (el) measureInteraction(el, `keydown:${e.key}`);
+    });
+
+    document.body.addEventListener("keyup", e => {
+        const el = e.target.closest("input, textarea");
+        if (el) measureInteraction(el, `keyup:${e.key}`);
+    });
+}
+function getElementDescriptor(el, interactionType) {
+    const tag = el.tagName.toLowerCase();
+    const id = el.id ? `#${el.id}` : "";
+    const name = el.name ? `[name=${el.name}]` : "";
+    const type = el.type ? `[type=${el.type}]` : "";
+    const datasetAction = el.dataset.action ? `[data-action=${el.dataset.action}]` : "";
+
+    return `${tag}${id}${name}${type}${datasetAction}-${interactionType}`;
+}
+function measureInteraction(el, interactionType) {
+    const t0 = performance.now();
+    setTimeout(() => {
+        const t1 = performance.now();
+        const inputDelay = Math.round(t1 - t0);
+
+        requestAnimationFrame(() => {
+            const t2 = performance.now();
+            const presentationDelay = Math.round(t2 - t1);
+
+            const descriptor = getElementDescriptor(el, interactionType);
+
+            // 🔹 Categoría dinámica
+            let category = "other";
+            if (["button", "a"].includes(el.tagName.toLowerCase())) category = "button";
+            else if (["input", "select", "textarea"].includes(el.tagName.toLowerCase())) category = "input";
+
+            storeMetrics({
+                type: "inputDelay",
+                value: inputDelay,
+                action: descriptor,
+                category
+            });
+
+            storeMetrics({
+                type: "presentationDelay",
+                value: presentationDelay,
+                action: descriptor,
+                category
+            });
+        });
+    }, 0);
+}
+function initPerformanceAudit() {
+    class PerformanceAudit {
+        constructor(sendAuditLogFn) {
+            this.sendAuditLog = sendAuditLogFn;
+            this.observers = [];
+        }
+
+        init() {
+            this.observeLCP();
+            this.observeFID();
+        }
+
+        observeLCP() {
+            const lcpObs = new PerformanceObserver((list) => {
+                const last = list.getEntries().slice(-1)[0];
+                if (last) this.sendAuditLog({ metric: "LCP", value: last.startTime, element: last.element?.tagName || null, ts: Date.now() });
+            });
+            lcpObs.observe({ type: "largest-contentful-paint", buffered: true });
+            this.observers.push(lcpObs);
+        }
+
+        observeFID() {
+            const fidObs = new PerformanceObserver((list) => {
+                list.getEntries().forEach(entry => {
+                    this.sendAuditLog({ metric: "FID", inputDelay: entry.processingStart - entry.startTime, processingDuration: entry.duration, target: entry.target?.tagName || null, ts: Date.now() });
+                });
+            });
+            fidObs.observe({ type: "first-input", buffered: true });
+            this.observers.push(fidObs);
+        }
+        observeCLS() {
+            let clsValue = 0;
+            const clsObs = new PerformanceObserver((list) => {
+                for (const entry of list.getEntries()) {
+                    if (!entry.hadRecentInput) {
+                        clsValue += entry.value;
+                        storeMetrics({ type: "CLS", value: Number(clsValue.toFixed(3)) });
+                    }
+                }
+            });
+            clsObs.observe({ type: "layout-shift", buffered: true });
+            this.observers.push(clsObs);
+        }
+
+        disconnect() { this.observers.forEach(o => o.disconnect()); this.observers = []; }
+    }
+
+    const audit = new PerformanceAudit(async (data) => {
+        await metricsStorage.set({
+            username: userCache.user_name,
+            rol: userCache.user_rol,
+            type: data.metric,
+            value: data.inputDelay || data.value || 0,
+            action: data.target || data.element || "unknown",
+            category: "performance",
+            ts: Date.now()
+        });
+    });
+
+    audit.init();
+}
+function initMenuActions() {
+    const sections = {
+        "item-usuario": "#userItemsSection",
+    };
+    document.body.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-action]");
+        if (!btn) return;
+        e.preventDefault();
+        const action = btn.dataset.action;
+        toggleSections(sections, action);
+        try {
+            switch (action) {
+                case "item-usuario":
+                    currentItemPage = 1;
+                    await loadItemUser(currentItemPage,api_user);
+                    break;
+                default:
+                    console.warn("⚠️ Acción desconocida:", action);
+            }
+        } catch (err) {
+            showAlert(`❌ Error acción: ${err.message}`, "danger");
+        }
+    });
+
+    document.getElementById("addItemBtn")?.addEventListener("click", async () => {
+        const name = document.getElementById("itemNameInput").value;
+        const description = document.getElementById("itemDescInput").value;
+        if (name && description) {
+            await api_user.createItem({ name, description });
+            await loadItemUser(currentItemPage, api_user);
+        } 
+    });
+}
+

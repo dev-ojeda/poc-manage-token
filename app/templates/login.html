@@ -1,5 +1,5 @@
-{% extends 'layout.html' %}
-{% block title %}Login{% endblock %}
+{% extends 'base.html' %}
+{% block title %} {{ title }}{% endblock %}
 {% block content %}
 <section class="my-5 d-flex justify-content-center">
     <div class="card col-md-4">
@@ -17,7 +17,7 @@
                     <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
                     <div class="invalid-feedback">Por favor ingresa tu contraseña.</div>
                 </div>
-                <button id="loginBtn" type="submit" class="btn btn-primary w-100">Entrar</button>
+                <button id="loginBtn" type="submit" class="btn btn-primary w-100">Login</button>
             </form>
         </div>
         <div class="card-footer bg-body-secondary"></div>

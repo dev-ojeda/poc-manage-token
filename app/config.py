@@ -48,14 +48,22 @@ class Config:
         "Manager": "limited_control",
         "User": "read_only"
     }
-    CORS_ORIGINS = [
-        "http://localhost:5000",
-        "https://localhost:5000",
-        "https://127.0.0.1:5000",
-        "http://127.0.0.1:5000",
-        "https://localhost:443",
-        "http://127.0.0.1:443"
-    ]
+    CORS_ORIGINS = os.getenv(
+        "CORS_ORIGINS", "http://localhost:5000,https://localhost:5000,https://127.0.0.1:5000,http://127.0.0.1:5000,https://localhost:443,http://127.0.0.1:443,https://localhost:5001,https://localhost:5002,https://localhost:5003"
+    ).split(",")
+    # CORS_ORIGINS = [
+    #     "http://localhost:5000",
+    #     "https://localhost:5000",
+    #     "https://127.0.0.1:5000",
+    #     "http://127.0.0.1:5000",
+    #     "https://localhost:443",
+    #     "http://127.0.0.1:443"
+    # ]
+    SERVICES = {
+        "users": "https://localhost:5001",
+        "metrics": "https://localhost:5002",
+        "payments": "https://localhost:5003"
+    }
     USE_SOCKETIO = False
     SOCKETIO_PING_INTERVAL = 25
     SOCKETIO_PING_TIMEOUT = 60

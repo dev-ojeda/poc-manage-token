@@ -1,33 +1,72 @@
-{% extends 'layout.html' %}
-{% block title %}Panel Admin Full-Stack{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div id="dashboardContent" style="display:none;">
-    <!-- Resumen tipo Lighthouse -->
-    <div id="lighthouseSummary" class="container my-3 p-3 border rounded bg-light" style="display:none;">
-        <h3>🚀 Performance Summary</h3>
-        <div class="d-flex gap-4 flex-wrap">
-            <div>FID Avg: <span id="fidAvg">-</span> ms</div>
-            <div>LCP Avg: <span id="lcpAvg">-</span> ms</div>
-            <div>CLS Avg: <span id="clsAvg">-</span></div>
-            <div>Status: <span id="perfStatus">-</span></div>
+    <div id="auditPanel" class="container my-3 p-3 border rounded bg-light" style="display:block;">
+        <h3>Auditoría en tiempo real</h3>
+        <button id="startAuditBtn">▶️ Iniciar Auditoría</button>
+        <button id="stopAuditBtn">⏹ Detener Auditoría</button>
+        <div style="margin-top: 1rem;">
+            <strong>Métricas Web Vitals capturadas:</strong> <span id="webVitalsCount">0</span><br>
+            <strong>Métricas Web Vitals total:</strong> <span id="webVitalsTotal">0</span><br>
+            <strong>Métricas API capturadas:</strong> <span id="apiCount">0</span>
+            <strong>Métricas API total:</strong> <span id="apiTotal">0</span>
         </div>
-        <select id="roleSelector" class="form-select mt-2 w-auto">
-            <option value="User">User</option>
-            <option value="Admin">Admin</option>
-        </select>
-        <button id="exportCSV" class="btn btn-sm btn-success mt-2">Export CSV</button>
-        <!-- Gráficos en tiempo real -->
-        <div id="canvaSummary" class="container my-4">
-            <div class="row">
-                <div class="col-md-6">
-                    <canvas id="inputDelayChart"></canvas>
+    </div>
+    <!-- Resumen tipo Lighthouse Overview -->
+    <div id="overview" class="container my-3 p-3 border rounded bg-light" style="display:none;">
+        <h3>Overview</h3>
+        <div id="kpiContainer" class="d-flex gap-2 flex-wrap"></div>
+        <div class="chart-container">
+            <canvas id="categoryChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="realtimeChart"></canvas>
+        </div>
+        <p class="mt-2 small text-muted">Última actualización: <span id="lastUpdate">--</span></p>
+    </div>
+    <!-- Resumen tipo Lighthouse Endpoints -->
+    <div id="endpoints" class="container my-3 p-3 border rounded bg-light" style="display:none;">
+        <h1>Charts por categoría</h1>
+        <div id="charts"></div>
+    </div>
+    <!-- Resumen tipo Lighthouse Metricas Api -->
+    <div id="metricsApi" class="container my-3 p-3 border rounded bg-light" style="display:none;">
+        <h2 class="mb-4">📡 API Metrics Dashboard</h2>
+
+        <div class="row g-4">
+            <!-- Tabla -->
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">Últimos endpoints</div>
+                    <div class="card-body">
+                        <table class="table table-sm table-hover" id="metricsTable">
+                            <thead>
+                                <tr>
+                                    <th>URL</th>
+                                    <th>Método</th>
+                                    <th>Duración (ms)</th>
+                                    <th>Tamaño (KB)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <canvas id="presentationDelayChart"></canvas>
+            </div>
+
+            <!-- Chart -->
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">Duración de llamadas</div>
+                    <div class="card-body">
+                        <canvas id="durationChart" height="150"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    <!-- Auditoría de Sessiones -->
     <div id="audit-session" class="container mt-4" style="display:none">
         <h2 class="mb-4">🔐 Sesiones activas</h2>
         <label for="statusFilter" class="form-label">Filtrar por estado:</label>
@@ -133,5 +172,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
 <script type="module" src="{{ url_for('static', filename='js/main/admin.js') }}"></script>
 {% endblock %}

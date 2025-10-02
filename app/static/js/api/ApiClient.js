@@ -123,7 +123,9 @@ export class ApiClient {
             if (response.status === 500) {
                 throw { message: `💥 ${data.msg}`, code: data.code || "INTERNAL_SERVER_ERROR", raw: data };
             }
-
+            if (response.status === 429) {
+                throw { message: `💥 ${data.msg}`, code: data.code || "RATE_LIMIT_EXCEEDED", raw: data };
+            }
             if (!response.ok) {
                 throw { message: data.msg || "Error desconocido", code: data.code || "UNKNOWN_ERROR", raw: data };
             }
@@ -134,7 +136,9 @@ export class ApiClient {
             else if (data.status === 403) {
                 throw { message: `🚫 Bloqueado: ${data.msg} ${this.formatDateSantiago(data.bloqueado_hasta) ? "hasta " + this.formatDateSantiago(data.bloqueado_hasta) : ""}`, code: data.code || "FORBIDDEN", raw: data };
             }
-
+            else if (data.status === 429) {
+                throw { message: `💥 ${data.msg}`, code: data.code || "RATE_LIMIT_EXCEEDED", raw: data };
+            }
             return data;
         
         } catch (err) {

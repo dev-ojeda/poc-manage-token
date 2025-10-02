@@ -1,172 +1,92 @@
-import datetime
-from datetime import timezone
+from typing import Optional, Dict, List, Any
 from bson import ObjectId
-from app.utils.db_mongo import MongoDatabase
-from app.model import UserSessionModel
+from datetime import datetime, timezone
+from pymongo.errors import PyMongoError
 
-class SessionDAO:
-    def __init__(self,db=None):
-        self.db = db or MongoDatabase()
-        self.active_sessions = "active_sessions"
-        self.users = "users"
+from app.model.user_session_model import UserSessionModel
+from app.dao.base_dao import BaseDAO
 
-    def insert_session(self, session: UserSessionModel) -> dict:
-        return self.db.insert_with_log(self.active_sessions,session.to_dict(),context="Insertar sesión activa")
-    def get_active_session(self, user_id: ObjectId, device_id: str) -> dict:
-        query={
-            "user_id": user_id,
-            "device_id": device_id
-         }
+
+class SessionDAO(BaseDAO):
+    def __init__(self, db=None):
+        super().__init__(db=db, collection_name="active_sessions")
+        self.users_collection = "users"
+
+    def _now(self) -> datetime:
+        return datetime.now(tz=timezone.utc)
+
+    # ---------------------
+    # CRUD de sesiones
+    # ---------------------
+    def insert_session(self, session: UserSessionModel, *, context="Insertar sesión activa") -> dict:
+        return self.insert_one(session.to_dict(), context=context)
+
+    def get_active_session(self, user_id: ObjectId, device_id: Optional[str] = None, *, context="Get Active Session") -> dict:
+        query = {"user_id": user_id}
+        if device_id:
+            query["device_id"] = device_id
         projection = {
-            "_id": 1,
-            "user_id": 1,
-            "device_id": 1,
-            "ip_address": 1,
-            "browser": 1,
-            "os": 1,
-            "login_at": 1,
-            "last_refresh_at": 1,
-            "refresh_token": 1,
-            "is_revoked": 1,
-            "reason": 1
+            "_id": 1, "user_id": 1, "device_id": 1, "ip_address": 1,
+            "browser": 1, "os": 1, "login_at": 1, "last_refresh_at": 1,
+            "refresh_token": 1, "is_revoked": 1, "reason": 1
         }
-        return self.db.find_one(self.active_sessions,query=query,projection=projection)
-    def get_active_session_by_Id(self, user_id: ObjectId) -> dict:
-       return self.db.find_one(self.active_sessions,{"user_id": user_id},{
-            "_id": 1,
-            "user_id": 1,
-            "device_id": 1,
-            "ip_address": 1,
-            "browser": 1,
-            "os": 1,
-            "login_at": 1,
-            "last_refresh_at": 1,
-            "refresh_token": 1,
-            "is_revoked": 1,
-            "reason": 1
-        })
-    def find_previous_session(self, username: str, device_id: str) -> dict:
-        # Buscar sesión previa con mismo usuario + dispositivo
-        return self.db.find_one(
-                self.active_sessions,
-                {"username": username, "device_id":device_id}
-        )
-    def device_id_exists(self, device_id: str) -> dict:
+        return self.find_one(query=query, projection=projection, context=context)
+
+    def find_previous_session(self, username: str, device_id: str, *, context="Find Previous Session") -> dict:
+        query = {"username": username, "device_id": device_id}
+        return self.find_one(query=query, context=context)
+
+    def device_id_exists(self, device_id: str, *, context="Check Device ID") -> bool:
         query = {"device_id": device_id}
-        projection = {
-            "device_id": 1
-        }
-        result = self.db.find_one(collection=self.active_sessions,query=query,projection=projection)
-        return result
-    def get_active_session_by_id_session(self, user_id: ObjectId) -> dict:
-        query={
-            "user_id": user_id
-         }
-        projection = {
-            "_id": 1,
-            "user_id": 1,
-            "device_id": 1,
-            "ip_address": 1,
-            "browser": 1,
-            "os": 1,
-            "login_at": 1,
-            "last_refresh_at": 1,
-            "refresh_token": 1,
-            "is_revoked": 1,
-            "reason": 1
-        }
-        return self.db.find_one(self.active_sessions,query=query,projection=projection)
-    def revoked_session(self, user_id: ObjectId, reason: str):
-        revoked_at = datetime.datetime.now(tz=timezone.utc)
-        query={"user_id": user_id}
-        update_fields = {
-            "$set": {
-                "is_revoked": True,
-                "revoked_at": revoked_at,
-                "status": "revoked",
-                "reason": reason
-            }
-        }
-        return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Revocar Session")
-    def update_session(self, user_id:ObjectId, token: str, reason: str):
-        last_refresh_at = datetime.datetime.now(tz=timezone.utc)
-        query={"user_id": user_id}
+        projection = {"device_id": 1}
+        result = self.find_one(query=query, projection=projection, context=context)
+        return bool(result.get("data"))
+
+    def revoke_session(self, user_id: ObjectId, reason: str, *, context="Revoke Session") -> dict:
+        query = {"user_id": user_id}
+        update_fields = {"$set": {"is_revoked": True, "revoked_at": self._now(), "status": "revoked", "reason": reason}}
+        return self.update_with_log(query=query, update=update_fields, upsert=False, context=context)
+
+    def update_session(self, user_id: ObjectId, token: str, reason: str, *, context="Update Session") -> dict:
+        query = {"user_id": user_id}
         update_fields = {
             "$set": {
                 "is_revoked": False,
                 "revoked_at": None,
-                "last_refresh_at": last_refresh_at,
+                "last_refresh_at": self._now(),
                 "refresh_token": token,
                 "status": "active",
                 "reason": reason
+            }
+        }
+        return self.update_with_log(query=query, update=update_fields, upsert=False, context=context)
 
-            }
-        }
-        return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Session Cerrada")
-    def update_session_for_audit(self, user_id: ObjectId, ip_address: str, browser: str, reason: str) -> dict:
-        last_refresh_at = datetime.datetime.now(tz=timezone.utc)
-        query={"user_id": user_id}
-        update_fields = {
-            "$set": {
-                "ip_address": ip_address,
-                "browser": browser,
-                "last_refresh_at": last_refresh_at,
-                "reason": reason
-            }
-        }
-        return self.db.update_with_log(self.active_sessions,query=query,update=update_fields,upsert=False,context="Session Actualizada")
-    def has_active_session(self, user_id: ObjectId) -> bool:
-        filtro = {
-            "user_id": user_id,
-            "status": "active",
-            "is_revoked": False
-        }
-        count = self.db.count_documents(collection=self.active_sessions, filtro=filtro)
-        return count > 0
-    def get_active_sessions_with_user_data(self, filtro_status: str = None):
-        match_stage = {
-            "user_data.rol": {"$ne": "Admin"},
-            "revoked_at": None
-        }
-         # Si se pasa un estado específico, lo agregamos al filtro
-        if filtro_status:
-            match_stage["status"] = filtro_status
-        else:
-            match_stage["status"] = {"$in": ["active", "revoked", "expired"]}
-        
+    def update_session_for_audit(self, user_id: ObjectId, ip_address: str, browser: str, reason: str, *, context="Update Session Audit") -> dict:
+        query = {"user_id": user_id}
+        update_fields = {"$set": {"ip_address": ip_address, "browser": browser, "last_refresh_at": self._now(), "reason": reason}}
+        return self.update_with_log(query=query, update=update_fields, upsert=False, context=context)
+
+    def has_active_session(self, user_id: ObjectId, *, context="Check Active Session") -> bool:
+        filtro = {"user_id": user_id, "status": "active", "is_revoked": False}
+        count_result = self.count_documents(filtro, context=context)
+        return count_result.get("count", 0) > 0
+
+    # ---------------------
+    # Consultas avanzadas
+    # ---------------------
+    def get_active_sessions_with_user_data(self, filtro_status: Optional[str] = None, *, context="Get Active Sessions With User Data") -> dict:
+        match_stage: Dict[str, Any] = {"user_data.rol": {"$ne": "Admin"}, "revoked_at": None}
+        match_stage["status"] = filtro_status if filtro_status else {"$in": ["active", "revoked", "expired"]}
+
         pipeline = [
-            {
-                "$lookup": {
-                    "from": self.users,                 # Colección con la que haces join
-                    "localField": "user_id",         # Campo en active_sessions
-                    "foreignField": "_id",           # Campo en users
-                    "as": "user_data"                # Nombre del campo resultante
-                }
-            },
-            {
-                "$unwind": "$user_data"  # Aplana el array de user_data (siempre que haya match)
-            },
-            {
-                "$match": match_stage
-            },
-            {
-                "$project": {
-                    "_id": 1,
-                    "user_id": 1,
-                    "ip_address": 1,
-                    "browser": 1,
-                    "os": 1,
-                    "device_id": 1,
-                    "login_at": 1,
-                    "last_refresh_at": 1,
-                    "refresh_token": 1,
-                    "is_revoked": 1,
-                    "reason": 1,
-                    "status": 1,
-                    "user_data.username": 1,
-                    "user_data.email": 1,
-                    "user_data.rol": 1
-                }
-            }
+            {"$lookup": {"from": self.users_collection, "localField": "user_id", "foreignField": "_id", "as": "user_data"}},
+            {"$unwind": "$user_data"},
+            {"$match": match_stage},
+            {"$project": {
+                "_id": 1, "user_id": 1, "device_id": 1, "ip_address": 1,
+                "browser": 1, "os": 1, "login_at": 1, "last_refresh_at": 1,
+                "refresh_token": 1, "is_revoked": 1, "reason": 1, "status": 1,
+                "user_data.username": 1, "user_data.email": 1, "user_data.rol": 1
+            }}
         ]
-        return list(self.db.aggregate(self.active_sessions,pipeline))
+        return self.aggregate(pipeline)

@@ -25,6 +25,9 @@ export async function handleError(err) {
         case "SERVER_ERROR":
             showAlert(`❌ ${msg}`, "danger", 8000);
             break;
+        case "RATE_LIMIT_EXCEEDED":
+            showAlert(`${msg}`, "danger", 8000);
+            break;
         case "INVALID_USER":
             endSession(`❌ ${msg}`, "danger", 5000);
             break;
@@ -54,6 +57,7 @@ export async function handleError(err) {
         case "CONFLICT":
             showAlert("❌ Ya existe una sesión activa en otro dispositivo.", "danger", 5000);
             break;
+        case "INVALID_REVOKED_TOKEN":
         case "INVALID_REVOKED_TOKEN_BLACKLIST":
             await endSession(`⚠️ ${msg}`, "warning", 8000);
             break;
@@ -95,5 +99,5 @@ export async function handleError(err) {
 
 export async function clearSession() {
     await storage.clearAll();
-    await metricsStorage.clearAll();
+    //await metricsStorage.clearAll();
 }

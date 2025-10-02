@@ -4,6 +4,7 @@ from typing import Optional, Literal
 from bson import ObjectId
 import bcrypt
 
+
 class UserModel:
     def __init__(
         self,
@@ -15,57 +16,56 @@ class UserModel:
         updated_at: Optional[datetime.datetime] = None,
         failed_attempts: int = 0,
         blocked_until: Optional[datetime.datetime] = None,
-        _id: Optional[ObjectId] = None
+        _id: Optional[ObjectId] = None,
+        password_hashed: bool = False  # si True, no aplica hash de nuevo
     ):
         self._id = _id or ObjectId()
         self._username = username
-        # Usamos el setter para que aplique hash si es necesario
-        self.password = password
-        self._email = email
         self._rol = rol
+        self._email = email
         self._created_at = created_at or datetime.datetime.now(tz=timezone.utc)
         self._updated_at = updated_at or datetime.datetime.now(tz=timezone.utc)
         self._failed_attempts = failed_attempts
         self._blocked_until = blocked_until
 
-    # Getter y setter para _id (solo getter porque el id no debería cambiar)
+        if password_hashed:
+            self._password = password
+        else:
+            self.password = password  # aplica hash automáticamente vía setter
+
+    # ------------------------------
+    # Propiedades
+    # ------------------------------
     @property
     def id(self) -> ObjectId:
         return self._id
 
-    # Getter y setter para username
     @property
     def username(self) -> str:
         return self._username
 
     @username.setter
     def username(self, value: str):
-        # Aquí podrías validar, ej. que no esté vacío
         if not value:
             raise ValueError("Username no puede estar vacío")
         self._username = value
 
-    # Getter y setter para password (settear con hash)
     @property
     def password(self) -> str:
         return self._password
 
     @password.setter
     def password(self, value: str):
-        # Siempre guarda la versión hasheada
-        self._password = value
+        self._password = self.hash_password(value)
 
-    # Getter y setter para email
     @property
     def email(self) -> Optional[str]:
         return self._email
 
     @email.setter
     def email(self, value: Optional[str]):
-        # Aquí podrías validar formato email si quieres
         self._email = value
 
-    # Getter y setter para rol
     @property
     def rol(self) -> Literal["User", "Admin"]:
         return self._rol
@@ -76,12 +76,10 @@ class UserModel:
             raise ValueError("Rol debe ser 'User' o 'Admin'")
         self._rol = value
 
-    # created_at solo getter (no se debe cambiar)
     @property
     def created_at(self) -> datetime.datetime:
         return self._created_at
 
-    # updated_at getter y setter
     @property
     def updated_at(self) -> datetime.datetime:
         return self._updated_at
@@ -90,7 +88,6 @@ class UserModel:
     def updated_at(self, value: datetime.datetime):
         self._updated_at = value
 
-    # failed_attempts getter y setter
     @property
     def failed_attempts(self) -> int:
         return self._failed_attempts
@@ -101,7 +98,6 @@ class UserModel:
             raise ValueError("failed_attempts no puede ser negativo")
         self._failed_attempts = value
 
-    # blocked_until getter y setter
     @property
     def blocked_until(self) -> Optional[datetime.datetime]:
         return self._blocked_until
@@ -110,21 +106,23 @@ class UserModel:
     def blocked_until(self, value: Optional[datetime.datetime]):
         self._blocked_until = value
 
-    # Métodos que ya tenías (sin cambios salvo usar propiedades internas)
+    # ------------------------------
+    # Métodos auxiliares
+    # ------------------------------
     def to_dict(self) -> dict:
         return {
-            "_id": self._id,
-            "username": self._username,
-            "password": self._password,
-            "email": self._email,
-            "rol": self._rol,
-            "created_at": self._created_at,
-            "updated_at": self._updated_at,
-            "failed_attempts": self._failed_attempts,
-            "blocked_until": self._blocked_until
+            "_id": self.id,
+            "username": self.username,
+            "password": self.password,
+            "email": self.email,
+            "rol": self.rol,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "failed_attempts": self.failed_attempts,
+            "blocked_until": self.blocked_until
         }
 
-    def to_json(self):
+    def to_json(self) -> dict:
         d = self.to_dict()
         d["_id"] = str(d["_id"])
         d["created_at"] = d["created_at"].isoformat()
@@ -134,14 +132,19 @@ class UserModel:
         return d
 
     def is_blocked_now(self) -> bool:
-        return self.blocked_until is not None and self.update_timestamp() < self.blocked_until.replace(tzinfo=timezone.utc)
+        """Verifica si el usuario está bloqueado actualmente"""
+        now = datetime.datetime.now(tz=timezone.utc)
+        return self.blocked_until is not None and now < self.blocked_until.replace(tzinfo=timezone.utc)
 
     def update_timestamp(self) -> datetime.datetime:
         self.updated_at = datetime.datetime.now(tz=timezone.utc)
         return self.updated_at
 
+    # ------------------------------
+    # Métodos de clase
+    # ------------------------------
     @staticmethod
-    def from_dict(data: dict) -> "UserModel":
+    def from_dict(data: dict, password_hashed: bool = True) -> "UserModel":
         return UserModel(
             username=data.get("username"),
             password=data.get("password"),
@@ -151,13 +154,14 @@ class UserModel:
             updated_at=data.get("updated_at"),
             failed_attempts=data.get("failed_attempts", 0),
             blocked_until=data.get("blocked_until"),
-            _id=data.get("_id")
+            _id=data.get("_id"),
+            password_hashed=password_hashed
         )
 
     @staticmethod
-    def hash_password(plain_password):
+    def hash_password(plain_password: str) -> str:
         return bcrypt.hashpw(plain_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
     @staticmethod
-    def verify_password(plain_password, hashed_password):
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
         return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))

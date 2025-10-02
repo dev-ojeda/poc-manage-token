@@ -1,5 +1,5 @@
-{% extends 'layout.html' %}
-{% block title %}Panel{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div id="dashboardContent" style="display:none;">
     <h2><span id="userName"></span></h2>
@@ -98,7 +98,7 @@ End of status report
 
     // Escuchar si su sesión fue revocada
     socket.on("session_revoked", (data) => {
-        showAlert(data.message,"warning",5000)
+        showAlert(data.message, "warning", 5000)
         clearSession();
     });
 </script>

@@ -1,12 +1,10 @@
+// js/auth.js
 import { ApiUser } from "../js/api/ApiUser.js";
 import { ApiAdmin } from "../js/api/ApiAdmin.js";
 import { IndexedDBStorage } from "../js/adapters/IndexedDBStorage.js";
 import { clearSession, handleError } from "../js/utils/errors.js"
 // =======================
 // Instancias API
-// =======================
-// =======================
-// Configuración global
 // =======================
 const API_BASE = import.meta.env?.VITE_API_URL || "https://localhost:5000";
 const storage = new IndexedDBStorage("AuthDB", "tokens");
@@ -26,17 +24,18 @@ async function doLogin(username, password) {
         ? api.admin.login(username, password)
         : api.user.login(username, password);
 }
-//async function fetchDashboard(username) {
-//    const isAdmin = username.includes("admin");
-//    return isAdmin
-//        ? api.admin.getDashboard()
-//        : api.user.getDashboard();
-//}
 
 function redirectByRole(role) {
-    location.replace(role === "Admin" ? "/admin/dashboard" : "/dashboard");
+    switch (role) {
+        case "Admin":
+            location.replace("/admin/dashboard");
+            break;
+        case "User":
+        default:
+            location.replace("/dashboard");
+            break;
+    }
 }
-
 // =======================
 // Inicialización
 // =======================
@@ -66,22 +65,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
   
-        const username = String(document.getElementById("username").value.trim());
-        const password = document.getElementById("password").value;
+        const username = String(form.username.value.trim());
+        const password = form.password.value;
+        try {
+            const res = await doLogin(username, password);
+            if (!res) return;
 
-        // 🔑 Login
-        const res = await doLogin(username, password);
-        if (!res) return;
+            // 🚀 Ahora rediriges con lo que diga el backend
+            redirectByRole(res.rol || "User");
 
-        // 📊 Dashboard
-        //const dashboard = await fetchDashboard(username);
-        //console.log("DASHBOARD", dashboard);
+        } catch (err) {
+            handleError(err);
+        }
 
-        //if (!dashboard) return;
-
-        // 🔥 Redirección según rol
-        redirectByRole(res.rol || "User");
-
-        e.stopPropagation();
     });
 });

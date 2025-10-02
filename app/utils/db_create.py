@@ -4,8 +4,10 @@ import datetime
 from datetime import timedelta, timezone
 import json
 import random
+import time
 import uuid
 
+from bson import ObjectId
 from pymongo.cursor import SON
 from app.config import Config
 from pymongo import ASCENDING, DESCENDING, errors
@@ -13,9 +15,14 @@ from pymongo.mongo_client import MongoClient, OperationFailure
 from pymongo.server_api import ServerApi
 from icecream import ic
 from faker import Faker
+
+from app.dao.metrics_dao import MetricsDAO
+from app.model.metrics_model import MetricModel
 # client = MongoClient("mongodb://localhost:27017/")
 client = MongoClient(Config.MONGO_URI_CLUSTER_X509, tls=True, tlsCertificateKeyFile=Config.MONGODB_X509, server_api=ServerApi('1'),tz_aware=True, tzinfo=timezone.utc)
 db = client[Config.MONGO_DB]
+col_metrics_api = db["performance_metrics_api"]
+col_metrics = db["metrics"]
 faker = Faker()
 # Eventos disponibles
 event_types = [
@@ -41,11 +48,10 @@ user_agents = [
     "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2)",
     "PostmanRuntime/7.31.3"
 ]
-
+# UserId de prueba
+user_id = "68734c48ee99af408e0781a0"
+user_oid = ObjectId(user_id)
 # Configuración
-roles = "User"
-browsers = ["Chrome", "Firefox", "Safari", "Edge", "Opera"]
-oses = ["Windows", "Linux", "MacOS", "Android", "iOS"]
 reasons = [
     "ip_change",
     "user_agent_change",
@@ -71,9 +77,17 @@ base_user = {
     "failed_attempts": 0,
     "blocked_until": None
 }
-
-roles = ["User"]
-domains = ["example.com", "test.com", "mail.com", "demo.org"]
+# Configuración de prueba
+pages = ["/profile", "/dashboard", "/login", "/signup"]
+urls = pages
+roles = ["user", "admin"]
+browsers = ["Chrome", "Firefox", "Edge", "Safari"]
+oses = ["Windows", "MacOS", "Linux"]
+categories = ["apiresponsetime", "webvitals"]
+metric_names = {
+    "apiresponsetime": ["GET /api/profile", "POST /api/login", "GET /api/dashboard"],
+    "webvitals": ["LCP", "FID", "CLS", "INP", "TTFB"]
+}
 def db_create_collection():
     # 1. Crear colección con validación opcional
     try:
@@ -363,6 +377,72 @@ def db_create_collection():
             except errors.OperationFailure as e:
                 ic(f"Error creando índice: {e}")
             ic("Colección 'token_blacklist' creada")
+        elif "items" not in db.list_collection_names():
+            db.create_collection(
+                "items",
+                validator={
+                    "$jsonSchema": {
+                        "bsonType": "object",
+                        "required": ["user_id", "name", "created_at", "updated_at"],
+                        "properties": {
+                            "user_id": {
+                                "bsonType": "objectId",
+                                "description": "ID del usuario propietario (ObjectId requerido)"
+                            },
+                            "name": {
+                                "bsonType": "string",
+                                "description": "Nombre del item"
+                            },
+                            "description": {
+                                "bsonType": ["string", "null"],
+                                "description": "Descripción opcional"
+                            },
+                            "created_at": {
+                                "bsonType": "date",
+                                "description": "Fecha de creación"
+                            },
+                            "updated_at": {
+                                "bsonType": "date",
+                                "description": "Última actualización"
+                            }
+                        }
+                    }
+                },
+                validationLevel="strict",
+                validationAction="error"
+            )
+            try:
+                db.items.create_index([("user_id", ASCENDING)], name="idx_user_id")
+                ic("Índice único 'user_id' creado")
+            except errors.OperationFailure as e:
+                ic(f"Error creando índice: {e}")
+            ic("Colección 'token_blacklist' creada")
+        elif "performance_metrics_api" not in db.list_collection_names():
+            db.create_collection("performance_metrics_api")
+            try:
+                # 🔹 Crear índices
+                db.performance_metrics_api.create_index(
+                    [("role", ASCENDING), ("category", ASCENDING)],
+                    name="idx_perf_role_category"
+                )
+                db.performance_metrics_api.create_index(
+                    [("ts", ASCENDING)],
+                    name="idx_perf_ts"
+                )
+                ic("Índice único 'user_id' creado")
+            except errors.OperationFailure as e:
+                ic(f"Error creando índice: {e}")
+            ic("Colección 'token_blacklist' creada")
+        elif "alerts" not in db.list_collection_names():
+            db.create_collection("alerts")
+            try:
+                # 🔹 Crear índices
+                db.alerts.create_index([("timestamp", DESCENDING)], name="idx_alerts_ts")
+                db.alerts.create_index([("metric", ASCENDING)], name="idx_alerts_metric")
+                ic("Índice único 'user_id' creado")
+            except errors.OperationFailure as e:
+                ic(f"Error creando índice: {e}")
+            ic("Colección 'token_blacklist' creada")
         elif "global_tokens" not in db.list_collection_names():
             db.create_collection("global_tokens", validator={
                     "$jsonSchema": {
@@ -414,6 +494,38 @@ def db_create_audit():
         # Insertar en la colección
         db.session_audit.insert_many(docs)
         ic("✅ Datos de prueba insertados")
+    except OperationFailure as e:
+        ic(f"Error : {str(e)}")
+
+def db_create_metrics():
+    # Generar 200 logs de prueba
+    # Simular métricas de LCP y FID para /home y /profile
+    try:
+        # Crear datos de prueba
+        test_docs = []
+        now = datetime.datetime.now(timezone.utc)
+
+        for i in range(500):
+            category = random.choice(categories)
+            name = random.choice(metric_names[category])
+            timestamp = now - timedelta(hours=random.randint(0, 48), minutes=random.randint(0, 59))
+            doc = {
+                "name": name,
+                "category": category,
+                "role": random.choice(roles),
+                "value": round(random.uniform(0.1, 5.0), 2),  # valores entre 0.1 y 5.0
+                "page": random.choice(pages),
+                "url": random.choice(urls),
+                "os": random.choice(oses),
+                "browser": random.choice(browsers),
+                "metric_id": f"test_{i}",
+                "timestamp": timestamp
+            }
+            test_docs.append(doc)
+
+        # Insertar en MongoDB
+        col_metrics.insert_many(test_docs)
+        print("Datos de prueba insertados:", len(test_docs))
     except OperationFailure as e:
         ic(f"Error : {str(e)}")
  
@@ -577,6 +689,32 @@ def create_mock_json_user():
 
 def db_delete_audit():
     db.session_audit.delete_many({})
+
+def db_delete_performance_endpoint():
+    db.col_metrics_api.delete_many({})
+def db_create_performance_endpoint():
+    now = datetime.datetime.now(timezone.utc)
+
+    docs = []
+    for i in range(200):  # 200 documentos de prueba
+        role = random.choice(roles)
+        url, method = random.choice(endpoints)
+        ts = now - timedelta(minutes=random.randint(0, 120))  # últimas 2h
+        value = round(random.uniform(50, 800), 2)  # duración ms
+
+        docs.append({
+            "type": "apiResponseTime",
+            "category": "endpoint",
+            "value": value,
+            "url": url,
+            "method": method,
+            "status": random.choice(["200", "200", "200", "500"]),  # mayoría 200
+            "role": role,
+            "ts": ts,
+        })
+
+    db.performance_metrics_api.insert_many(docs)
+    print("✅ Insertados datos de prueba:", len(docs))
 # --- Función get_logs_audit ---
 def get_logs_audit(user_id=None, event_type=None, start=None, end=None, page=1, limit=10) -> dict:
     page = int(1)
@@ -730,7 +868,196 @@ def get_all_users() -> dict:
             "logs": logs,
             "total_count": total_count
         }
+def get_all_users_items() -> dict:
+    # Pipeline
+    pipeline = [
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "user_id",
+                "foreignField": "_id",
+                "as": "user_item"
+            }
+        },
+        {"$unwind": "$user_item"},
+        {"$match": {"user_id": user_oid}},
+        {
+            "$project": {
+                "_id": 1,
+                "user_id": 1,
+                "name": 1,
+                "description": 1,
+                "created_at": 1,
+                "updated_at": 1,
+                "user_item.username": 1   # ejemplo de campo de users
+            }
+        }
+    ]
+    ic(type(pipeline))
+    # Ejecutar aggregate
+    results = list(db["items"].aggregate(pipeline))
 
+    # Mostrar resultados
+    for doc in results:
+        print(doc)
+def aggregate_timeline(role: str,
+            category: str,
+            interval: str,
+            limit: int,
+            group_by_endpoint: bool
+        ):
+        group_format = {
+            "minute": {"$dateTrunc": {"date": "$timestamp", "unit": "minute"}},
+            "hour": {"$dateTrunc": {"date": "$timestamp", "unit": "hour"}},
+            "day": {"$dateTrunc": {"date": "$timestamp", "unit": "day"}},
+        }[interval]
+
+        match = {"category": category}
+        if role:
+            match["role"] = role
+
+        pipeline = [
+            {"$match": match},
+            {"$group": {
+                "_id": {
+                    "bucket": group_format,
+                    "url": "$url",
+                    "method": "$name"  # en tu SQL era "name" → método
+                },
+                "avg": {"$avg": "$value"},
+                "min": {"$min": "$value"},
+                "max": {"$max": "$value"},
+                "count": {"$sum": 1}
+            }},
+            {"$sort": SON([("_id.bucket", 1)])},
+            {"$limit": limit * 5}  # para cubrir varios endpoints por bucket
+        ]
+
+        result = db["metrics"].aggregate(pipeline=pipeline)
+
+        grouped = {}
+        for r in result:
+            bucket = r["_id"]["bucket"].isoformat() + "Z"
+            grouped.setdefault(bucket, []).append({
+                "url": r["_id"]["url"],
+                "method": r["_id"]["method"],
+                "avg": r["avg"],
+                "min": r["min"],
+                "max": r["max"],
+                "count": r["count"]
+            })
+
+        return grouped
+# Obtener métricas por URL
+def get_timeline(role="User",
+            category="endpoint",
+            interval="hour",
+            limit=10,
+            group_by_endpoint=True) -> dict[str,list]:
+        raw = aggregate_timeline(role, category, interval, limit, group_by_endpoint)
+        timeline = []
+        for bucket, rows in raw.items():
+            metrics = []
+            for r in rows:
+                metrics.append({
+                    "url": r.get("url"),
+                    "method": r.get("method", "GET"),
+                    "avg": round(r.get("avg", 0), 2),
+                    "min": round(r.get("min", 0), 2),
+                    "max": round(r.get("max", 0), 2),
+                    "count": r.get("count", 0),
+                })
+            timeline.append({
+                "bucket": bucket,
+                "metrics": metrics
+            })
+
+        # Ordenar por fecha ascendente
+        timeline.sort(key=lambda x: x["bucket"])
+        return timeline
+
+def find(query=None, sort=None, limit=None):
+    """Consulta genérica"""
+    cursor = db.metrics.find(query=query or {}, projection={})
+    if sort:
+        cursor = cursor.sort(sort)
+    if limit:
+        cursor = cursor.limit(limit)
+    return list(cursor)
+def find_alerts_since(cutoff):
+    query = {"category": "alert", "timestamp": {"$gte": cutoff}}
+    sort = {"$sort": SON([("timestamp", -1)])}
+    return find(query=query,sort=sort)
+def get_recent_alerts(minutes=60):
+    """
+    Devuelve alertas recientes. 
+    Formato esperado por JS:
+    [
+        {"timestamp": "2025-09-18T21:00:00Z", "level": "error", "message": "Timeout en /api/profile"}
+    ]
+    """
+    cutoff = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(minutes=minutes)
+    docs = find_alerts_since(cutoff)
+
+    alerts = []
+    for d in docs:
+        alerts.append({
+            "timestamp": d["timestamp"].isoformat() + "Z",
+            "level": d.get("level", "warning"),
+            "message": d.get("message", "alerta sin detalle")
+        })
+    return alerts
+def get_metrics_timeline_endpoint(
+            role="User",
+            category="endpoint",
+            interval="hour",
+            limit=10,
+            group_by_endpoint=True
+        ):
+        if interval == "day":
+            date_format = "%Y-%m-%d"
+        elif interval == "hour":
+            date_format = "%Y-%m-%dT%H:00:00Z"
+        else:
+            raise ValueError("Intervalo no soportado")
+
+        pipeline = [
+            {
+                "$group": {
+                    "_id": {
+                        "bucket": {
+                            "$dateToString": {
+                                "format": date_format,
+                                "date": "$ts"
+                            }
+                        },
+                        "url": "$url",
+                        "method": "$method"
+                    },
+                    "avg": {"$avg": "$value"},
+                    "min": {"$min": "$value"},
+                    "max": {"$max": "$value"},
+                    "count": {"$sum": 1}
+                }
+            },
+            {"$sort": {"_id.bucket": 1}},
+            {"$limit": limit},
+            {
+                "$project": {
+                    "_id": 0,
+                    "bucket": "$_id.bucket",
+                    "url": "$_id.url",
+                    "method": "$_id.method",
+                    "avg": {"$round": ["$avg", 2]},
+                    "min": {"$round": ["$min", 2]},
+                    "max": {"$round": ["$max", 2]},
+                    "count": 1
+                }
+            }
+        ]
+
+        results = list(col_metrics_api.aggregate(pipeline=pipeline))
+        return {"series": results}
 def logs_result():
     # --- Prueba de consulta ---
     print("\n--- Logs consolidados de usuario 2 ---")
@@ -742,7 +1069,10 @@ def logs_result():
 def main():
     # db_delete_audit()
     # create_mock_json_audit()
-    get_all_users()
+    # Generar 1000 documentos
+    get_all_users_items()
+    # db_delete_performance_endpoint()
+    # ic(get_metrics_timeline())
     # db_create_audit()
     # db_create_audit_details()
 

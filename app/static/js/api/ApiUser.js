@@ -45,7 +45,7 @@ export class ApiUser extends ApiClient {
     // =============================
     // Logout Unificado con broadcast
     // =============================
-    async logout({reason = "logout" } = {}) {
+    async logout({ reason = "logout" } = {}) {
         try {
             // 🔹 Primero obtengo los tokens ANTES de limpiar
             let access_token = await this.accessToken();
@@ -70,11 +70,11 @@ export class ApiUser extends ApiClient {
             this.notifier?.(`👋 ${res.msg}`, "info", 4000);
 
         } catch (err) {
-            handleError(err);
-            throw err;
+            await handleError(err);
         } finally {
             // 🔹 Redirigir al login
-            window.location.href = "/?logout=true";
+            //window.location.href = "/?logout=true";
+            location.replace("/?logged_out=1");
         }
     }
 
@@ -170,18 +170,6 @@ export class ApiUser extends ApiClient {
     }
 
     /**
-     * Dashboard del usuario
-     */
-    //async getDashboard() {
-    //    try {
-    //        return await this.get("/api/auth/dashboard");
-    //    } catch (err) {
-    //        await handleError(err);
-    //        return null;
-    //    }
-    //}
-
-    /**
      * Guarda access_token y refresh_token en storage
      */
     async setTokens(res) {
@@ -192,4 +180,42 @@ export class ApiUser extends ApiClient {
             await this.storage.set("refresh_token", res.refresh_token);
         }
     }
+
+    async loadItems() {
+        try {
+            return await this.get("/api/auth/user/items", {});
+        } catch (err) {
+            await handleError(err);
+            return null;
+        }
+    }
+
+    async createItem(data = {}) {
+        try {
+            const res = await this.post("/api/auth/user/items", data);
+            this.notifier?.(`✅ ${res.msg}`, "sucess", 4000);
+        } catch (err) {
+            await handleError(err);
+            return null;
+        }
+    }
+    async updateItem(api, id, data) {
+        try {
+            await api.put(`/api/user/items/${id}`, data);
+            await this.loadItems();
+        } catch (err) {
+            await handleError(err);
+            return null;
+        }
+    }
+    async deleteItem(id) {
+        try {
+            await this.delete(`/api/user/items/${id}`);
+            await this.loadItems();
+        } catch (err) {
+            await handleError(err);
+            return null;
+        }
+    }
+
 }
