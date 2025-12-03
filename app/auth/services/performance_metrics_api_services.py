@@ -4,7 +4,7 @@ from typing import Dict, List
 
 from icecream import ic
 
-from app.dao.performance_metrics_api_dao import PerformanceMetricsApiDAO
+from app.dao.performancemetricsapi_dao import PerformanceMetricsApiDAO
 from app.dao.alerts_dao import AlertsDao
 from app.model.performance_metrics_api_model import PerformanceMetricApiModel
 from app.model.alert_model import AlertModel

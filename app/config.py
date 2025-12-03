@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    DEBUG = False
+    DEBUG = True
     TESTING = False
     USE_SOCKETIO = False
     WTF_CSRF_ENABLED = True
 
-    SECRET_KEY = os.getenv('SECRET_KEY')
+    SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
     HOST = "0.0.0.0"
     PORT = 5000
 
@@ -48,17 +48,10 @@ class Config:
         "Manager": "limited_control",
         "User": "read_only"
     }
-    CORS_ORIGINS = os.getenv(
-        "CORS_ORIGINS", "http://localhost:5000,https://localhost:5000,https://127.0.0.1:5000,http://127.0.0.1:5000,https://localhost:443,http://127.0.0.1:443,https://localhost:5001,https://localhost:5002,https://localhost:5003"
-    ).split(",")
-    # CORS_ORIGINS = [
-    #     "http://localhost:5000",
-    #     "https://localhost:5000",
-    #     "https://127.0.0.1:5000",
-    #     "http://127.0.0.1:5000",
-    #     "https://localhost:443",
-    #     "http://127.0.0.1:443"
-    # ]
+    CORS_ORIGINS = [
+        "https://localhost:5000",
+        "https://127.0.0.1:5000",
+    ]
     SERVICES = {
         "users": "https://localhost:5001",
         "metrics": "https://localhost:5002",
@@ -68,7 +61,9 @@ class Config:
     SOCKETIO_PING_INTERVAL = 25
     SOCKETIO_PING_TIMEOUT = 60
     SOCKETIO_LOGGER = False
-    RUN_SHELL = os.getenv('RUN_SHELL')
+    FIDO2_RP_ID = os.getenv("FIDO2_RP_ID","localhost")
+    FIDO2_RP_NAME = os.getenv("FIDO2_RP_NAME","Flask-WebAuthn")
+
 
 class DevConfig(Config):
     DEBUG = True

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <meta name="description" content="Panel de control seguro y dinámico de NEO Dashboard">
+    <meta name="theme-color" content="#0d6efd">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('frontend.static', filename='neo1.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/app.css') }}">
+    {% block css %}{% endblock %}
+</head>
+
+<body class="invisible d-flex flex-column min-vh-100 {% if title == 'Login' %}login-view{% endif %} {% if dark_mode %}theme-dark{% else %}theme-light{% endif %}">
+    {% include 'header.html' %}
+    <div class="container-fluid">
+        <div class="row">
+            {% if show_sidebar %}
+            <div class="col-lg-2 px-0" id="sidebarContainer">
+                {% include 'sidebar.html' %}
+            </div>
+            {% endif %}
+            <main id="mainContent" class="col-lg-10 ms-sm-auto px-md-4 pt-5 mt-3">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+
+    </div>
+    {% include 'footer.html' %}
+    <script src="{{ url_for('frontend.static', filename='js/bootstrap.bundle.min.js') }}" defer></script>
+    <script type="module" src="{{ url_for('frontend.static', filename='js/layout.js') }}"></script>
+    {% block scripts %}{% endblock %}
+    {% include 'console.html' %}
+</body>
+</html>

@@ -4,7 +4,7 @@ import datetime
 from datetime import timezone, timedelta
 from cryptography.hazmat.primitives import serialization
 
-from app.auth import AuthException
+from app.auth.exceptions.auth_exceptions import AuthException
 from app.config import Config
 # 🔑 Clave secreta (puede ser una env var)
 def load_key(path, is_private=False):

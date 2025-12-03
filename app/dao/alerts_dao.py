@@ -3,7 +3,7 @@ from datetime import timezone
 from typing import Dict, Any
 from pymongo.cursor import SON
 
-from app.dao.base_dao import BaseDAO
+from app.core.base_dao import BaseDAO
 from app.model.alert_model import AlertModel
 
 

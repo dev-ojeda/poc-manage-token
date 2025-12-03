@@ -1,90 +1,70 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-import datetime
-from datetime import timezone
-from typing import Optional
+from typing import Optional, List, Dict
 from bson import ObjectId
-from pymongo.errors import PyMongoError
+from datetime import datetime, timezone
 
-from app.dao.base_dao import BaseDAO
+from app.core.base_dao import BaseDAO
 from app.model.user_model import UserModel
-from icecream import ic
 
 
 class UserDAO(BaseDAO):
-    def __init__(self, db=None):
-        super().__init__(db=db, collection_name="users")
+    """DAO especializado para la colección 'users'."""
+
+    COLLECTION = "users"
+
+    def __init__(self, db=None, logger=None):
+        super().__init__(db=db, collection_name=self.COLLECTION)
+        self.logger = logger or self.logger.getChild("UserDAO")
 
     # ---------------------
-    # Métodos específicos
+    # Utilitarios
     # ---------------------
-    def _now(self) -> datetime.datetime:
-        return datetime.datetime.now(tz=timezone.utc)
+    @staticmethod
+    def _now() -> datetime:
+        return datetime.now(tz=timezone.utc)
 
-    def find_by_id(self, user_id: str, *, context="") -> UserModel | None:
-        try:
-            result = self.find_one({"_id": ObjectId(user_id)}, context=context)
-            return UserModel.from_dict(result.get("data")) if result.get("data") else None
-        except PyMongoError:
-            return None
+    def _to_user_model(self, data: Optional[dict]) -> Optional[UserModel]:
+        return UserModel.from_dict(data) if data else None
+
+    # ---------------------
+    # Métodos CRUD y consultas
+    # ---------------------
+    def find_by_id(self, user_id: str) -> Optional[UserModel]:
+        res = self.find_one({"_id": ObjectId(user_id)}, context="Find User by ID")
+        return self._to_user_model(res.get("data"))
+
+    def find_by_username(self, username: str) -> Optional[UserModel]:
+        projection = {
+            "_id": 1, "username": 1, "password": 1, "email": 1,
+            "rol": 1, "created_at": 1, "updated_at": 1,
+            "failed_attempts": 1, "blocked_until": 1
+        }
+        res = self.find_one({"username": username}, projection=projection, context="Find by Username")
+        return self._to_user_model(res.get("data"))
 
     def reset_login_attempts(self, user: UserModel) -> dict:
-        return self.update_one(
-            {"username": user.username, "rol": user.rol},
-            {"$set": {"failed_attempts": 0, "blocked_until": None}},
-            upsert=True,
-            context="Reset Intentos"
-        )
+        query = {"username": user.username, "rol": user.rol}
+        update = {"$set": {"failed_attempts": 0, "blocked_until": None}}
+        return self.update_one(query, update, context="Reset Login Attempts")
 
-    def find_by_username(self, username: str, *, context="") -> UserModel | None:
-        try:
-            query = {"username": username}
-            projection = {
-                "_id": 1,
-                "username": 1,
-                "password": 1,
-                "email": 1,
-                "rol": 1,
-                "created_at": 1,
-                "updated_at": 1,
-                "failed_attempts": 1,
-                "blocked_until": 1
-            }
-            result = self.find_one(query, projection, context=context)
-            return UserModel.from_dict(result.get("data")) if result.get("data") else None
-        except PyMongoError:
-            return None
+    def count_documents_user(self, filtro: Optional[dict] = None) -> int:
+        res = self.count(filtro or {}, context="Count Users")
+        return res.get("data", {}).get("count", 0)
 
-    def count_documents_user(self, filtro: Optional[dict] = None, *, context: str = "") -> int:
-        """Cuenta documentos de usuarios (no recursivo)"""
-        try:
-            result = super().count_documents(filtro or {}, context=context)
-            return result.get("count", 0)
-        except PyMongoError as e:
-            ic(f"❌ Error en count_documents_user: {e}")
-            return 0
-
-    def find_blocked(self, *, context: str = "") -> int:
-        """Cuenta usuarios bloqueados"""
+    def find_blocked(self) -> int:
         query = {"blocked_until": {"$gt": self._now()}}
-        try:
-            result = super().count_documents(query, context=context)
-            return result.get("count", 0)
-        except PyMongoError as e:
-            ic(f"❌ Error en find_blocked: {e}")
-            return 0
+        res = self.count(query, context="Count Blocked Users")
+        return res.get("data", {}).get("count", 0)
 
-    def get_all_users(self, *, context="") -> list[dict]:
+    def get_all_users(self) -> List[Dict]:
         pipeline = [
             {"$match": {"rol": {"$ne": "Admin"}}},
-            {"$project": {"_id": 0, "username": 1, "rol": 1, "created_at": 1, "updated_at": 1, "failed_attempts": 1, "blocked_until": 1}}
+            {"$project": {
+                "_id": 0, "username": 1, "rol": 1, "created_at": 1,
+                "updated_at": 1, "failed_attempts": 1, "blocked_until": 1
+            }}
         ]
-        result = self.aggregate(pipeline, context=context)
-        return result.get("data", [])
+        res = self.aggregate(pipeline, context="Get All Users")
+        return res.get("data", [])
 
-    def create_user(self, user: UserModel, *, context: str = "") -> dict:
-        """
-        Inserta un nuevo usuario a partir de un modelo
-        """
-        return self.insert_one(user.to_dict(), context=context)
+    def create_user(self, user: UserModel) -> dict:
+        return self.insert_one(user.to_dict(), context="Create User")

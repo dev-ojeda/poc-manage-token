@@ -1,0 +1,296 @@
+2025-11-09 21:56:47 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:47 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 21:56:48 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 21:56:48 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:48 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:48 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 21:56:48 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 21:56:49 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 21:56:49 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 21:56:50 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 21:56:50 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 21:56:50 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 21:56:51 | [32mINFO[0m[0m | SECURITY | [3597c0bb-d2e2-4307-b1a7-7562b1f28db0] ⏱ GET / 200 - 60.74 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 21:56:51 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 22:28:03 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:03 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 22:28:03 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 22:28:03 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:03 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:03 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 22:28:03 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 22:28:04 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 22:28:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 22:28:05 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 22:28:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:05 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 22:28:06 | [32mINFO[0m[0m | SECURITY | [bfc6cc98-222a-4daa-ac06-24ffe75fbaa9] ⏱ GET / 200 - 68.84 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 22:28:06 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 22:28:45 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 22:28:45 | [32mINFO[0m[0m | SessionDAO | [Get Items By User] 2 items encontrados para user_id=68dc3820d4e70f2a3b3a1ccb
+2025-11-09 22:28:45 | [32mINFO[0m[0m | ENDPOINTS_USER | Items enviados
+2025-11-09 22:28:45 | [32mINFO[0m[0m | JWT_GUARD | ✅ list_items completado en 5.992s
+2025-11-09 22:28:45 | [32mINFO[0m[0m | SECURITY | [5caafa0b-8b2f-4415-82e6-276c2edcc3b7] ⏱ GET /api/user/items 200 - 6560.80 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 22:28:45 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 23:25:01 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:01 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 23:25:01 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 23:25:01 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:01 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:01 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 23:25:01 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 23:25:03 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 23:25:03 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:03 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 23:25:04 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 23:25:04 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:25:04 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 23:25:04 | [32mINFO[0m[0m | SECURITY | [b19013a6-acf0-43e0-aa9d-4a206498adf5] ⏱ GET / 200 - 65.34 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 23:25:04 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 23:29:26 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:26 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 23:29:27 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 23:29:27 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:27 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:27 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 23:29:27 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 23:29:28 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 23:29:28 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 23:29:29 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 23:29:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:29:29 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 23:29:30 | [32mINFO[0m[0m | SECURITY | [1741f4d6-85a7-476f-b9d7-e4ce831d36fd] ⏱ GET / 200 - 55.65 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 23:29:30 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 23:32:34 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:34 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 23:32:34 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 23:32:34 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:34 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:34 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 23:32:34 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 23:32:36 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 23:32:36 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:36 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 23:32:37 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 23:32:37 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:32:37 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 23:32:38 | [32mINFO[0m[0m | SECURITY | [a7a6aa7e-5b99-47ba-a42f-e98529c0c390] ⏱ GET / 200 - 68.34 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 23:32:38 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 23:37:27 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:27 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 23:37:28 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 23:37:28 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:28 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:28 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 23:37:28 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 23:37:29 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 23:37:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 23:37:30 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 23:37:30 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:37:30 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 23:37:31 | [32mINFO[0m[0m | SECURITY | [6d806e08-3c26-4902-9b67-40e6337e2d4c] ⏱ GET / 200 - 68.80 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 23:37:31 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 23:42:19 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:19 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 23:42:20 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 23:42:20 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:20 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:20 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 23:42:20 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 23:42:21 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 23:42:21 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 23:42:22 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 23:42:22 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:42:22 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 23:42:23 | [32mINFO[0m[0m | SECURITY | [aa0c2315-dc7e-43e7-b02c-fceaa502fca4] ⏱ GET / 200 - 58.49 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 23:42:23 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 23:45:17 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:17 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 23:45:17 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 23:45:17 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:17 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:17 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 23:45:17 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 23:45:19 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 23:45:19 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:19 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 23:45:20 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 23:45:20 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:45:20 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 23:45:20 | [32mINFO[0m[0m | SECURITY | [078c642b-5d50-4e7d-9cb2-e6ddbb3ecad6] ⏱ GET / 200 - 62.61 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 23:45:20 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 23:50:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:29 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 23:50:29 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 23:50:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:29 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:29 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 23:50:29 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 23:50:31 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 23:50:31 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:31 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 23:50:32 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 23:50:32 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:50:32 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 23:50:32 | [32mINFO[0m[0m | SECURITY | [76d26c14-51da-4870-9e54-1a27598ea79d] ⏱ GET / 200 - 62.19 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 23:50:32 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...
+2025-11-09 23:53:04 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:04 | [32mINFO[0m[0m | MongoDatabase | 🌐 Inicializando conexión MongoDB -> mongodb+srv://cluster0.9zr1mry.mongodb.net/?authSource=$external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0/mdbManageToken
+2025-11-09 23:53:05 | [32mINFO[0m[0m | MongoDatabase | ✅ Conexión inicializada correctamente.
+2025-11-09 23:53:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:05 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:05 | [32mINFO[0m[0m | CREATE_APP | 🔐 SECRET_KEY configurada: True
+2025-11-09 23:53:05 | [32mINFO[0m[0m | EXTENSIONS | ⚙️ Extensiones Flask inicializadas (Bootstrap, CORS, SocketIO, Limiter)
+2025-11-09 23:53:06 | [32mINFO[0m[0m | CREATE_APP | ✅ MongoDB conectado correctamente
+2025-11-09 23:53:06 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:06 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: metrics (app.backend.route_metric)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_bp (app.backend.routes_admin)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: performance (app.backend.routes_performance_api)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user (app.backend.routes_user)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: auth (app.backend.routes_webauthn)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: frontend (app.frontend.auth)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: admin_dashboard (app.frontend.dashboard_admin)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🧩 Blueprint registrado: user_dashboard (app.frontend.dashboard_user)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | ✅ Total de Blueprints registrados: 8
+2025-11-09 23:53:07 | [32mINFO[0m[0m | CREATE_APP | 🚀 App Flask creada con éxito
+2025-11-09 23:53:07 | [32mINFO[0m[0m | root | Logging asíncrono con rotación iniciado (level=INFO, json=False)
+2025-11-09 23:53:07 | [32mINFO[0m[0m | WSGI_MAIN | 🔒 HTTPS escuchando en https://0.0.0.0:5000
+2025-11-09 23:53:08 | [32mINFO[0m[0m | SECURITY | [5cf2d653-c8a3-4e99-8050-99b603c1077c] ⏱ GET / 200 - 60.43 ms | 127.0.0.1 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+2025-11-09 23:53:08 | [32mINFO[0m[0m | app.logging_config | 🧹 Deteniendo QueueListener...

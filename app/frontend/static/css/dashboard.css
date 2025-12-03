@@ -1,0 +1,338 @@
+:root {
+    --bs-primary: #0d6efd;
+    --bs-danger: #dc3545;
+    --bs-warning: #ffc107;
+    --bs-success: #28a745;
+    --sidebar-width: 240px;
+    /* Tonos neutros */
+    --bg-light: #f5f6fa;
+    --bg-white: #ffffff;
+    --text-main: #2d3436;
+    --text-muted: #6c757d;
+}
+
+/* ====== BASE ====== */
+body {
+    background: var(--bg-light);
+    color: var(--text-main);
+    font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+    padding-top: 56px;
+}
+
+h1, h2, h3 {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+p, span, td, th {
+    font-family: inherit;
+}
+
+/* ====== SIDEBAR ====== */
+.sidebar {
+    height: 100vh;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: var(--sidebar-width);
+    padding-top: 1rem;
+    background-color: var(--bg-white);
+    border-right: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+    z-index: 999;
+    overflow-y: auto;
+}
+
+    .sidebar.collapsed {
+        margin-left: calc(-1 * var(--sidebar-width));
+    }
+
+    .sidebar .nav-link {
+        font-weight: 500;
+    }
+
+.nav-link.active {
+    color: var(--bs-primary) !important;
+    font-weight: bold;
+}
+
+/* ====== MAIN ====== */
+main {
+    transition: all 0.3s ease;
+    padding: 1.5rem;
+}
+
+    main.expanded {
+        margin-left: 0 !important;
+    }
+
+/* ====== DASHBOARD LAYOUT ====== */
+.dashboard-container {
+    background: var(--bg-light);
+    min-height: calc(100vh - 56px);
+    padding: 2rem;
+}
+
+.dashboard-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* ====== KPI CARDS ====== */
+.card-metric {
+    background: var(--bg-white);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+    .card-metric:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+
+    .card-metric h3 {
+        font-size: 1rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .card-metric .value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+.trend-up {
+    color: var(--bs-success);
+    font-weight: 600;
+}
+
+.trend-down {
+    color: var(--bs-danger);
+    font-weight: 600;
+}
+
+/* ====== CARDS ====== */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(0,0,0,0.12);
+    }
+
+.card-header {
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+/* ====== CHARTS ====== */
+.chart-container {
+    background: var(--bg-white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    transition: transform 0.25s ease;
+}
+
+    .chart-container:hover {
+        transform: translateY(-3px);
+    }
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+    .chart-header h3 {
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+canvas {
+    max-width: 100%;
+}
+
+/* ====== TABLES ====== */
+.table-sesiones {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--bg-white);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+    .table-sesiones thead {
+        background-color: #f8f9fa;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .table-sesiones th, .table-sesiones td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+        vertical-align: middle;
+    }
+
+    .table-sesiones tbody tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+
+    .table-sesiones tbody tr:hover {
+        background-color: #e9ecef;
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    .table-sesiones .table-success {
+        background-color: #d1e7dd !important;
+        font-weight: bold;
+        border-left: 5px solid #0f5132;
+    }
+
+/* ====== PROGRESS BAR ====== */
+#tokenProgress {
+    transition: width 0.5s linear, background-color 0.5s ease-in-out;
+    height: 20px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+}
+
+    #tokenProgress.bg-success {
+        background-color: #28a745 !important;
+    }
+
+    #tokenProgress.bg-warning {
+        background-color: #ffc107 !important;
+    }
+
+    #tokenProgress.bg-danger {
+        background: linear-gradient(90deg, #ff4d4d, #dc3545, #ff4d4d);
+        background-size: 200% 200%;
+        animation: pulseDanger 2s infinite;
+    }
+
+@keyframes pulseDanger {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* ====== BUTTONS ====== */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.btn-primary, .btn-success, .btn-outline-primary {
+    transition: all 0.2s ease-in-out;
+}
+
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        transform: translateY(-1px);
+    }
+
+/* ====== AUDIT PANEL ====== */
+#auditPanel {
+    border-left: 4px solid var(--bs-primary);
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* ====== ANIMATIONS ====== */
+.fade-in {
+    animation: fadeIn 0.4s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-slide-in {
+    animation: fadeSlideIn 0.5s ease both;
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ====== DARK MODE ====== */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1e1e2f;
+        color: #e0e0e0;
+    }
+
+    .card, .chart-container, .table-sesiones, .card-metric {
+        background-color: #2b2b3c;
+        color: #f0f0f0;
+        box-shadow: 0 2px 6px rgba(255,255,255,0.05);
+    }
+
+        .table-sesiones thead {
+            background-color: #3a3a4a;
+        }
+
+    .chart-header h3 {
+        color: #e0e0e0;
+    }
+
+    .card-metric h3 {
+        color: #aaa;
+    }
+}
+.skeleton-loader {
+    display: grid;
+    gap: 1rem;
+}
+
+.skeleton-card, .skeleton-chart {
+    height: 120px;
+    background: linear-gradient(90deg, #e0e0e0 25%, #f5f5f5 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}

@@ -6,13 +6,13 @@ from flask import Blueprint, json, jsonify, request
 from icecream import ic
 from app import limiter
 from app.auth.services.metrics_service import MetricService
-from app.midleware.jwt_guard import admin_required
+from app.midleware.jwt_guard import jwt_admin_required
 from app.model.metrics_model import MetricModel
 
 ic.configureOutput(prefix="METRICS:", includeContext=__name__, lineWrapWidth=500)
 ic.contextDelimiter = " "
 
-metrics_bp = Blueprint("metrics_bp", __name__, url_prefix="/api/metrics")
+metrics_bp = Blueprint("metrics", __name__, url_prefix="/metrics")
 EXCLUDED_PATHS = ["/", "https://localhost:5000/api/metrics/collect-api", "https://localhost:5000/api/metrics/collect-web-vitals","https://localhost:5000/api/metrics/timeline"]
 EXCLUDED_PREFIXES = ["/static"]
 # -----------------------------
@@ -39,7 +39,7 @@ class MetricsEndpoints:
     service = MetricService()
 
     @staticmethod
-    @admin_required
+    @jwt_admin_required
     def collect_webvitals(user):
         if not request.is_json:
             return jsonify({"msg": "Content-Type debe ser application/json", "code": "INVALID_JSON"}), 400
@@ -62,7 +62,7 @@ class MetricsEndpoints:
         MetricsEndpoints.service.create_metrics(metric=docs)
         return safe_jsonify({"status": "stored"})
     @staticmethod
-    @admin_required
+    @jwt_admin_required
     @limiter.limit("10/minute")  # rate limit específico
     def collect_api(user):
         if not request.is_json:
@@ -85,7 +85,7 @@ class MetricsEndpoints:
         MetricsEndpoints.service.create_metrics(metric=docs)
         return safe_jsonify({"status": "stored"})
     @staticmethod
-    @admin_required
+    @jwt_admin_required
     def summary(user):
         minutes = int(request.args.get("minutes", 30))
         resultado = MetricsEndpoints.service.get_summary(minutes)
@@ -93,7 +93,7 @@ class MetricsEndpoints:
         return jsonify(resultado)
     @staticmethod
     @limiter.limit("3 per minute")
-    @admin_required
+    @jwt_admin_required
     def timeline(user):
         category = request.args.get("category", "")
         categories = [c.strip() for c in category.split(",") if c.strip()]
@@ -107,7 +107,7 @@ class MetricsEndpoints:
         ic(resultado)
         return jsonify(resultado)
     @staticmethod
-    @admin_required
+    @jwt_admin_required
     def alerts(user):
         minutes = int(request.args.get("minutes", 60))
         return jsonify(MetricsEndpoints.service.get_recent_alerts(minutes))

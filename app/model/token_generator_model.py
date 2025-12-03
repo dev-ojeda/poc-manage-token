@@ -12,208 +12,138 @@ from jwt.exceptions import (
     InvalidAudienceError,
     InvalidIssuerError,
 )
-from icecream import ic
 
 from app.config import Config
 from app.auth.exceptions.auth_exceptions import AuthException
-from app.hekpers.token_doc import TokenDoc
+from app.model.token_model import TokenModel
 
 class TokenGeneratorModel:
     def __init__(self):
-        self.access_exp = int(Config.ACCESS_TOKEN_EXP_MINUTES)
-        self.access_exp_admin = int(Config.ACCESS_TOKEN_EXP_ADMIN)
-        self.refresh_exp = int(Config.REFRESH_TOKEN_EXP_DAYS)
-        self.refresh_exp_admin = int(Config.REFRESH_TOKEN_EXP_ADMIN)
-        self.access_exp_global = int(Config.ACCESS_TOKEN_GLOBAL_EXP_SECONDS)
-        self.valid_roles = Config.VALID_ROLES
-        self.roles_scope = Config.ROLE_SCOPES
-        self.jwt_issuer = Config.JWT_ISSUER
-        self.jwt_audience = Config.JWT_AUDIENCE
-        self.private_key = self._load_key(Config.PATH_PRIVATE_KEY, is_private=True)
-        self.public_key = self._load_key(Config.PATH_PUBLIC_KEY, is_private=False)
+        self.cfg = Config
+        self.access_exp = int(self.cfg.ACCESS_TOKEN_EXP_MINUTES)
+        self.access_exp_admin = int(self.cfg.ACCESS_TOKEN_EXP_ADMIN)
+        self.refresh_exp = int(self.cfg.REFRESH_TOKEN_EXP_DAYS)
+        self.refresh_exp_admin = int(self.cfg.REFRESH_TOKEN_EXP_ADMIN)
+        self.access_exp_global = int(self.cfg.ACCESS_TOKEN_GLOBAL_EXP_SECONDS)
+        self.valid_roles = self.cfg.VALID_ROLES
+        self.roles_scope = self.cfg.ROLE_SCOPES
+        self.jwt_issuer = self.cfg.JWT_ISSUER
+        self.jwt_audience = self.cfg.JWT_AUDIENCE
+        self.private_key = self._load_key(self.cfg.PATH_PRIVATE_KEY, is_private=True)
+        self.public_key = self._load_key(self.cfg.PATH_PUBLIC_KEY, is_private=False)
 
-    def _load_key(self, path, is_private=False):
+     # -----------------------------
+    # Key loading
+    # -----------------------------
+    def _load_key(self, path: str, is_private=False):
         try:
             with open(path, "rb") as f:
-                content = f.read()
-                return serialization.load_pem_private_key(content, password=None) if is_private else serialization.load_pem_public_key(content)
+                key_data = f.read()
+            return (
+                serialization.load_pem_private_key(key_data, password=None)
+                if is_private
+                else serialization.load_pem_public_key(key_data)
+            )
         except FileNotFoundError:
-            ic(f"⚠️ Clave {'privada' if is_private else 'pública'} no encontrada en {path}")
-            return None
+            raise FileNotFoundError(f"Clave {'privada' if is_private else 'pública'} no encontrada en {path}")
+
+    # -----------------------------
+    # Payload builders
+    # -----------------------------
+    def _timestamp(self):
+        return datetime.datetime.now(tz=timezone.utc)
 
     def _is_valid_role(self, role) -> bool:
         return role in self.valid_roles
 
-    def _build_payload(self, data: dict, token_type: str, exp_delta: int):
-        now_utc = datetime.datetime.now(tz=timezone.utc)
-        exp_ts = now_utc + (timedelta(days=exp_delta) if token_type == "refresh" else timedelta(minutes=exp_delta))
-    
-        standard_claims = {
-            "sub": data["username"],
-            "iat": now_utc.timestamp(),
-            "nbf": now_utc.timestamp(),
-            "exp": int(exp_ts.timestamp()),
-            "iss": self.jwt_issuer,
-            "aud": self.jwt_audience,
-            "token_type": token_type,
-            "jti": data.get("jti", str(uuid.uuid4()))
-        }
-        custom_claims = {
-            "rol": data["rol"],
-            "scope": data["scope"],
-            "device_id": data.get("device_id")
-        }
-        return {**standard_claims, **custom_claims}
-
-    def _build_global_payload(self, token_type: str, exp_minutes: int) -> dict:
-        # Fecha/hora actual en UTC
-        now_utc = datetime.datetime.now(tz=timezone.utc)
-        exp_ts = now_utc + timedelta(minutes=exp_minutes)
+    def _build_payload(self, data: dict, token_type: str, exp_value: int) -> dict:
+        now = self._timestamp()
+        exp = now + (timedelta(days=exp_value) if token_type == "refresh" else timedelta(minutes=exp_value))
         return {
-            "sub": "admin@example.com",
-            "rol": "System",
-            "scope": "full_control",
-            "iat": now_utc.timestamp(),
-            "nbf": now_utc.timestamp(),
-            "exp": int(exp_ts.timestamp()),
-            "iss": "flask-root",
+            "sub": data["username"],
+            "iat": now.timestamp(),
+            "nbf": now.timestamp(),
+            "exp": int(exp.timestamp()),
+            "iss": self.cfg.JWT_ISSUER,
+            "aud": self.cfg.JWT_AUDIENCE,
             "token_type": token_type,
-            "jti": str(uuid.uuid4())
+            "jti": data.get("jti", str(uuid.uuid4())),
+            "rol": data.get("rol"),
+            "scope": data.get("scope"),
+            "device_id": data.get("device_id"),
         }
 
+    # -----------------------------
+    # Token creation
+    # -----------------------------
     def create_tokens(self, data: dict) -> tuple[str, str]:
-        """
-        Genera access_token y refresh_token con el mismo jti
-        """
-        if data["rol"] == "Admin":
-            data["scope"] = self.roles_scope["Admin"]
-            payload_access = self._build_payload(data=data, token_type="access", exp_delta=self.access_exp_admin)
-            payload_refresh = self._build_payload(data=data, token_type="refresh", exp_delta=self.refresh_exp_admin)
-        else:
-            data["scope"] = self.roles_scope["User"]
-            payload_access = self._build_payload(data=data , token_type="access", exp_delta=self.access_exp)
-            payload_refresh = self._build_payload(data=data, token_type="refresh", exp_delta=self.refresh_exp)
+        """Genera un par access/refresh con validación de rol."""
+        is_admin = data.get("rol") == "Admin"
+        data["scope"] = self.roles_scope["Admin"] if is_admin else self.roles_scope["User"]
 
+        access_exp = self.cfg.ACCESS_TOKEN_EXP_ADMIN if is_admin else self.cfg.ACCESS_TOKEN_EXP_MINUTES
+        refresh_exp = self.cfg.REFRESH_TOKEN_EXP_ADMIN if is_admin else self.cfg.REFRESH_TOKEN_EXP_DAYS
+
+        access_claims = self._build_payload(data, "access", int(access_exp))
+        refresh_claims = self._build_payload(data, "refresh", int(refresh_exp))
 
         return (
-            jwt.encode(payload_access, self.private_key, algorithm="RS256"),
-            jwt.encode(payload_refresh, self.private_key, algorithm="RS256")
+            jwt.encode(access_claims, self.private_key, algorithm="RS256"),
+            jwt.encode(refresh_claims, self.private_key, algorithm="RS256"),
         )
 
-    def get_refresh_access_token(self, refresh_token: str) -> TokenDoc | None:
-        """
-        Recibe un refresh_token válido y devuelve un nuevo access_token
-        con el mismo jti.
-        """
-        decoded = self._decode(refresh_token, expected_type="refresh")
+    def get_refresh_access_token(self, refresh_token: str) -> str:
+        """Crea nuevo access token a partir de un refresh válido."""
+        token_data = self.verify_token(refresh_token, expected_type="refresh")
 
-        data = {
-            "username": decoded["sub"],
-            "device_id": decoded["device_id"],
-            "rol": decoded["rol"],
-            "scope": decoded["scope"],
-            "jti": decoded["jti"],   # reutilizamos mismo jti
-        }
+        exp = int(self.cfg.ACCESS_TOKEN_EXP_ADMIN) if token_data.rol == "Admin" else int(self.cfg.ACCESS_TOKEN_EXP_MINUTES)
 
-        exp_seconds = (
-            self.access_exp_admin if data["rol"] == "Admin" else self.access_exp
+        payload = self._build_payload(
+            {
+                "username": token_data.sub,
+                "rol": token_data.rol,
+                "scope": token_data.scope,
+                "device_id": token_data.device_id,
+                "jti": token_data.jti,
+            },
+            "access",
+            exp,
         )
 
-        payload_access = self._build_payload(data, "access", exp_seconds)
-
-        return jwt.encode(payload_access, self.private_key, algorithm="RS256")
-
-    def create_tokens_global(self) -> str:
-        payload = self._build_global_payload("access", self.access_exp_global)
         return jwt.encode(payload, self.private_key, algorithm="RS256")
 
-    def _decode(self, token: str, expected_type: str = "access") -> dict:
-      
-        try:
-            decoded = jwt.decode(
-                token, 
-                self.public_key,
-                algorithms=["RS256"],
-                issuer=self.jwt_issuer,
-                audience=self.jwt_audience
-            )
-
-            if decoded.get("token_type") != expected_type:
-                raise AuthException(
-                    f"Tipo de token inválido. Se esperaba '{expected_type}', se recibió '{decoded.get('type')}'",
-                    "InvalidTypeToken",
-                    401,
-                    "error"
-                )
-
-            return decoded
-
-        except ExpiredSignatureError:
-            raise AuthException("Tu sesión ha expirado. Por favor inicia sesión nuevamente.", "ExpiredSignatureError", 401, "error")
-        except InvalidSignatureError:
-            raise AuthException("Firma inválida.", "InvalidSignatureError", 401, "error")
-        except ImmatureSignatureError:
-            raise AuthException("Token aún no es válido (nbf).", "ImmatureSignatureError", 400, "error")
-        except DecodeError:
-            raise AuthException("Acceso no autorizado (token mal decodificado).", "DecodeError", 400, "error")
-        except InvalidAudienceError:
-            raise AuthException("Acceso no autorizado (audiencia inválida).", "InvalidAudienceError", 403, "error")
-        except InvalidIssuerError:
-            raise AuthException("Acceso no autorizado (emisor del token no válido).", "InvalidIssuerError", 403, "error")
-        except InvalidTokenError:
-            raise AuthException("Token no válido. Por favor vuelve a iniciar sesión.", "InvalidTokenError", 401, "error")
-
-    def _decode_global(self, token: str, expected_type: str = "access", issuer=None) -> dict:
+   # -----------------------------
+    # Token decoding & validation
+    # -----------------------------
+    def _decode_token(self, token: str, expected_type: str, issuer=None, audience=None) -> TokenModel:
         try:
             decoded = jwt.decode(
                 token,
                 self.public_key,
                 algorithms=["RS256"],
-                issuer=issuer or Config.JWT_ISSUER
+                issuer=issuer or self.cfg.JWT_ISSUER,
+                audience=audience or self.cfg.JWT_AUDIENCE,
             )
 
-            if decoded.get("type") != expected_type:
+            # Validación semántica del contenido con Pydantic
+            token_data = TokenModel(**decoded)
+
+            if token_data.token_type != expected_type:
                 raise AuthException(
-                    f"Tipo de token inválido. Se esperaba '{expected_type}', se recibió '{decoded.get('type')}'",
+                    f"Tipo de token incorrecto. Se esperaba '{expected_type}' y se recibió '{token_data.token_type}'.",
                     "InvalidTypeToken",
                     401,
-                    "error"
+                    "error",
                 )
 
-            return decoded
+            return token_data
 
-        except ExpiredSignatureError:
-            raise AuthException("Tu sesión ha expirado. Por favor inicia sesión nuevamente.", "ExpiredSignatureError", 401, "error")
-
-        except InvalidSignatureError:
-            raise AuthException("Firma inválida.", "InvalidSignatureError", 401, "error")
-
-        except DecodeError:
-            raise AuthException("Acceso no autorizado (token mal decodificado).", "DecodeError", 400, "error")
-
-        except InvalidAudienceError:
-            raise AuthException("Acceso no autorizado (audiencia inválida).", "InvalidAudienceError", 403, "error")
-
-        except InvalidIssuerError:
-            raise AuthException("Acceso no autorizado (emisor del token no válido).", "InvalidIssuerError", 403, "error")
-
-        except InvalidTokenError:
-            raise AuthException("Token no válido. Por favor vuelve a iniciar sesión.", "InvalidTokenError", 401, "error")
-
+        except (ExpiredSignatureError, InvalidSignatureError, ImmatureSignatureError,
+                DecodeError, InvalidAudienceError, InvalidIssuerError, InvalidTokenError) as e:
+            raise AuthException(f"Error de token: {str(e)}", e.__class__.__name__, 401, "error")
         except Exception as e:
-            raise AuthException(f"Error inesperado: {str(e)}", "UnexpectedError", 500, "error")
-   
-    
-    def verify_token(self, token: str, expected_type: str) -> TokenDoc:
-        return self._decode(token=token , expected_type=expected_type)
+            raise AuthException(str(e), "TokenValidationError", 400, "error")
 
-    def verify_token_global(self, token: str, expected_type: str = "access") -> dict:
-        return self._decode_global(token=token, expected_type=expected_type, issuer="flask-root")
-
-    def get_role_from_token(self, token: str) -> str:
-        try:
-            decoded = self.verify_token(token)
-            return decoded.get("rol", "User")
-        except Exception as e:
-            ic(f"Error al obtener rol desde token: {e}")
-            return "User"
+    def verify_token(self, token: str, expected_type: str = "access") -> TokenModel:
+        """Verifica y retorna un TokenModel."""
+        return self._decode_token(token, expected_type)

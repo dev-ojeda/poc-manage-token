@@ -1,21 +1,18 @@
 import datetime
 from datetime import timezone
-from typing import Optional
 from bson import ObjectId
-import logging
 
 
-from app.dao.base_dao import BaseDAO
+from app.core.base_dao import BaseDAO
+from app.logging_config import get_logger
 from app.model.item_model import ItemModel
-from app.utils.db_mongo import MongoDatabase
 
-db = MongoDatabase()
 class ItemDAO(BaseDAO):
-    def __init__(self, db: Optional[MongoDatabase] = None):
-        super().__init__(db=db, collection_name="items")
-        self.logger = logging.getLogger(f"DAO.{self.__class__.__name__}")
-    # -------------------------------
-    # Crear item
+    COLLECTION = "items"
+    def __init__(self, db=None, logger=None):
+        super().__init__(db=db, collection_name=self.COLLECTION)
+        self.logger = logger or get_logger("SessionDAO")
+  
     def create(self, item_model: ItemModel, session=None) -> dict:
         """Inserta un nuevo item en la colección y devuelve un dict consistente"""
         try:
@@ -101,7 +98,7 @@ class ItemDAO(BaseDAO):
         ]
        
         try:
-            result = self.aggregate(pipeline=pipeline)
+            result = self.aggregate(pipeline=pipeline, context="Get Items By User")
             items = [ItemModel.from_dict(doc) for doc in result["data"]]
             # Si quieres salida lista para JSON:
             items = [item.to_dict() for item in items]

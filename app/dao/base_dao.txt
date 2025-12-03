@@ -1,0 +1,168 @@
+import logging
+from typing import Any, Dict, List, Optional, Callable
+from bson import ObjectId
+from pymongo.collection import Collection
+from pymongo.client_session import ClientSession
+from pymongo.results import InsertOneResult, InsertManyResult, UpdateResult, DeleteResult
+
+from app.utils.db_mongo import MongoDatabase
+from app.utils.db_operations import mongo_op
+from app.log_config import setup_logging
+
+
+class BaseDAO:
+    """DAO base para MongoDB con retry, sesiones y ObjectId seguro."""
+
+    COLLECTION: str = ""
+
+    def __init__(self, db: Optional[MongoDatabase] = None, collection_name: Optional[str] = None):
+        self.db: MongoDatabase = db or MongoDatabase()
+        self.collection_name: str = collection_name or self.COLLECTION
+        if not self.collection_name:
+            raise ValueError("Debe definirse collection_name o BaseDAO.COLLECTION")
+
+        self.logger = setup_logging().getChild(self.__class__.__name__)
+
+    # --------------------------
+    # Helpers internos
+    # --------------------------
+    def _get_collection(self) -> Collection:
+        return self.db._get_collection(self.collection_name)
+
+    def _convert_objectid(self, doc: Any) -> Any:
+        """Convierte recursivamente ObjectId → str"""
+        if isinstance(doc, ObjectId):
+            return str(doc)
+        if isinstance(doc, dict):
+            return {k: self._convert_objectid(v) for k, v in doc.items()}
+        if isinstance(doc, list):
+            return [self._convert_objectid(i) for i in doc]
+        return doc
+
+    def _response(self, success: bool, data: Any, context: str, message: str) -> Dict[str, Any]:
+        return {"success": success, "data": data, "context": context, "message": message}
+
+    def _log(self, context: str, msg: str, level: str = "info"):
+        getattr(self.logger, level)(f"[{context}] {msg}")
+
+    # --------------------------
+    # Sesiones y transacciones
+    # --------------------------
+    def start_session(self) -> ClientSession:
+        self.db._ensure_connected()
+        return self.db.client.start_session()
+
+    def with_transaction(self, func: Callable[..., Any], *args, **kwargs) -> Dict[str, Any]:
+        context = kwargs.get("context", "Transaction")
+        with self.start_session() as session:
+            try:
+                return func(*args, session=session, **kwargs)
+            except Exception as exc:
+                self._log(context, f"Transacción fallida: {exc}", "exception")
+                return self._response(False, None, context, str(exc))
+
+    # --------------------------
+    # CREATE
+    # --------------------------
+    @mongo_op
+    def insert_one(self, document: Dict[str, Any], *, context: str = "", **kwargs):
+        col = self._get_collection()
+        result: InsertOneResult = col.insert_one(document, **kwargs)
+        document["_id"] = result.inserted_id
+        msg = f"Documento insertado: {result.inserted_id}"
+        self._log(context, msg)
+        return self._response(True, self._convert_objectid(document), context, msg)
+
+    @mongo_op
+    def insert_many(self, documents: List[Dict[str, Any]], *, context: str = "", **kwargs):
+        col = self._get_collection()
+        result: InsertManyResult = col.insert_many(documents, **kwargs)
+        for doc, oid in zip(documents, result.inserted_ids):
+            doc["_id"] = oid
+        msg = f"{len(result.inserted_ids)} documentos insertados"
+        self._log(context, msg)
+        return self._response(True, [self._convert_objectid(d) for d in documents], context, msg)
+
+    # --------------------------
+    # READ
+    # --------------------------
+    @mongo_op
+    def find_one(self, query: Optional[Dict[str, Any]] = None, projection: Optional[Dict[str, int]] = None, *,
+                 context: str = "", **kwargs):
+        col = self._get_collection()
+        doc = col.find_one(query or {}, projection, **kwargs)
+        if doc is not None:
+            msg = "Documento encontrado"
+            return self._response(True, self._convert_objectid(doc), context, msg)
+        return self._response(False, None, context, "No se encontró documento")
+
+    @mongo_op
+    def find(self, query: Optional[Dict[str, Any]] = None, projection: Optional[Dict[str, int]] = None, *,
+             context: str = "", limit: int = 0, skip: int = 0, sort: Optional[list] = None,
+             **kwargs):
+        col = self._get_collection()
+        cursor = col.find(query or {}, projection or {}, **kwargs)
+        if sort:
+            cursor = cursor.sort(sort)
+        if skip:
+            cursor = cursor.skip(skip)
+        if limit:
+            cursor = cursor.limit(limit)
+        docs = [self._convert_objectid(doc) for doc in cursor]
+        msg = f"{len(docs)} documentos encontrados"
+        self._log(context, msg)
+        return self._response(True, docs, context, msg)
+
+    @mongo_op
+    def aggregate(self, pipeline: List[Dict[str, Any]], *, context: str = "", **kwargs):
+        col = self._get_collection()
+        try:
+            cursor = col.aggregate(pipeline, **kwargs)
+            data = [self._convert_objectid(doc) for doc in cursor]
+            msg = f"{len(data)} resultados agregados"
+            self._log(context, msg)
+            return self._response(True, data, context, msg)
+        except Exception as exc:
+            self._log(context, f"Error en aggregate: {exc}", "exception")
+            return self._response(False, [], context, str(exc))
+
+    # --------------------------
+    # UPDATE
+    # --------------------------
+    @mongo_op
+    def update_one(self, query: Dict[str, Any], update: Dict[str, Any], *, upsert=False, context="", **kwargs):
+        col = self._get_collection()
+        result: UpdateResult = col.update_one(query, update, upsert=upsert, **kwargs)
+        data = {"matched": result.matched_count, "modified": result.modified_count}
+        msg = f"{result.modified_count} documento(s) modificados"
+        self._log(context, msg)
+        return self._response(True, data, context, msg)
+
+    @mongo_op
+    def update_many(self, query: Dict[str, Any], update: Dict[str, Any], *, upsert=False, context="", **kwargs):
+        col = self._get_collection()
+        result: UpdateResult = col.update_many(query, update, upsert=upsert, **kwargs)
+        data = {"matched": result.matched_count, "modified": result.modified_count}
+        msg = f"{result.modified_count} documentos actualizados"
+        self._log(context, msg)
+        return self._response(True, data, context, msg)
+
+    # --------------------------
+    # DELETE
+    # --------------------------
+    @mongo_op
+    def delete_one(self, query: Dict[str, Any], *, context="", session: Optional[ClientSession] = None):
+        col = self._get_collection()
+        result: DeleteResult = col.delete_one(query, session=session)
+        success = result.deleted_count > 0
+        msg = "Documento eliminado" if success else "No se encontró documento para eliminar"
+        self._log(context, msg)
+        return self._response(success, {"deleted": result.deleted_count}, context, msg)
+
+    @mongo_op
+    def delete_many(self, query: Dict[str, Any], *, context="", session: Optional[ClientSession] = None):
+        col = self._get_collection()
+        result: DeleteResult = col.delete_many(query, session=session)
+        msg = f"{result.deleted_count} documentos eliminados"
+        self._log(context, msg)
+        return self._response(True, {"deleted": result.deleted_count}, context, msg)

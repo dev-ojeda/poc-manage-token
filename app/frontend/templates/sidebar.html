@@ -1,0 +1,69 @@
+<nav id="sidebar" class="collapse d-lg-block bg-dark text-white sidebar">
+    <div class="position-sticky pt-3">
+        <ul class="nav flex-column">
+            <li id="navPrincipal" class="nav-item">
+                <button type="button" class="btn btn-link text-start" data-action="">
+                    <i class="bi bi-speedometer2"> Dashboard</i>
+                </button>
+            </li>
+            <li class="nav-item role-admin role-auditor" style="display:none">
+                <a class="nav-link collapsed" data-bs-toggle="collapse" href="#seguridadCollapse" role="button" aria-expanded="false" aria-controls="seguridadCollapse">
+                    <i class="bi bi-shield-lock"></i> Seguridad
+                </a>
+                <div class="collapse ps-3" id="seguridadCollapse">
+                    <ul class="btn-toggle-nav list-unstyled fw-normal small">
+                        <li>
+                            <button type="button" class="btn btn-link text-start" data-action="sesiones">
+                                <i class="bi bi-people"></i> Sesiones activas
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="btn btn-link text-start" data-action="sesiones-auditadas">
+                                <i class="bi bi-people-fill"></i> Sesiones Auditadas
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            <li class="nav-item role-user" style="display:none">
+                <a class="nav-link collapsed" data-bs-toggle="collapse" href="#itemUserCollapse" role="button" aria-expanded="false" aria-controls="itemUserCollapse">
+                    <i class="bi bi-shield-lock"></i> Usuarios
+                </a>
+                <div class="collapse ps-3" id="itemUserCollapse">
+                    <ul class="btn-toggle-nav list-unstyled fw-normal small">
+                        <li>
+                            <button type="button" class="btn btn-link text-start" data-action="item-usuario">
+                                <i class="bi bi-speedometer2"></i> Items
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            <li class="nav-item role-admin role-auditor" style="display:none">
+                <a class="nav-link collapsed" data-bs-toggle="collapse" href="#metricsCollapse" role="button" aria-expanded="false" aria-controls="metricsCollapse">
+                    <i class="bi bi-graph-up"></i> Metricas
+                </a>
+                <div class="collapse ps-3" id="metricsCollapse">
+                    <ul class="btn-toggle-nav list-unstyled fw-normal small">
+
+                        <li>
+                            <button type="button" class="btn btn-link text-start" data-action="overview">
+                                <i class="bi bi-file-bar-graph-fill"></i> Overview
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="btn btn-link text-start" data-action="metrics-api">
+                                <i class="bi bi-file-bar-graph-fill"></i> Metricas API
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="btn btn-link text-start" data-action="metrics-endpoints">
+                                <i class="bi bi-file-bar-graph-fill"></i> Metricas Endpoints
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+        </ul>
+    </div>
+</nav>

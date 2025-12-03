@@ -1,0 +1,26 @@
+<!-- Auditoría de Sessiones -->
+<div id="audit-session" class="container mt-4" style="display:none">
+    <h2 class="mb-4">🔐 Sesiones activas</h2>
+    <label for="statusFilter" class="form-label">Filtrar por estado:</label>
+    <select id="statusFilter" class="form-select w-auto">
+        <option value="">Todos</option>
+        <option value="active">Activas</option>
+        <option value="revoked">Revocadas</option>
+        <option value="expired">Expiradas</option>
+    </select>
+    <table id="tablaSesiones" class="table-sesiones">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Device</th>
+                <th>Browser</th>
+                <th>Login_At</th>
+                <th>Refresh_at</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>

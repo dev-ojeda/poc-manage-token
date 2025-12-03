@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from flask import Blueprint, render_template
+
+
+
+frontend_bp = Blueprint(
+    "frontend",
+    __name__,
+    static_folder="static",
+    static_url_path="/static",
+    template_folder="templates",
+)
+
+@frontend_bp.route("/")
+def login():
+    # Si no hay token → mostrar login
+    return render_template(
+        "auth/login.html",
+        title="Home Page",
+        show_sidebar=False
+    )
+
+# Renderizado parcial (para AJAX / fetch)
+# @frontend_bp.route("/login/partial")
+# def login_partial():
+#     return render_template("auth/_login_partial.html")
+
+@frontend_bp.route("/.well-known/appspecific/com.chrome.devtools.json")
+def devtools_stub():
+    return {}, 204  # No Content
+
+
+@frontend_bp.route("/user/dashboard")
+def dash_page():
+    return render_template(
+        "dashboard/user/dashboard.html",
+        title="Dashboard User",
+        show_sidebar=True
+    )
+
+# Renderizado parcial (para AJAX / fetch)
+@frontend_bp.route("/user/partial")
+def dashboard_partial():
+    return render_template("dashboard/user/dashboard_partial.html")
+
+@frontend_bp.route("/admin/dashboard")
+def admin_page():
+    return render_template(
+        "dashboard/admin/dashboard.html",
+        title="Dashboard Admin",
+        show_sidebar=True
+    )
+# Renderizado parcial (para AJAX / fetch)
+@frontend_bp.route("/admin/partial")
+def dashboard_partial_admin():
+    return render_template("dashboard/admin/dashboard_partial.html")

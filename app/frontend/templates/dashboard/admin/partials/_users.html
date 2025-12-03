@@ -1,0 +1,34 @@
+<!-- Usuarios -->
+<div id="user-table" class="container my-4" style="display:none;">
+    <h2 class="mb-3">👤 Users</h2>
+    <div class="filters mb-2 d-flex gap-2 flex-wrap">
+        <input id="usernameInput" placeholder="Username" class="form-control w-auto">
+        <input id="filterCreatedUser" type="date" class="form-control w-auto">
+        <input id="filterUpdatedUser" type="date" class="form-control w-auto">
+        <button id="applyFiltersUser" class="btn btn-sm btn-outline-primary">Aplicar</button>
+        <button id="clearFiltersUser" class="btn btn-sm btn-outline-secondary">Limpiar</button>
+    </div>
+    <div class="table-responsive">
+        <table id="userTable" class="table table-striped table-hover table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th data-sort="username">User</th>
+                    <th data-sort="rol">Rol</th>
+                    <th data-sort="failed_attempts">Attempts</th>
+                    <th data-sort="created_at">Create</th>
+                    <th data-sort="updated_at">Update</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="pagination-controls d-flex gap-2 align-items-center mt-2">
+        <button id="firstPageUser" class="btn btn-primary btn-sm">⏮ Inicio</button>
+        <button id="prevPageUser" class="btn btn-primary btn-sm">⬅ Anterior</button>
+        <span id="pageIndicatorUser"></span>
+        <button id="nextPageUser" class="btn btn-primary btn-sm">Siguiente ➡</button>
+        <button id="lastPageUser" class="btn btn-primary btn-sm">Fin ⏭</button>
+        <input id="jumpToPageUser" type="number" class="form-control d-inline-block" style="width:80px;" placeholder="Página" min="1">
+        <button id="goToPageUser" class="btn btn-success btn-sm">Ir</button>
+    </div>
+</div>

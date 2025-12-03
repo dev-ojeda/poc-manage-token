@@ -1,0 +1,22 @@
+{% extends "/auth/base.html" %}
+{% block title %}Registro completado{% endblock %}
+{% block content %}
+<div class="alert alert-success text-center mt-5 mx-auto" style="max-width:400px;">
+    <h4>✅ Registro WebAuthn exitoso</h4>
+    <p>Puedes continuar al <a href="{{ url_for('frontend.dashboard') }}">dashboard</a>.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+    import { ApiClientSecureAESWebAuthn } from "{{ url_for('frontend.static', filename='js/api/ApiClientSecureAESWebAuthn.js') }}";
+
+// Top-level await si necesitas interactuar con el cliente JS
+const api = await ApiClientSecureAESWebAuthn.create({
+  baseURL: "https://localhost:5000/",
+  encryptionPassphrase: "demo-pass"
+});
+
+// Ejemplo: podrías fetch datos adicionales o inicializar sesiones
+</script>
+{% endblock %}

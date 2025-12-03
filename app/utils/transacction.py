@@ -1,99 +1,78 @@
-import datetime
+# refresh_token_service.py
+from datetime import datetime
+from typing import Dict
+from app.utils.mongo_op import mongo_op
+from app.extensions import db_mongo
 from bson import ObjectId
-from icecream import ic
-from pymongo.errors import DuplicateKeyError
-from app.dao.base_dao import BaseDAO
 
-# Simula tu colección de items
-class ItemDAO(BaseDAO):
-    COLLECTION = "items"
+class RefreshTokenService:
+    """
+    Servicio para manejar tokens refresh con upsert seguro y auditoría opcional.
+    """
 
-# Inicializa DAO
-dao = ItemDAO()
+    COLLECTION_NAME = "refresh_tokens"
 
-# Datos de ejemplo
-user_id = str(ObjectId())
-item_doc = {
-    "user_id": ObjectId(user_id),
-    "name": "Demo Item",
-    "description": "Item de prueba",
-    "created_at": datetime.datetime.now(tz=datetime.timezone.utc),
-    "updated_at": datetime.datetime.now(tz=datetime.timezone.utc),
-}
+    def __init__(self, db):
+        self.db = db
+        self.collection = db[self.COLLECTION_NAME]
 
-# Función de transacción
-def transactional_ops(session=None):
-    # 1️⃣ Insertar un item
-    insert_res = dao.insert_one(item_doc, context="Insert Demo Item", session=session)
-    ic("Insert Result:", insert_res)
-
-    # 2️⃣ Actualizar el item recién insertado
-    if insert_res.get("success"):
-        item_id = insert_res["data"]["_id"]
-        update_res = dao.update_one(
-            {"_id": ObjectId(item_id)},
-            {"description": "Actualizado en transacción"},
-            context="Update Demo Item",
-            session=session
+    def upsert_refresh_token(
+        self,
+        username: str,
+        device_id: str,
+        jti: str,
+        refresh_token: str,
+        refresh_attempts: int,
+        user_agent: Dict[str, str],
+        ip_address: str
+    ) -> Dict:
+        """
+        Inserta o actualiza un refresh token para un usuario y dispositivo.
+        """
+        return mongo_op.upsert_refresh_token(
+            collection=self.collection,
+            username=username,
+            device_id=device_id,
+            jti=jti,
+            refresh_token=refresh_token,
+            refresh_attempts=refresh_attempts,
+            user_agent=user_agent,
+            ip_address=ip_address,
+            context="RefreshToken Upsert"
         )
-        ic("Update Result:", update_res)
-    
-    # 3️⃣ Hacer un aggregate para contar items por usuario
-    pipeline = [
-        {"$match": {"user_id": ObjectId(user_id)}},
-        {"$group": {"_id": "$user_id", "total": {"$sum": 1}}}
-    ]
-    aggregate_res = dao.aggregate(pipeline, context="Aggregate Items By User", session=session)
-    ic("Aggregate Result:", aggregate_res)
-    
-    # Devuelve algo para confirmar
-    return {"success": True, "context": "Transaction Complete"}
 
-def transactional_ops_with_errors(session=None):
-    try:
-        # 1️⃣ Intentamos insertar
-        try:
-            insert_res = dao.insert_one(item_doc, context="Insert Demo Item", session=session)
-            ic("Insert Result:", insert_res)
-        except DuplicateKeyError as e:
-            ic(f"⚠️ Duplicate key detected: {e}")
-            # Podríamos generar un nuevo ID o manejarlo según negocio
-            return {"success": False, "message": "Duplicate Key", "context": "Insert Demo Item"}
-
-        # 2️⃣ Actualizar
-        if insert_res.get("success"):
-            item_id = insert_res["data"]["_id"]
-            update_res = dao.update_one(
-                {"_id": ObjectId(item_id)},
-                {"description": "Actualizado en transacción"},
-                context="Update Demo Item",
-                session=session
-            )
-            ic("Update Result:", update_res)
-
-        # 3️⃣ Aggregate para contar items
+    def get_active_token_by_username(self, username: str) -> Dict:
+        """
+        Devuelve el refresh token activo más reciente de un usuario.
+        """
+        from bson.son import SON
         pipeline = [
-            {"$match": {"user_id": ObjectId(user_id)}},
-            {"$group": {"_id": "$user_id", "total": {"$sum": 1}}}
+            {"$match": {"username": username, "revoked_at": None, "expires_at": {"$gt": datetime.utcnow()}}},
+            {"$sort": SON([("created_at", -1)])},
+            {"$limit": 1},
+            {"$project": {
+                "_id": 1, "username": 1, "device_id": 1, "jti": 1,
+                "refresh_token": 1, "created_at": 1, "expires_at": 1,
+                "revoked_at": 1, "used_at": 1
+            }}
         ]
-        aggregate_res = dao.aggregate(pipeline, context="Aggregate Items By User", session=session)
-        ic("Aggregate Result:", aggregate_res)
-
-        return {"success": True, "context": "Transaction Complete"}
-
-    except Exception as e:
-        ic(f"❌ Error en transacción: {e}")
-        return {"success": False, "message": str(e), "context": "Transaction Failed"}
+        return mongo_op.aggregate(self.collection, pipeline, context="Get Active Token by Username")
 
 
-# Ejecutar con manejo de transacción (si tu DAO soporta `with_transaction`)
-try:
-    transaction_result = dao.with_transaction(transactional_ops)
-    transaction_result = dao.with_transaction(transactional_ops_with_errors)
-    ic("Transaction Result:", transaction_result)
-except Exception as e:
-    ic(f"❌ Falló la transacción global: {e}")
-# # Ejecutar todo dentro de una transacción
-# transaction_result = dao.with_transaction(transactional_ops)
-# ic("Transaction Result:", transaction_result)
+service = RefreshTokenService(db=db_mongo.db)
 
+# Upsert token
+res = service.upsert_refresh_token(
+    username="neo",
+    device_id="device-001",
+    jti="abc123xyz",
+    refresh_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    refresh_attempts=0,
+    user_agent={"browser": "Chrome", "os": "Windows", "raw": "Mozilla/5.0..."},
+    ip_address="192.168.0.1"
+)
+print(res)
+
+# Consultar token activo
+active_token = service.get_active_token_by_username("neo")
+print(active_token)

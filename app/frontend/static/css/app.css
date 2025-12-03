@@ -1,0 +1,324 @@
+:root {
+    --bs-primary: #0d6efd;
+    --bs-danger: #dc3545;
+    --bs-warning: #ffc107;
+    --bs-success: #28a745;
+    --sidebar-width: 240px;
+}
+
+/* ================
+   Reset general
+   ================ */
+body {
+    padding-top: 56px; /* para que el contenido no quede debajo del navbar */
+}
+
+h2 {
+    margin-top: 40px;
+}
+/* ================
+   Navbar
+   ================ */
+.navbar {
+    background-color: #1e1e1e !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    z-index: 1050;
+}
+
+.navbar-brand img {
+    width: 28px;
+    margin-right: 6px;
+}
+
+/* ================
+   Sidebar
+   ================ */
+#sidebar {
+    position: fixed;
+    top: 56px; /* altura del navbar */
+    left: 0;
+    width: 240px;
+    height: calc(100vh - 56px);
+    background-color: #1a1a1a;
+    padding-top: 1rem;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+    z-index: 1040;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+    #sidebar.collapsed {
+        width: 0;
+        overflow: hidden;
+    }
+
+    #sidebar .nav-link,
+    #sidebar .btn-link {
+        color: #ccc;
+        text-decoration: none;
+        display: block;
+        width: 100%;
+        padding: 0.5rem 1.25rem;
+        text-align: left;
+        transition: all 0.2s;
+    }
+
+        #sidebar .nav-link:hover,
+        #sidebar .btn-link:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+    #sidebar .bi {
+        margin-right: 0.5rem;
+    }
+
+/* ================
+   Main content
+   ================ */
+.main-content {
+    margin-left: 220px;
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+}
+
+    .main-content.collapsed {
+        margin-left: 60px;
+    }
+
+
+@media (max-width: 992px) {
+    #sidebar {
+        position: fixed;
+        width: 220px;
+        z-index: 1060;
+    }
+
+    #mainContent {
+        margin-left: 0 !important;
+    }
+}
+
+/* ================
+   Login panel
+   ================ */
+.login-wrapper {
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    padding: 2.5rem 2rem;
+    max-width: 380px;
+    margin: 10vh auto;
+    text-align: center;
+    animation: fadeIn 0.6s ease-in-out;
+}
+
+.login-header h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.login-header p {
+    color: #aaa;
+    margin-bottom: 1.5rem;
+}
+
+.form-control {
+    background-color: #2a2a2a;
+    border: none;
+    border-radius: 8px;
+    color: #e0e0e0;
+    padding: 0.75rem;
+}
+
+    .form-control:focus {
+        background-color: #333;
+        outline: none;
+        box-shadow: 0 0 0 2px #0d6efd;
+    }
+
+.btn-login {
+    width: 100%;
+    background-color: #0d6efd;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: background 0.3s;
+}
+
+    .btn-login:hover {
+        background-color: #0b5ed7;
+    }
+
+.login-footer {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+
+    .login-footer a {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+/* ======================
+   Footer Moderno - NEO!
+   ====================== */
+.footer {
+    background: #1a1a1a;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.5rem 0;
+    text-align: center;
+    color: #bbb;
+    margin-top: auto;
+    width: 100%;
+}
+
+.footer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.footer-text {
+    font-size: 0.9rem;
+    color: #999;
+}
+
+    .footer-text strong {
+        color: #fff;
+        font-weight: 600;
+    }
+
+.footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.25rem;
+}
+
+.footer-link {
+    color: #aaa;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+    .footer-link:hover {
+        color: #0d6efd;
+        transform: translateY(-2px);
+    }
+
+/* -------- Responsive -------- */
+@media (max-width: 600px) {
+    .footer-links {
+        gap: 0.75rem;
+        flex-direction: column;
+    }
+}
+
+/* ================
+   Animaciones
+   ================ */
+.fade-in {
+    animation: fadeIn 0.8s ease forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ================= DEBUG PANEL ================= */
+.debug-console {
+    position: fixed;
+    bottom: 70px;
+    right: 20px;
+    width: 420px;
+    height: 280px;
+    background: #111;
+    color: #0f0;
+    font-family: monospace;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.3);
+    z-index: 2100;
+    display: flex;
+    flex-direction: column;
+    opacity: 0.95;
+}
+
+    .debug-console.hidden {
+        display: none;
+    }
+
+.debug-header {
+    background: #222;
+    color: #0f0;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+}
+
+.debug-output {
+    flex: 1;
+    padding: 8px;
+    overflow-y: auto;
+    word-wrap: break-word;
+}
+
+.debug-log {
+    margin-bottom: 4px;
+    white-space: pre-wrap;
+}
+
+    .debug-log time {
+        color: #6f6;
+        margin-right: 4px;
+    }
+
+#loadingSpinner {
+    transition: opacity 0.3s ease;
+}
+
+    #loadingSpinner.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+#globalSpinner {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: #fff;
+    transition: opacity 0.4s ease;
+}
+
+    #globalSpinner.fade {
+        opacity: 0;
+        pointer-events: none;
+    }

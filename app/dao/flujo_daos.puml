@@ -1,0 +1,72 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' -------------------
+' Clases Principales
+' -------------------
+class MongoDatabase {
+    +client: MongoClient
+    +db: Database
+    +is_connected(): bool
+    +reconnect(): bool
+    +start_session(): ClientSession
+    +close()
+}
+
+class MongoOp {
+    +insert_one(collection, document, context): dict
+    +find_one(collection, query, context): dict
+    +find_many(collection, query, projection, context): dict
+    +update_one(collection, query, update, context): dict
+    +delete_one(collection, query, context): dict
+    +aggregate(collection, pipeline, context): dict
+    +count(collection, query, context): dict
+    +replace_one(collection, query, new_doc, context): dict
+}
+
+class AuthDAO {
+    +get_active_token_by_user_and_device()
+    +upsert_refresh_token()
+    +revoke_tokens()
+    ...
+}
+
+class SessionDAO {
+    +insert_session()
+    +get_active_session()
+    +update_session()
+    +revoke_session()
+    +has_active_session()
+}
+
+class AuditLogDAO {
+    +insert_logs_audit()
+    +get_logs_audit()
+    +insert_event_audit()
+}
+
+class UserDAO {
+    +find_by_username()
+    +create_user()
+    +update_user()
+    +delete_user()
+}
+
+class TokenBlacklistDAO {
+    +insert_token()
+    +revoke_token()
+    +delete_token()
+    +is_token_revoked()
+}
+
+' -------------------
+' Relaciones
+' -------------------
+MongoDatabase <.. MongoOp : usa
+MongoOp <.. AuthDAO : operaciones
+MongoOp <.. SessionDAO : operaciones
+MongoOp <.. AuditLogDAO : operaciones
+MongoOp <.. UserDAO : operaciones
+MongoOp <.. TokenBlacklistDAO : operaciones
+
+@enduml

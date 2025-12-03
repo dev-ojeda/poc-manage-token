@@ -19,7 +19,16 @@ from faker import Faker
 from app.dao.metrics_dao import MetricsDAO
 from app.model.metrics_model import MetricModel
 # client = MongoClient("mongodb://localhost:27017/")
-client = MongoClient(Config.MONGO_URI_CLUSTER_X509, tls=True, tlsCertificateKeyFile=Config.MONGODB_X509, server_api=ServerApi('1'),tz_aware=True, tzinfo=timezone.utc)
+client = MongoClient(
+    Config.MONGO_URI_CLUSTER_X509, 
+    tls=True, 
+    tlsCertificateKeyFile=Config.MONGODB_X509, 
+    server_api=ServerApi('1'),
+    tz_aware=True, 
+    tzinfo=timezone.utc,
+    maxPoolSize=100,
+    serverSelectionTimeoutMS=3000
+)
 db = client[Config.MONGO_DB]
 col_metrics_api = db["performance_metrics_api"]
 col_metrics = db["metrics"]
@@ -461,6 +470,90 @@ def db_create_collection():
                 validationAction="error"
             )
             ic("Colección 'global_tokens' creada")
+        elif "credentials" not in db.list_collection_names():
+            db.create_collection("credentials", validator={
+                    "$jsonSchema": {
+                        "bsonType": "object",
+                        "required": [
+                            "_id",
+                            "raw_id",
+                            "type",
+                            "attestation_object",
+                            "client_data_json",
+                            "username",
+                            "origin",
+                            "device",
+                            "fmt",
+                            "sign_count",
+                            "verified",
+                            "pubkey",
+                            "created_at"
+                        ],
+                        "properties": {
+                            "_id": {"bsonType": "objectId"},
+                            "raw_id": {
+                                "bsonType": "string",
+                                "pattern": "^[A-Za-z0-9\\-_]+={0,2}$",
+                                "description": "Base64URL del identificador del credential"
+                            },
+                            "type": {
+                                "bsonType": "string",
+                                "enum": ["public-key"],
+                                "description": "Tipo de credential WebAuthn"
+                            },
+                            "attestation_object": {
+                                "bsonType": "string",
+                                "description": "Objeto de attestation codificado en Base64URL"
+                            },
+                            "client_data_json": {
+                                "bsonType": "string",
+                                "description": "ClientDataJSON codificado en Base64URL"
+                            },
+                            "username": {
+                                "bsonType": "string",
+                                "description": "Nombre de usuario asociado"
+                            },
+                            "origin": {
+                                "bsonType": "string",
+                                "description": "Origen o dominio donde se registró la credencial"
+                            },
+                            "device": {
+                                "bsonType": "string",
+                                "description": "Dispositivo o descripción opcional"
+                            },
+                            "fmt": {
+                                "bsonType": ["string", "null"],
+                                "description": "Formato de attestation (packed, none, etc.)"
+                            },
+                            "sign_count": {
+                                "bsonType": "int",
+                                "minimum": 0,
+                                "description": "Contador de firmas para prevenir replay attacks"
+                            },
+                            "verified": {
+                                "bsonType": "bool",
+                                "description": "Indica si la credencial fue verificada exitosamente"
+                            },
+                            "pubkey": {
+                                "bsonType": "object",
+                                "description": "Clave pública en formato COSE (dict con parámetros alg, x, y, etc.)",
+                                "properties": {}
+                            },
+                            "user_handle": {
+                                "bsonType": ["string", "null"],
+                                "description": "Identificador opcional de usuario"
+                            },
+                            "created_at": {
+                                "bsonType": "date",
+                                "description": "Fecha de creación con zona horaria UTC"
+                            }
+                        }
+                    }
+                },
+                validationLevel="strict",
+                validationAction="error"
+            )
+            ic("Colección 'credentials' creada")
     except errors.CollectionInvalid as e:
         ic(f"La colección ya existe -> {e}")
 
@@ -1070,7 +1163,7 @@ def main():
     # db_delete_audit()
     # create_mock_json_audit()
     # Generar 1000 documentos
-    get_all_users_items()
+    db_create_collection()
     # db_delete_performance_endpoint()
     # ic(get_metrics_timeline())
     # db_create_audit()

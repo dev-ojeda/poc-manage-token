@@ -1,0 +1,209 @@
+:root {
+    --bs-primary: #0d6efd;
+    --bs-danger: #dc3545;
+    --bs-warning: #ffc107;
+    --bs-success: #28a745;
+    --sidebar-width: 240px;
+    /* Tonos neutros */
+    --bg-light: #f5f6fa;
+    --bg-white: #ffffff;
+    --text-main: #2d3436;
+    --text-muted: #6c757d;
+}
+
+/* ====== BASE ====== */
+body {
+    background: var(--bg-light);
+    color: var(--text-main);
+    font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+    padding-top: 56px;
+}
+
+/* ====== DASHBOARD LAYOUT ====== */
+.dashboard-container {
+    background: var(--bg-light);
+    min-height: calc(100vh - 56px);
+    padding: 2rem;
+}
+
+.dashboard-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Token container — oscuro y consistente */
+#tokenContainer {
+    background: #bbb;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+#tokenProgressSection {
+    background: #141414;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    color: #dfe7ff;
+}
+
+#fechaCountry {
+    color: #7fb1ff;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* fondo de la barra — contraste sutil */
+.token-progress-container {
+    height: 0.6rem;
+    border-radius: 0.25rem;
+    overflow: hidden;
+    background-color: #0f5132;
+}
+
+
+/* gradiente para progress */
+#tokenProgress {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #00c853, #0d6efd);
+    transition: width 0.4s ease-in-out, background 0.5s ease;
+}
+
+/* countdown */
+#tokenTimer {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.08);
+    font-weight: 500;
+    text-align: right;
+}
+
+/* Flash token refresh */
+#tokenProgress.flash {
+    animation: flashGreen 0.8s;
+}
+
+@keyframes flashGreen {
+    0%, 100% {
+        background-color: #198754;
+    }
+
+    50% {
+        background-color: #0f5132;
+    }
+}
+/* ================= USER PANEL ================= */
+.user-panel.admin {
+    border-left: 4px solid #ff4d4d;
+    background: #2b1f1f;
+}
+
+.user-panel {
+    background: #2b2b2b; /* Gris oscuro coherente con el tema */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    color: #e0e0e0;
+}
+
+    .user-panel h5 {
+        color: #58a6ff;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .user-panel .card {
+        background-color: #1e1e1e;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .user-panel .card-header {
+        background-color: #0d6efd;
+        color: #fff;
+        font-weight: 500;
+    }
+
+    .user-panel .card-body {
+        background-color: #222;
+        color: #ccc;
+    }
+
+/* ================= ITEMS ================= */
+#userItemsSection,
+#userChatSection {
+    background: #58a6ff;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: none;
+}
+
+.table-dark th,
+.table-dark td {
+    color: #e0e0e0;
+}
+
+#userItemsSection input {
+    background: #222;
+    color: #fff;
+    border: 1px solid #444;
+}
+
+/* ================= CHAT ================= */
+.chat-messages {
+    background: #121212;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    max-height: 250px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+}
+
+.chat-message {
+    margin-bottom: 0.5rem;
+}
+
+    .chat-message.user {
+        text-align: right;
+        color: #0d6efd;
+    }
+
+    .chat-message.system {
+        color: #ccc;
+    }
+
+/* ================= ANIMACIONES ================= */
+.fade-in {
+    opacity: 1;
+    transition: opacity 0.5s;
+}
+
+.fade-out {
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+#loadingSpinner {
+    transition: opacity 0.3s ease;
+}
+
+    #loadingSpinner.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }

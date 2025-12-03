@@ -1,13 +1,11 @@
 import datetime
 from datetime import timedelta, timezone
 from typing import Any, Optional, List
-from icecream import ic
 from pymongo import DESCENDING
 from pymongo.cursor import SON
 
-from app.dao.base_dao import BaseDAO
+from app.core.base_dao import BaseDAO
 from app.model.alert_model import AlertModel
-from app.model.metrics_model import MetricModel
 from app.utils.percentiles import PERCENTILES_CONFIG
 from app.utils.thresholds import THRESHOLDS
 

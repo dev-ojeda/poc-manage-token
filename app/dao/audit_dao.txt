@@ -1,0 +1,196 @@
+import datetime
+from datetime import timezone
+from typing import Optional, Dict, Any, List
+from bson import SON
+from app.model.audit_session_model import AuditLogModel
+from app.dao.base_dao import BaseDAO
+
+class AuditLogDAO(BaseDAO):
+    COLLECTION = "session_audit"
+
+    def __init__(self, db=None):
+        super().__init__(db=db, collection_name=self.COLLECTION)
+
+    def _now(self) -> datetime.datetime:
+        return datetime.datetime.now(tz=timezone.utc)
+
+    # -------------------------------
+    # Insertar un log de auditoría
+    # -------------------------------
+    def insert_logs_audit(self, audit_log: AuditLogModel, *, context: str = "Insert Audit Log", **kwargs) -> dict:
+        return self.insert_one(self.COLLECTION, audit_log.to_dict(), context=context, **kwargs)
+
+    # -------------------------------
+    # Obtener logs con filtros y paginación
+    # -------------------------------
+    def get_logs_audit(
+        self,
+        user_id: Optional[str] = None,
+        event_type: Optional[str] = None,
+        start: Optional[datetime.datetime] = None,
+        end: Optional[datetime.datetime] = None,
+        page: int = 1,
+        limit: int = 10,
+        sort_by: str = "timestamp",
+        direction: str = "desc",
+        *,
+        context: str = "Get Logs Audit",
+        **kwargs
+    ) -> Dict[str, Any]:
+        try:
+            skip = (page - 1) * limit
+            filters: Dict[str, Any] = {}
+            if user_id:
+                filters["user_id"] = user_id
+            if event_type:
+                filters["event_type"] = event_type
+            if start or end:
+                filters["timestamp"] = {}
+                if start:
+                    filters["timestamp"]["$gte"] = start
+                if end:
+                    filters["timestamp"]["$lte"] = end
+
+            pipeline = [
+                {"$match": filters},
+                {"$addFields": {
+                    "changes": {
+                        "$let": {
+                            "vars": {
+                                "allFields": {
+                                    "$mergeObjects": [
+                                        {"old_value": {"old": "$old_value", "new": "$new_value"}},
+                                        {"ip_address": {"old": "$old_ip", "new": "$ip_address"}},
+                                        {"user_agent": {"old": "$old_user_agent", "new": "$user_agent"}}
+                                    ]
+                                }
+                            },
+                            "in": {
+                                "$arrayToObject": {
+                                    "$filter": {
+                                        "input": {"$objectToArray": "$$allFields"},
+                                        "as": "field",
+                                        "cond": {"$ne": [
+                                            {"$ifNull": ["$$field.v.old", None]},
+                                            {"$ifNull": ["$$field.v.new", None]}
+                                        ]}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }},
+                {"$sort": SON([(sort_by, -1 if direction == "desc" else 1)])},
+                {"$facet": {
+                    "data": [
+                        {"$skip": skip},
+                        {"$limit": limit},
+                        {"$project": {
+                            "_id": 0,
+                            "session_id": 1,
+                            "user_id": 1,
+                            "event_type": 1,
+                            "old_value": 1,
+                            "new_value": 1,
+                            "ip_address": 1,
+                            "user_agent": 1,
+                            "timestamp": 1,
+                            "changes": 1
+                        }}
+                    ],
+                    "totalCount": [{"$count": "count"}]
+                }}
+            ]
+
+            result = self.aggregate(self.COLLECTION, pipeline, context=context, **kwargs)
+            data = result.get("data", [{}])[0]
+            logs = data.get("data", [])
+            total_count = data.get("totalCount", [{}])[0].get("count", 0) if data.get("totalCount") else 0
+
+            # Normalizar timestamps
+            for log in logs:
+                if isinstance(log.get("timestamp"), datetime.datetime):
+                    log["timestamp"] = log["timestamp"].isoformat()
+
+            return {"success": True, "data": {"logs": logs, "total_count": total_count, "page": page, "limit": limit}, "context": context}
+        except Exception as e:
+            self.logger.error(f"[{context}] Error al obtener logs de auditoría: {e}")
+            return {"success": False, "data": None, "context": context, "message": str(e)}
+
+    # -------------------------------
+    # Obtener todos los logs de auditoría
+    # -------------------------------
+    def get_all_logs_audit(self, *, context: str = "Get All Audit Logs", **kwargs) -> Dict[str, Any]:
+        try:
+            pipeline = [
+                {"$sort": SON([("timestamp", -1)])},
+                {
+                    "$facet": {
+                        "logs": [
+                            {"$project": {
+                                "_id": 0,
+                                "session_id": 1,
+                                "user_id": 1,
+                                "event_type": 1,
+                                "old_value": 1,
+                                "new_value": 1,
+                                "ip_address": 1,
+                                "user_agent": 1,
+                                "timestamp": 1,
+                                "changes": 1,
+                            }}
+                        ],
+                        "total": [{"$count": "total_count"}]
+                    }
+                },
+                {
+                    "$project": {
+                        "logs": 1,
+                        "total_count": {"$ifNull": [{"$arrayElemAt": ["$total.total_count", 0]}, 0]}
+                    }
+                }
+            ]
+
+            result = self.aggregate(self.COLLECTION, pipeline, context=context, **kwargs)
+            if result.get("success") and result.get("data"):
+                data = result["data"][0]
+                for log in data.get("logs", []):
+                    if isinstance(log.get("timestamp"), datetime.datetime):
+                        log["timestamp"] = log["timestamp"].isoformat()
+                return {"success": True, "data": {"logs": data.get("logs", []), "total_count": data.get("total_count", 0)}, "context": context}
+
+            return {"success": False, "data": {"logs": [], "total_count": 0}, "context": context, "message": "No se encontraron logs"}
+        except Exception as e:
+            self.logger.error(f"[{context}] Error al obtener todos los logs: {e}")
+            return {"success": False, "data": None, "context": context, "message": str(e)}
+
+    # -------------------------------
+    # Insertar evento de auditoría de sesión
+    # -------------------------------
+    def insert_event_audit(self, previous_session: dict, **kwargs) -> dict:
+        try:
+            ip_changed = previous_session.get("ip_address") != kwargs.get("ip_address")
+            ua_changed = previous_session.get("user_agent") != kwargs.get("browser")
+
+            if not (ip_changed or ua_changed):
+                return {"success": False, "data": None, "context": "Insert Event Audit", "message": "No changes detected"}
+
+            audit_event = {
+                "username": kwargs.get("username"),
+                "device_id": kwargs.get("device_id"),
+                "timestamp": self._now(),
+                "old_ip_address": previous_session.get("ip_address"),
+                "new_ip_address": kwargs.get("ip_address"),
+                "old_user_agent": previous_session.get("user_agent"),
+                "new_user_agent": kwargs.get("browser"),
+                "reason": []
+            }
+            if ip_changed:
+                audit_event["reason"].append("ip_changed")
+            if ua_changed:
+                audit_event["reason"].append("user_agent_changed")
+
+            return self.insert_one(self.COLLECTION, audit_event, context="Insert Event Audit", **kwargs)
+        except Exception as e:
+            self.logger.error(f"[Insert Event Audit] Exception: {e}")
+            return {"success": False, "data": None, "context": "Insert Event Audit", "message": str(e)}

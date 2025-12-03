@@ -1,0 +1,55 @@
+# app/dao/base_dao.py
+from datetime import datetime, timezone
+from typing import Optional, Dict, Any, List
+from app.utils.mongo_op import mongo_op
+
+
+class BaseDAO:
+    """DAO base que encapsula operaciones CRUD genéricas sobre MongoDB."""
+
+    def __init__(self, db=None, collection_name: str = ""):
+        if not collection_name:
+            raise ValueError("collection_name es obligatorio para inicializar BaseDAO")
+
+        self.collection_name = collection_name
+        self.collection = db.db[collection_name] if db else mongo_op.db_instance.db[collection_name]
+        self.logger = mongo_op.logger
+
+    @staticmethod
+    def _now() -> datetime:
+        return datetime.now(tz=timezone.utc)
+
+    # -------------------------
+    # CRUD wrappers
+    # -------------------------
+    def insert_one(self, doc: Dict[str, Any], *, context: str = "insert_one") -> dict:
+        return mongo_op.insert_one(self.collection, doc, context=context)
+
+    def find_one(
+        self, query: Dict[str, Any],
+        projection: Optional[Dict[str, int]] = None,
+        *, context: str = "find_one"
+    ) -> Optional[dict]:
+        return mongo_op.find_one(self.collection, query, projection=projection, context=context)
+
+    def find_many(
+        self, query: Dict[str, Any],
+        projection: Optional[Dict[str, int]] = None,
+        *, context: str = "find_many"
+    ) -> List[dict]:
+        return mongo_op.find_many(self.collection, query, projection=projection, context=context)
+
+    def update_one(self, query: Dict[str, Any], update: Dict[str, Any], *, context: str = "update_one") -> dict:
+        return mongo_op.update_one(self.collection, query, update, context=context)
+
+    def delete_one(self, query: Dict[str, Any], *, context: str = "delete_one") -> dict:
+        return mongo_op.delete_one(self.collection, query, context=context)
+
+    def replace_one(self, query: Dict[str, Any], new_doc: Dict[str, Any], *, context: str = "replace_one") -> dict:
+        return mongo_op.replace_one(self.collection, query, new_doc, context=context)
+
+    def aggregate(self, pipeline: List[Dict[str, Any]], *, context: str = "aggregate") -> List[dict]:
+        return mongo_op.aggregate(self.collection, pipeline, context=context)
+
+    def count(self, query: Dict[str, Any], *, context: str = "count") -> int:
+        return mongo_op.count(self.collection, query, context=context)

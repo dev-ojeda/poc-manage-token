@@ -1,0 +1,36 @@
+<!-- Resumen tipo Lighthouse Metricas Api -->
+<div id="metricsApi" class="container my-3 p-3 border rounded bg-light" style="display:none;">
+    <h2 class="mb-4">📡 API Metrics Dashboard</h2>
+
+    <div class="row g-4">
+        <!-- Tabla -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">Últimos endpoints</div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover" id="metricsTable">
+                        <thead>
+                            <tr>
+                                <th>URL</th>
+                                <th>Método</th>
+                                <th>Duración (ms)</th>
+                                <th>Tamaño (KB)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">Duración de llamadas</div>
+                <div class="card-body">
+                    <canvas id="durationChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,220 +1,156 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import logging
+
+import threading
 import time
-from typing import Any, Dict, List, Optional, Tuple
-from bson import ObjectId
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
-from pymongo.errors import PyMongoError, NetworkTimeout
+from pymongo.errors import ConnectionFailure, PyMongoError
 from app.config import Config
+from app.logging_config import get_logger
+
 
 class MongoDatabase:
-    def __init__(self, retry: int = 3, backoff: float = 0.5) -> None:
-        self.db_name = Config.MONGO_DB
-        self.uri = Config.MONGO_URI_CLUSTER_X509
+    """
+    Conector MongoDB seguro y resiliente.
+    - Singleton thread-safe
+    - Reconexión automática
+    - Verificación de conexión
+    - Soporte de sesión
+    """
+
+    _instance_lock = threading.Lock()
+    _initialized = False
+    _client = None
+    _db = None
+
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, "_instance"):
+            with cls._instance_lock:
+                if not hasattr(cls, "_instance"):
+                    cls._instance = super(MongoDatabase, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, uri: str = None, db_name: str = None, retry: int = 3, backoff: float = 0.5):
+        if self._initialized:
+            return
+
+        self.logger = get_logger("MongoDatabase")
+        self.uri = uri or Config.MONGO_URI_CLUSTER_X509
+        self.db_name = db_name or Config.MONGO_DB
         self.tls_certificate_key_file = Config.MONGODB_X509
-        self.client: Optional[MongoClient] = None
-        self.db = None
         self.retry = retry
         self.backoff = backoff
 
-        # Logger centralizado
-        self.logger = logging.getLogger("MongoDatabase")
-        self.logger.setLevel(logging.INFO)
+        if "." in self.db_name:
+            raise ValueError(f"❌ Nombre de base de datos inválido: '{self.db_name}'")
 
-        # Conectar automáticamente
-        self.connect()
-
-    # --- Context manager ---
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback_info):
-        self.close()
-
-    # --- Conexión ---
-    def connect(self) -> None:
         try:
-            self.client = MongoClient(
+            self.logger.info(f"🌐 Inicializando conexión MongoDB -> {self.uri}/{self.db_name}")
+            self._client = MongoClient(
+                self.uri,
+                tlsCertificateKeyFile=self.tls_certificate_key_file,
+                tls=True,
+                server_api=ServerApi("1"),
+                maxPoolSize=100,
+                serverSelectionTimeoutMS=3000,
+            )
+            self._db = self._client[self.db_name]
+            self._initialized = True
+            self.logger.info("✅ Conexión inicializada correctamente.")
+        except ConnectionFailure as e:
+            self.logger.error(f"🚨 Falló la conexión inicial a MongoDB: {e}")
+            self._initialized = False
+
+    # ---------------------------------------------------
+    #  CONTROL DE CONEXIÓN
+    # ---------------------------------------------------
+    def is_connected(self) -> bool:
+        if not self._client:
+            return False
+        try:
+            self._client.admin.command("ping")
+            return True
+        except (ConnectionFailure, PyMongoError) as e:
+            self.logger.warning(f"⚠️ Verificación fallida: {e}")
+            return False
+
+    def reconnect(self) -> bool:
+        for attempt in range(1, self.retry + 1):
+            try:
+                self.logger.warning(f"🔄 Intentando reconexión MongoDB ({attempt}/{self.retry})...")
+                self._client = MongoClient(
+                    self.uri,
+                    tlsCertificateKeyFile=self.tls_certificate_key_file,
+                    tls=True,
+                    server_api=ServerApi("1"),
+                    maxPoolSize=100,
+                    serverSelectionTimeoutMS=3000,
+                )
+                self._db = self._client[self.db_name]
+                self._client.admin.command("ping")
+                self.logger.info("✅ Reconexión exitosa.")
+                return True
+            except ConnectionFailure as e:
+                self.logger.warning(f"⏳ Reconexión falló: {e}. Esperando {self.backoff}s...")
+                time.sleep(self.backoff)
+            except Exception as e:
+                self.logger.exception(f"💥 Error inesperado al reconectar: {e}")
+                time.sleep(self.backoff)
+        self.logger.error("🚫 No se pudo reconectar a MongoDB después de varios intentos.")
+        return False
+
+    # ---------------------------------------------------
+    #  SESIONES MONGO
+    # ---------------------------------------------------
+    def start_session(self):
+        if not self.is_connected():
+            self.logger.warning("⚠️ MongoDB desconectado. Intentando reconexión...")
+            if not self.reconnect():
+                raise ConnectionFailure("No se pudo iniciar sesión: MongoDB desconectado.")
+        return self._client.start_session()
+
+    # ---------------------------------------------------
+    #  ACCESO PÚBLICO
+    # ---------------------------------------------------
+    @property
+    def client(self) -> MongoClient:
+        if self._client is None:
+            self.logger.debug("Creando cliente MongoDB on-demand.")
+            self._client = MongoClient(
                 self.uri,
                 tls=True,
                 tlsCertificateKeyFile=self.tls_certificate_key_file,
-                server_api=ServerApi('1'),
-                tz_aware=True,
-                maxPoolSize=50,
-                minPoolSize=5,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=5000,
-                socketTimeoutMS=10000,
+                server_api=ServerApi("1"),
+                maxPoolSize=100,
+                serverSelectionTimeoutMS=3000,
             )
-            self.db = self.client[self.db_name]
-            self.logger.info(f"Conectado a MongoDB -> {self.db_name}")
-        except (PyMongoError, NetworkTimeout) as e:
-            self.logger.error(f"❌ Error al conectar a MongoDB: {e}")
-            raise
+            self._db = self._client[self.db_name]
+        return self._client
 
-    def close(self) -> None:
-        if self.client:
-            self.client.close()
-            self.logger.info("Conexión a MongoDB cerrada")
+    @property
+    def db(self):
+        if self._db is None:
+            self._db = self.client[self.db_name]
+        return self._db
 
-    # --- Helper ObjectId ---
-    @staticmethod
-    def _convert_objectid(doc: dict) -> dict:
-        for k, v in doc.items():
-            if isinstance(v, ObjectId):
-                doc[k] = str(v)
-        return doc
+    # ---------------------------------------------------
+    #  CIERRE CONTROLADO
+    # ---------------------------------------------------
+    def close(self, force: bool = False):
+        """
+        Cierra la conexión MongoDB de forma segura.
+        Si 'force' es True, reinicia completamente la instancia.
+        """
+        if self._client:
+            try:
+                self._client.close()
+                self.logger.info("🛑 Conexión MongoDB cerrada correctamente.")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Error al cerrar cliente MongoDB: {e}")
 
-    # --- Access collection ---
-    def _get_collection(self, name: str):
-        if not self.db:
-            raise RuntimeError("MongoDB no está conectado")
-        return self.db[name]
-
-    # --- Retry decorator interno ---
-    def _retry(func):
-        def wrapper(self, *args, **kwargs):
-            attempts = 0
-            while True:
-                try:
-                    return func(self, *args, **kwargs)
-                except PyMongoError as e:
-                    attempts += 1
-                    if attempts > self.retry:
-                        self.logger.error(f"[{func.__name__}] Excedido máximo retries: {e}")
-                        return {"success": False, "error": str(e)}
-                    self.logger.warning(f"[{func.__name__}] Retry {attempts}/{self.retry} tras error: {e}")
-                    time.sleep(self.backoff)
-        return wrapper
-
-    # --------------------------
-    # CREATE
-    # --------------------------
-    @_retry
-    def insert_one(self, collection: str, document: Dict[str, Any], context: str = "") -> dict:
-        try:
-            col = self._get_collection(collection)
-            result = col.insert_one(document)
-            self.logger.info(f"[{context}] Inserted into {collection}: {result.inserted_id}")
-            return {"success": True, "inserted_id": str(result.inserted_id), "context": context}
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] insert_one failed: {e}")
-            return {"success": False, "error": str(e), "context": context}
-
-    @_retry
-    def insert_many(self, collection: str, documents: List[Dict[str, Any]], context: str = "") -> dict:
-        try:
-            col = self._get_collection(collection)
-            result = col.insert_many(documents)
-            self.logger.info(f"[{context}] Inserted {len(result.inserted_ids)} docs into {collection}")
-            return {"success": True, "inserted_ids": [str(_id) for _id in result.inserted_ids], "context": context}
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] insert_many failed: {e}")
-            return {"success": False, "error": str(e), "context": context}
-
-    # --------------------------
-    # READ
-    # --------------------------
-    @_retry
-    def find_one(
-        self,
-        collection: str,
-        filtro: Dict[str, Any],
-        projection: Optional[Dict[str, int]] = None,
-        context: str = ""
-    ) -> dict:
-        try:
-            col = self._get_collection(collection)
-            doc = col.find_one(filtro, projection)
-            if doc:
-                doc = self._convert_objectid(doc)
-            return {"success": True, "data": doc, "context": context}
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] find_one failed: {e}")
-            return {"success": False, "error": str(e), "context": context}
-
-    @_retry
-    def find_many(
-        self,
-        collection: str,
-        filtro: Dict[str, Any],
-        projection: Optional[Dict[str, int]] = None,
-        limit: int = 0,
-        sort: Optional[List[Tuple[str, int]]] = None,
-        context: str = ""
-    ) -> dict:
-        try:
-            col = self._get_collection(collection)
-            cursor = col.find(filtro, projection)
-            if sort:
-                cursor = cursor.sort(sort)
-            if limit > 0:
-                cursor = cursor.limit(limit)
-            results = [self._convert_objectid(doc) for doc in cursor]
-            return {"success": True, "data": results, "count": len(results), "context": context}
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] find_many failed: {e}")
-            return {"success": False, "error": str(e), "context": context}
-
-    @_retry
-    def count_documents(self, collection: str, filtro: Dict[str, Any], context: str = "") -> dict:
-        try:
-            col = self._get_collection(collection)
-            count = col.count_documents(filtro)
-            return {"success": True, "count": count, "context": context}
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] count_documents failed: {e}")
-            return {"success": False, "error": str(e), "context": context}
-
-    @_retry
-    def aggregate(self, collection: str, pipeline: Any, context: str = "") -> dict:
-        try:
-            docs = list(self.db[collection].aggregate(pipeline=pipeline))
-            results = [self._convert_objectid(doc) for doc in docs]
-            return {"success": True, "data": results, "context": context}
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] aggregate failed: {e}")
-            return {"success": False, "error": str(e), "context": context}
-
-    # --------------------------
-    # UPDATE
-    # --------------------------
-    @_retry
-    def update_one(self, collection: str, filtro: Dict[str, Any], update: Dict[str, Any], upsert: bool = False, context: str = "") -> dict:
-        try:
-            col = self._get_collection(collection)
-            result = col.update_one(filtro, {"$set": update}, upsert=upsert)
-            return {"success": True, "matched_count": result.matched_count, "modified_count": result.modified_count, "context": context}
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] update_one failed: {e}")
-            return {"success": False, "error": str(e), "context": context}
-
-    @_retry
-    def upsert_one(self, collection: str, filtro: Dict[str, Any], update: Dict[str, Any], context: str = "") -> dict:
-        return self.update_one(collection, filtro, update, upsert=True, context=context)
-
-    # --------------------------
-    # DELETE
-    # --------------------------
-    @_retry
-    def delete_one(self, collection: str, filtro: Dict[str, Any], context: str = "") -> dict:
-        try:
-            col = self._get_collection(collection)
-            result = col.delete_one(filtro)
-            return {"success": True, "deleted_count": result.deleted_count, "context": context}
-        except PyMongoError as e:
-            self.logger.error(f"[{context}] delete_one failed: {e}")
-            return {"success": False, "error": str(e), "context": context}
-
-    # --------------------------
-    # Check connection
-    # --------------------------
-    def ping(self) -> bool:
-        try:
-            self.client.admin.command("ping")
-            return True
-        except Exception as e:
-            self.logger.error(f"Ping MongoDB falló: {e}")
-            return False
+        if force:
+            self.logger.info("♻️ Reiniciando instancia MongoDatabase por cierre forzado.")
+            self._client = None
+            self._db = None
+            self._initialized = False

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}Demo WebAuthn{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('frontend.static', filename='neo1.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/index.css') }}">
+    <!-- 🎨 CSS específico por vista -->
+    {% block css %}{% endblock %}
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('frontend.index') }}">🔐 WebAuthn Demo</a>
+            {% if session.get('user') %}
+            <form method="post" action="{{ url_for('frontend.logout') }}">
+                <button id="btn-logout" class="btn btn-outline-light btn-sm" type="submit">Cerrar sesión</button>
+            </form>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    {# JS desde blueprint o app principal #}
+   
+    <script type="module" src="{{ url_for('frontend.static', filename='js/api/ApiClientSecureAESWebAuthn.js') }}"></script>
+
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

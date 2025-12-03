@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{{ title or "Dashboard Usuario" }}
+{% endblock %}
+
+{% block css %}
+{# Preload CSS crítico para evitar FOUC #}
+<link rel="preload" href="{{ url_for('frontend.static', filename='css/dashboard_dark.css') }}" as="style" onload="this.rel='stylesheet'">
+<noscript>
+    <link rel="stylesheet" href="{{ url_for('frontend.static', filename='css/dashboard_dark.css') }}">
+</noscript>
+{% endblock %}
+
+{% block content %}
+<div id="dashboardContent" class="dashboard-container fade-in" hidden>
+    <!-- Sidebar + Header se mantienen -->
+    <div id="mainContent"></div> <!-- Contenedor dinámico -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('frontend.static', filename='js/roles/UserDashboard.js') }}"></script>
+{% endblock %}
+

@@ -18,7 +18,8 @@ class UserSessionModel:
         "expiration",
         "login",
         "refresh_token",
-        "close"
+        "close",
+        "manual"
     }
 
     STATUSES = {"active", "revoked", "expired"}

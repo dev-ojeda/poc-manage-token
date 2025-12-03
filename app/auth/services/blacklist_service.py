@@ -1,14 +1,19 @@
 from typing import Optional, Dict, Any
-from app.dao.blacklist_dao import TokenBlacklistDAO
+from app.core.base_service import BaseService
+from app.dao.tokenblacklist_dao import TokenBlacklistDAO
 
 
-class TokenBlacklistService:
+class TokenBlacklistService(BaseService):
     """
     Servicio para manejar tokens en la blacklist.
+    Hereda BaseService para logging y manejo seguro de errores.
     """
 
-    def __init__(self):
-        self.blacklist_dao = TokenBlacklistDAO()
+    dao: Optional[TokenBlacklistDAO] = None
+
+    def __init__(self, db=None, logger=None, dao: Optional[TokenBlacklistDAO] = None):
+        super().__init__(db=db, dao=dao, logger=logger)
+        self.dao = dao or TokenBlacklistDAO()
 
     # --------------------------
     # Revocar token
@@ -23,9 +28,11 @@ class TokenBlacklistService:
         """
         Revoca un token y lo registra en la blacklist.
         """
-        return self.blacklist_dao.revoke_token(
+        return self._safe_exec(
+            lambda: self.dao.revoke_token(
             token=token,
             device_id=device_id,
             username=username,
-            reason=reason
+            reason=reason),
+            context="revoke_token_blacklist"
         )

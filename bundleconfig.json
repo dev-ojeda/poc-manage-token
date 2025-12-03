@@ -1,0 +1,8 @@
+[
+  {
+    "outputFileName": "app/frontend/static/js/bootstrap.bundle.min.min.js",
+    "inputFiles": [
+      "app/frontend/static/js/bootstrap.bundle.min.js"
+    ]
+  }
+]

@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 
 class AuditLogModel:
-    VALID_EVENT_TYPES = {"ip_change", "user_agent_change", "revoked", "login", "logout", "refresh_token", "close", "session_update", "multiple_attempts", "expiration"}
+    VALID_EVENT_TYPES = {"ip_change", "user_agent_change", "revoked", "login", "logout", "refresh_token", "close", "session_update", "multiple_attempts", "expiration","manual"}
 
     def __init__(
         self,

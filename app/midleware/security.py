@@ -1,103 +1,186 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# middlewares/security.py
+import datetime
+import secrets
 import time
-import logging
 import traceback
 import uuid
-from flask import jsonify, request
-from flask.globals import g
+from flask import Flask, Response, jsonify, request, g
+from werkzeug.exceptions import HTTPException
 from app.auth.exceptions.auth_exceptions import AuthException
-
-IGNORED_PATHS = [
-    "/",
-    "/health",
-    "/static",
-    "/favicon.ico",
-    "/api/auth/admin/dashboard",
-    "/api/metrics/timeline",   # ✅ corregido singular
-    "/dashboard",
-    "/.well-known/appspecific/com.chrome.devtools.json",
-]
-
-IGNORED_ENDPOINTS = [
-    "/",
-    "/api/metrics/timeline",   # ✅ corregido singular
-    "/api/metrics/alerts",
-    "/api/metrics/performance",
-    "/api/auth/admin/dashboard",
-    "/dashboard",
-    "/.well-known/appspecific/com.chrome.devtools.json",
-]
+from app.logging_config import get_logger
 
 
-def is_ignored(path: str) -> bool:
-    """Revisa si el path debe excluirse de métricas y logging."""
-    return any(path == p or path.startswith(p + "/") for p in IGNORED_PATHS)
+logger = get_logger("SECURITY")
 
+def init_secure_headers(app: Flask) -> None:
+    """Inicializa middleware de seguridad, cabeceras y manejo global de errores."""
 
-def is_ignored_endpoints(path: str) -> bool:
-    """Revisa si el endpoints debe excluirse de métricas y logging."""
-    return any(path == p or path.startswith(p + "/") for p in IGNORED_ENDPOINTS)
-
-
-def init_secure_headers(app):
-   # =========================
-    # Before Request
-    # =========================
+    # ==========================
+    # BEFORE REQUEST
+    # ==========================
     @app.before_request
-    def before_request():
+    def before_request() -> None:
         if request.method == "OPTIONS":
             return "", 204
         g.start_time = time.perf_counter()
-        g.request_id = str(uuid.uuid4())   # ✅ correlación única por request
+        g.request_id = str(uuid.uuid4())
+        g.csp_nonce = secrets.token_urlsafe(16)
 
-    # =========================
-    # After Request
-    # =========================
+    # ==========================
+    # AFTER REQUEST
+    # ==========================
     @app.after_request
-    def set_headers(response):
-        duration = (time.perf_counter() - g.start_time) * 1000 if hasattr(g, "start_time") else 0
-        response.headers["X-App-Version"] = "1.0"
-        response.headers["X-Request-ID"] = g.get("request_id", "-")   # ✅ siempre presente
+    def set_headers(response: Response) -> Response:
+        start_time = getattr(g, "start_time", None)
+        duration = (time.perf_counter() - start_time) * 1000 if start_time else 0
 
-        # Seguridad
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-        response.headers["Referrer-Policy"] = "no-referrer"
-        ...
-        # Logging con request_id
+        # --- Content Security Policy (CSP) ---
+        if app.debug:
+            # --- Content Security Policy ---
+            csp_policy = (
+                "default-src 'self'; "
+                "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; "
+                "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+                "img-src 'self' data:; "
+                "font-src 'self' https://cdn.jsdelivr.net; "
+                "connect-src 'self'; "
+                "object-src 'none'; "
+                "base-uri 'self'; "
+                "frame-ancestors 'none'; "
+                "form-action 'self'; "
+                "upgrade-insecure-requests; "
+                "block-all-mixed-content;"
+            )
+        else:
+            # Producción: solo con nonce y sin inline
+            csp_policy = (
+                "default-src 'self'; "
+                f"script-src 'self' https://cdn.jsdelivr.net 'nonce-{g.csp_nonce}' 'unsafe-hashes'; "
+                f"style-src 'self' https://cdn.jsdelivr.net 'nonce-{g.csp_nonce}'; "
+                "img-src 'self' data:; "
+                "font-src 'self' https://cdn.jsdelivr.net; "
+                "connect-src 'self'; "
+                "object-src 'none'; "
+                "base-uri 'self'; "
+                "frame-ancestors 'none'; "
+                "form-action 'self'; "
+                "upgrade-insecure-requests; "
+                "block-all-mixed-content;"
+            )
+
+        # --- Security headers comunes ---
+        response.headers.update({
+            "X-App-Version": "1.0",
+            "Content-Security-Policy": csp_policy,
+            "X-Request-ID": g.get("request_id", "-"),
+            "X-Frame-Options": "DENY",
+            "X-Content-Type-Options": "nosniff",
+            "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+            "Referrer-Policy": "no-referrer",
+            "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp",
+        })
+
+        # --- Control de caché adaptativo ---
+        # Aplica "no-cache" solo a rutas autenticadas (ejemplo: /api, /auth, etc.)
+        if request.path.startswith(("/api", "/auth", "/user")):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, private"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        else:
+            # Recursos estáticos: permitir caché por 7 días
+            response.headers["Cache-Control"] = "public, max-age=604800"
+        # Evita caching de respuestas con tokens o cabeceras de autenticación
+        if "Authorization" in request.headers:
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, private"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        # --- Logging de request ---
         ip = request.headers.get("X-Forwarded-For", request.remote_addr)
-        ua = request.user_agent.string[:120]
-        log_msg = f"[{g.request_id}] ⏱ {request.method} {request.path} {response.status_code} - {duration:.2f} ms | {ip} | {ua}"
-        logging.info(log_msg)
-        ...
+        ua = request.user_agent.string.splitlines()[0][:120]
+        logger.info(
+            f"[{g.get('request_id', '-')}] ⏱ {request.method} {request.path} "
+            f"{response.status_code} - {duration:.2f} ms | {ip} | {ua}"
+        )
+        # --- Sanitización de posibles tokens JWT en la respuesta ---
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[1]
+            if token in str(response.headers) or token in str(response.data):
+                response.data = response.data.replace(token.encode(), b"[REDACTED]")
+                for header, value in list(response.headers.items()):
+                    if token in value:
+                        response.headers[header] = value.replace(token, "[REDACTED]")
+
+        # --- Declarar transporte de sesión basado en header ---
+        response.headers["X-Session-Token-Transport"] = "header"
+        response.headers["X-Token-Type"] = "Bearer"
+        response.headers["Vary"] = "Authorization"
         return response
 
-    # =========================
-    # Error Handlers
-    # =========================
+    # ==========================
+    # CONTEXT PROCESSOR
+    # ==========================
+    current_year = datetime.datetime.now().year
+
+    @app.context_processor
+    def inject_year():
+        return {"year": current_year, "csp_nonce": getattr(g, "csp_nonce", "")}
+
+    # ==========================
+    # HANDLERS DE ERRORES
+    # ==========================
     @app.errorhandler(AuthException)
-    def handle_auth_exception(e: AuthException):
+    def handle_auth_exception(e: AuthException) -> Response:
         error_id = g.get("request_id", str(uuid.uuid4()))
+        logger.error(f"[{error_id}] JWT EXCEPTION: {str(e)}")
         response = jsonify({**e.to_dict(), "error_id": error_id})
         response.status_code = e.status
         response.headers["X-Error-ID"] = error_id
         return response
 
-    @app.errorhandler(Exception)
-    def handle_generic_exception(e: Exception):
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(e: HTTPException) -> Response:
         error_id = g.get("request_id", str(uuid.uuid4()))
-        logging.error(f"[{error_id}] Unhandled Exception: {traceback.format_exc()}")
+        logger.error(f"[{error_id}] HTTP EXCEPTION: {e.name} ({e.code}) - {e.description}")
         response = jsonify({
-            "message": "Ha ocurrido un error inesperado. 🚨",
+            "message": e.description,
+            "code": e.name,
+            "status": e.code,
+            "error_id": error_id
+        })
+        response.status_code = e.code
+        response.headers["X-Error-ID"] = error_id
+        return response
+
+    @app.errorhandler(Exception)
+    def handle_generic_exception(e: Exception) -> Response:
+        error_id = g.get("request_id", str(uuid.uuid4()))
+        logger.error(f"[{error_id}] Unhandled Exception: {traceback.format_exc()}")
+        response = jsonify({
+            "message": "Ha ocurrido un error inesperado.",
             "code": "InternalServerError",
             "status": 500,
             "error_id": error_id,
-            "details": str(e) if app.debug else None,
-            "traceback": traceback.format_exc() if app.debug else None,
+            **({"details": str(e), "traceback": traceback.format_exc()} if app.debug else {})
         })
         response.status_code = 500
+        response.headers["X-Error-ID"] = error_id
+        return response
+
+    @app.errorhandler(429)
+    def ratelimit_handler(e: Exception) -> Response:
+        error_id = g.get("request_id", str(uuid.uuid4()))
+        logger.warning(f"[{error_id}] RATE LIMIT: {str(e)}")
+        response = jsonify({
+            "msg": "Demasiadas solicitudes, espera un poco",
+            "code": "RATE_LIMIT_EXCEEDED",
+            "limit": str(getattr(e, "description", "")),
+            "status": 429,
+            "error_id": error_id
+        })
+        response.status_code = 429
         response.headers["X-Error-ID"] = error_id
         return response

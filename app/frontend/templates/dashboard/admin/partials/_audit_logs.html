@@ -1,0 +1,42 @@
+<!-- Auditoría de logs -->
+<div id="audit-table" class="container my-4" style="display:none;">
+    <h2 class="mb-3">🔐 Auditoría</h2>
+    <div class="filters mb-2 d-flex gap-2 flex-wrap">
+        <input id="userIdInput" placeholder="User ID" class="form-control w-auto">
+        <select id="eventFilter" class="form-select w-auto">
+            <option value="">Todos los eventos</option>
+            <option value="ip_change">IP-CHANGE</option>
+            <option value="user_agent_change">AGENT-CHANGE</option>
+            <option value="revoked">REVOKED</option>
+            <option value="refresh_token">REFRESH TOKEN</option>
+            <option value="multiple_attempts">MULTIPLE ATTEMPTS</option>
+            <option value="expiration">EXPIRATION</option>
+        </select>
+        <input id="filterStart" type="date" class="form-control w-auto">
+        <input id="filterEnd" type="date" class="form-control w-auto">
+        <button id="applyFilters" class="btn btn-sm btn-outline-primary">Aplicar</button>
+        <button id="clearFilters" class="btn btn-sm btn-outline-secondary">Limpiar</button>
+    </div>
+    <div class="table-responsive">
+        <table id="logsTable" class="table table-striped table-hover table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th data-sort="timestamp">Timestamp</th>
+                    <th data-sort="event_type">Evento</th>
+                    <th data-sort="user_id">Usuario</th>
+                    <th data-sort="ip_address">IP</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="pagination-controls d-flex gap-2 align-items-center mt-2">
+        <button id="firstPageLog" class="btn btn-primary btn-sm">⏮ Inicio</button>
+        <button id="prevPageLog" class="btn btn-primary btn-sm">⬅ Anterior</button>
+        <span id="pageIndicatorLog"></span>
+        <button id="nextPageLog" class="btn btn-primary btn-sm">Siguiente ➡</button>
+        <button id="lastPageLog" class="btn btn-primary btn-sm">Fin ⏭</button>
+        <input id="jumpToPageLog" type="number" class="form-control d-inline-block" style="width:80px;" placeholder="Página" min="1">
+        <button id="goToPageLog" class="btn btn-success btn-sm">Ir</button>
+    </div>
+</div>

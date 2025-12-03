@@ -2,12 +2,12 @@ import datetime
 from flask import Blueprint, jsonify, request
 from app.auth.services.metrics_service import MetricService
 from app.auth.services.performance_metrics_api_services import PerformanceMetricsApiService
-from app.midleware.jwt_guard import admin_required
+from app.midleware.jwt_guard import jwt_admin_required
 from app.model.metrics_model import MetricModel
 from app.model.performance_metrics_api_model import PerformanceMetricApiModel
 from icecream import ic
 
-performance_bp = Blueprint("performance_bp", __name__)
+performance_bp = Blueprint("performance", __name__,url_prefix="/performance")
 # ============================================================
 # Helpers
 # ============================================================
@@ -27,7 +27,7 @@ def safe_jsonify(data, status: int = 200):
 # ---------- Insertar Métrica ----------
 # ---------- Insertar Métrica ----------
 @performance_bp.route("/metrics/create-metrics", methods=["POST"])
-@admin_required
+@jwt_admin_required
 def create_metric(user):
     metrics_services = MetricService()
     if not request.is_json:
@@ -78,7 +78,7 @@ def create_metric(user):
 
 # ---------- Alertas ----------
 @performance_bp.route("/metrics/alerts", methods=["GET"])
-@admin_required
+@jwt_admin_required
 def get_alerts(user):
     metrics_services = MetricService()
     try:
@@ -91,7 +91,7 @@ def get_alerts(user):
 
 # ---------- Timeline combinado ----------
 @performance_bp.route("/metrics/timelines", methods=["GET"])
-@admin_required
+@jwt_admin_required
 def timeline(user):
     """
     Devuelve en una sola respuesta:
@@ -128,7 +128,7 @@ def timeline(user):
 # Timelines combinadas (para tu JS: metrics + alerts)
 # =========================
 @performance_bp.route("/metrics/combined/timelines", methods=["GET"])
-@admin_required
+@jwt_admin_required
 def get_combined_timelines(user):
     """
     Devuelve métricas + alertas combinadas
